@@ -128,10 +128,16 @@ export default function CollaborateApp() {
     }
   };
 
-  // Watchdog timer: ensure INITIALIZING never hangs indefinitely
+  // Watchdog timer: ensure INITIALIZING never hangs indefinitely; fails to TEMPORARY_ERROR
   useEffect(() => {
     const watchdog = setTimeout(() => {
-      setAuthState((current) => (current === 'INITIALIZING' ? 'UNAUTHENTICATED' : current));
+      setAuthState((current) => {
+        if (current === 'INITIALIZING') {
+          setAuthErrorMessage('Authentication session check timed out. Please check your connection or retry.');
+          return 'TEMPORARY_ERROR';
+        }
+        return current;
+      });
     }, 7000);
     return () => clearTimeout(watchdog);
   }, []);

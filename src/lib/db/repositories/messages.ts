@@ -25,35 +25,22 @@ export class MessagesRepository {
       return await withNeonTransaction(async (client) => {
         const [p1, p2] = [senderId, recipientId].sort();
 
-        // Find or create conversation
-        let convRes = await client.query(
-          `SELECT id FROM conversations WHERE participant_one = $1 AND participant_two = $2`,
-          [p1, p2]
+        // Upsert conversation idempotently
+        const convInsertRes = await client.query(
+          `INSERT INTO conversations (
+             id, participant_one, participant_two, last_message_content, 
+             last_message_timestamp, last_message_sender, unread_count_one, 
+             unread_count_two, created_at, updated_at
+           ) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, $5, 0, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+           ON CONFLICT (participant_one, participant_two) DO UPDATE SET 
+             last_message_content = EXCLUDED.last_message_content,
+             last_message_timestamp = CURRENT_TIMESTAMP,
+             last_message_sender = EXCLUDED.last_message_sender,
+             updated_at = CURRENT_TIMESTAMP
+           RETURNING id`,
+          [`conv_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`, p1, p2, content, senderId]
         );
-
-        let convId: string;
-        if (convRes.rows.length === 0) {
-          convId = `conv_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
-          await client.query(
-            `INSERT INTO conversations (
-               id, participant_one, participant_two, last_message_content, 
-               last_message_timestamp, last_message_sender, unread_count_one, 
-               unread_count_two, created_at, updated_at
-             ) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, $5, 0, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-            [convId, p1, p2, content, senderId]
-          );
-        } else {
-          convId = convRes.rows[0].id;
-          await client.query(
-            `UPDATE conversations SET 
-               last_message_content = $1, 
-               last_message_timestamp = CURRENT_TIMESTAMP, 
-               last_message_sender = $2, 
-               updated_at = CURRENT_TIMESTAMP
-             WHERE id = $3`,
-            [content, senderId, convId]
-          );
-        }
+        const convId = convInsertRes.rows[0].id;
 
         // Insert direct message
         const msgId = `msg_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;

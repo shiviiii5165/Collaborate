@@ -174,7 +174,7 @@ export function buildServer(): FastifyInstance {
     if (!member) {
       return reply.status(404).send({ error: 'Member not found' });
     }
-    return reply.send({ authenticated: true, user: member });
+    return reply.send({ authenticated: true, member, user: member, session: req.user });
   });
 
   // ============================================================================
@@ -221,7 +221,7 @@ export function buildServer(): FastifyInstance {
       education: updates.education || existing.education,
     };
 
-    durableDb.saveMember(updatedMember);
+    await durableDb.saveMemberAsync(updatedMember);
     return reply.send({ success: true, profile: updatedMember });
   });
 
@@ -269,44 +269,45 @@ export function buildServer(): FastifyInstance {
   });
 
   fastify.post('/api/connections', { preHandler: authenticate }, async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
-    const { action, targetUserId, connectionId, introMessage } = req.body || {};
+    const { action, targetUserId, toId, targetMemberId, recipientId, connectionId, introMessage } = req.body || {};
     const userId = req.user!.userId;
+    const targetId = targetUserId || toId || targetMemberId || recipientId;
 
-    if (action === 'send' || action === 'request') {
-      if (!targetUserId) return reply.status(400).send({ error: 'targetUserId required' });
+    if (action === 'send' || action === 'request' || action === 'send_request') {
+      if (!targetId) return reply.status(400).send({ error: 'targetUserId or toId required' });
 
-      const target = durableDb.getMemberById(targetUserId);
+      const target = durableDb.getMemberById(targetId);
       if (!target) return reply.status(404).send({ error: 'Target member not found' });
 
       const sender = durableDb.getMemberById(userId);
       const contactGate = canInitiateContact(
         { id: userId, isUnder18: sender?.isUnder18 },
-        { id: targetUserId, isUnder18: target.isUnder18 }
+        { id: targetId, isUnder18: target.isUnder18 }
       );
       if (!contactGate.allowed) {
         return reply.status(403).send({ error: 'SAFEGUARDING_RESTRICTION', message: contactGate.reason });
       }
 
-      const conn = durableDb.sendConnectionRequest(userId, targetUserId, introMessage);
-      return reply.send({ success: true, connection: conn });
+      const conn = await durableDb.sendConnectionRequestAsync(userId, targetId, introMessage);
+      return reply.status(201).send({ success: true, connection: conn });
     }
 
     if (action === 'accept' || action === 'decline' || action === 'reject') {
       if (!connectionId) return reply.status(400).send({ error: 'connectionId required' });
       const status = action === 'accept' ? 'accept' : 'reject';
-      const updated = durableDb.respondToConnection(connectionId, userId, status);
+      const updated = await durableDb.respondToConnectionAsync(connectionId, userId, status);
       return reply.send({ success: true, connection: updated });
     }
 
     if (action === 'block') {
-      if (!targetUserId) return reply.status(400).send({ error: 'targetUserId required' });
-      durableDb.blockMember(userId, targetUserId);
+      if (!targetId) return reply.status(400).send({ error: 'targetMemberId or targetUserId required' });
+      await durableDb.blockMemberAsync(userId, targetId);
       return reply.send({ success: true, blocked: true });
     }
 
     if (action === 'unblock') {
-      if (!targetUserId) return reply.status(400).send({ error: 'targetUserId required' });
-      durableDb.unblockMember(userId, targetUserId);
+      if (!targetId) return reply.status(400).send({ error: 'targetMemberId or targetUserId required' });
+      durableDb.unblockMember(userId, targetId);
       return reply.send({ success: true, unblocked: true });
     }
 
@@ -359,7 +360,7 @@ export function buildServer(): FastifyInstance {
       return reply.status(403).send({ error: 'MESSAGING_NOT_CONNECTED', message: 'Messaging only allowed between accepted connections' });
     }
 
-    const msg = durableDb.sendMessage(userId, recipientId, content);
+    const msg = await durableDb.sendMessageAsync(userId, recipientId, content);
     return reply.status(201).send({ success: true, message: msg });
   });
 

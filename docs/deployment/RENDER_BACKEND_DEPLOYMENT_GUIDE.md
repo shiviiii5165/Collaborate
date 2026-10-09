@@ -30,7 +30,7 @@ In the **Environment** tab on Render, add:
 ```text
 NODE_ENV=production
 PORT=4000
-DATABASE_URL=postgresql://postgres.noeapdkpcilldhkymzrv:sHivam%408025@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres?sslmode=require
+DATABASE_URL=postgresql://postgres.noeapdkpcilldhkymzrv:[SUPABASE_DATABASE_PASSWORD]@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres?sslmode=require
 AUTH_SECRET=collaborate_production_secret_key_2026_at_least_32_bytes_long
 SESSION_SECRET=collaborate_production_session_signing_secret_2026
 NEXT_PUBLIC_APP_URL=https://collaborate-umber.vercel.app

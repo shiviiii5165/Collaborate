@@ -1,5 +1,6 @@
 import { Pool as NeonPool } from '@neondatabase/serverless';
 import { Pool as PgPool } from 'pg';
+import { getPostgresSslOptions } from './ssl';
 
 // Assert production database presence
 export function isNeonConfigured(): boolean {
@@ -58,12 +59,17 @@ export function getNeonPool(): AnyPool | null {
       });
     } else {
       const cleanUrl = url.replace(/[?&]sslmode=[^&]+/g, '').replace(/\?$/, '');
+      const sslConfig = getPostgresSslOptions(cleanUrl);
       poolInstance = new PgPool({
         connectionString: cleanUrl,
-        ssl: { rejectUnauthorized: false },
+        ssl: sslConfig,
         max: 10,
         idleTimeoutMillis: 30000,
         connectionTimeoutMillis: 10000,
+      });
+
+      poolInstance.on('error', (err: Error) => {
+        console.error('[DATABASE_TLS_ERROR] PostgreSQL client connection error:', err.message);
       });
     }
   }

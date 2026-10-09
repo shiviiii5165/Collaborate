@@ -1,16 +1,47 @@
+const fs = require('fs');
+const path = require('path');
 const { Pool } = require('pg');
 
-const rawUrl = process.env.DATABASE_URL || 'postgresql://postgres.noeapdkpcilldhkymzrv:sHivam%408025@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres?sslmode=require';
+// Read .env if DATABASE_URL not in process.env
+let rawUrl = process.env.DATABASE_URL;
+if (!rawUrl) {
+  const envPath = path.join(__dirname, '..', '.env');
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    const match = envContent.match(/DATABASE_URL=["']?([^"'\r\n]+)["']?/);
+    if (match) {
+      rawUrl = match[1];
+    }
+  }
+}
+
+if (!rawUrl) {
+  console.error('FATAL: DATABASE_URL is not set.');
+  process.exit(1);
+}
+
 const cleanUrl = rawUrl.replace(/[?&]sslmode=[^&]+/g, '').replace(/\?$/, '');
+const certPath = path.join(__dirname, '..', 'src', 'lib', 'db', 'certs', 'supabase-root-ca.pem');
+
+let sslConfig = { rejectUnauthorized: true };
+if (fs.existsSync(certPath)) {
+  const ca = fs.readFileSync(certPath, 'utf8');
+  const urlObj = new URL(cleanUrl);
+  sslConfig = {
+    ca,
+    rejectUnauthorized: true,
+    servername: urlObj.hostname,
+  };
+}
 
 const pool = new Pool({
   connectionString: cleanUrl,
-  ssl: { rejectUnauthorized: false },
-  connectionTimeoutMillis: 5000,
+  ssl: sslConfig,
+  connectionTimeoutMillis: 10000,
 });
 
 async function verify() {
-  console.log('1. Testing SELECT NOW() & PostgreSQL Version...');
+  console.log('1. Testing SELECT NOW() & PostgreSQL Version with strict TLS...');
   const t = await pool.query('SELECT NOW() AS now, version() AS ver');
   console.log('   PostgreSQL Time:', t.rows[0].now);
   console.log('   PostgreSQL Version:', t.rows[0].ver.split(',')[0]);
@@ -39,26 +70,27 @@ async function verify() {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    const rbId = 'test_rb_' + Date.now();
     await client.query(
       'INSERT INTO members (id, email, full_name, role, plan, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, NOW(), NOW())',
-      ['rollback_test_id', 'rollback@test.internal', 'Rollback User', 'member', 'free']
+      [rbId, rbId + '@test.internal', 'Rollback User', 'member', 'free']
     );
     await client.query('ROLLBACK');
-    console.log('   ROLLBACK executed successfully.');
+    const check = await pool.query('SELECT id FROM members WHERE id = $1', [rbId]);
+    if (check.rows.length === 0) {
+      console.log('   Rollback verified successfully! Uncommitted row was not persisted.');
+    } else {
+      throw new Error('Rollback failed: row exists!');
+    }
   } finally {
     client.release();
   }
 
-  const checkRb = await pool.query('SELECT * FROM members WHERE id = $1', ['rollback_test_id']);
-  console.log('   Verified rolled back row count (expected 0):', checkRb.rows.length);
-
+  console.log('\nAll Supabase database runtime integration tests PASSED with strict TLS!');
   await pool.end();
-  console.log('========================================================================');
-  console.log('   SUPABASE POSTGRESQL RUNTIME CONNECTIVITY: 100% VERIFIED');
-  console.log('========================================================================');
 }
 
-verify().catch(e => {
-  console.error('DATABASE CONNECTIVITY ERROR:', e);
+verify().catch((err) => {
+  console.error('FATAL Verification Failure:', err);
   process.exit(1);
 });
