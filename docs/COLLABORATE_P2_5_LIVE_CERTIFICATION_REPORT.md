@@ -43,7 +43,8 @@ In strict compliance with Phase P2.5 directives, every architectural component a
 ## 1. ACTUAL GIT COMMIT
 
 - **Baseline Commit:** `dedcd57` (`feat(p2): Neon repositories, anti-takeover OIDC, fail-closed runtime, distributed SSE with Last-Event-ID, and Gates A-J certification`)
-- **P2.5 Active Working Tree:** Enhanced with:
+- **Phase P2.5 Integration Commit:** `1fe8668` (`feat(p2.5): dual persistence bridge, student safety safeguards, 17-step staging acceptance journey, and Gates A-J live certification report`)
+- **P2.5 Key Enhancements:**
   - Repository delegation hooks in [src/lib/db/index.ts](file:///E:/Collaborate/src/lib/db/index.ts) linking memory/disk writes to Neon repositories when `isNeonConfigured()` is active.
   - Badge revocation support in [src/lib/db/repositories/verification.ts](file:///E:/Collaborate/src/lib/db/repositories/verification.ts) with `recordRevocation` and audit logging.
   - Multi-instance distributed message replay in [src/lib/db/repositories/messages.ts](file:///E:/Collaborate/src/lib/db/repositories/messages.ts) (`getMissedMessages`, `getNewMessagesForRecipient`).
