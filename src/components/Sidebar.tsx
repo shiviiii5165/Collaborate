@@ -88,6 +88,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           className={`nav-link-btn ${currentTab === 'connections' ? 'active' : ''}`}
           onClick={() => onNavigate('connections')}
+          aria-label="Connections"
         >
           <div className="left-grp">
             <Users size={18} />
@@ -96,88 +97,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </button>
 
         <button
-          className="nav-link-btn"
-          onClick={() =>
-            setInfoModal({
-              title: 'Academic & Institutional Communities',
-              desc: 'Institutional Communities are curated and moderated directly by verified university and research partners. Once your institution link is active, your campus groups will appear here.',
-              icon: Users,
-            })
-          }
-        >
-          <div className="left-grp">
-            <Users size={18} />
-            <span>Communities</span>
-          </div>
-        </button>
-
-        <button
-          className="nav-link-btn"
-          onClick={() =>
-            setInfoModal({
-              title: 'Project Teams & Collaboration Stacks',
-              desc: 'Project Teams allow you to assemble cross-functional teams with verified peers on approved AI Tathastu repositories and open research challenges.',
-              icon: FolderGit2,
-            })
-          }
-        >
-          <div className="left-grp">
-            <FolderGit2 size={18} />
-            <span>Project Teams</span>
-          </div>
-        </button>
-
-        <button
-          className="nav-link-btn"
-          onClick={() =>
-            setInfoModal({
-              title: 'Academic & Research Opportunities',
-              desc: 'Curated research fellowships, academic internships, and open-source lab calls. This directory is populated directly by verified faculty and partner organizations.',
-              icon: Briefcase,
-            })
-          }
-        >
-          <div className="left-grp">
-            <Briefcase size={18} />
-            <span>Opportunities</span>
-          </div>
-        </button>
-
-        <button
-          className="nav-link-btn"
-          onClick={() =>
-            setInfoModal({
-              title: 'Tathastu Tech Events & Hackathons',
-              desc: 'Upcoming technical symposiums, AI hackathons, and research webinars across the Tathastu ecosystem.',
-              icon: Calendar,
-            })
-          }
-        >
-          <div className="left-grp">
-            <Calendar size={18} />
-            <span>Events</span>
-          </div>
-        </button>
-
-        <button
-          className="nav-link-btn"
-          onClick={() =>
-            setInfoModal({
-              title: 'Verified Industry Mentors',
-              desc: 'Access verified engineering leads and research mentors for code reviews and career guidance within the Collaborate network.',
-              icon: GraduationCap,
-            })
-          }
-        >
-          <div className="left-grp">
-            <GraduationCap size={18} />
-            <span>Mentors</span>
-          </div>
-        </button>
-
-        <button
           className={`nav-link-btn ${currentTab === 'saved' ? 'active' : ''}`}
           onClick={() => onNavigate('saved')}
+          aria-label="Saved items"
         >
           <div className="left-grp">
             <Bookmark size={18} />
@@ -187,19 +109,40 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <button
           className="nav-link-btn"
+          aria-label="View authentic profile analytics"
           onClick={() =>
             setInfoModal({
-              title: 'Professional Profile Analytics',
-              desc: `Authentic Network Metrics: ${currentUser?.metrics?.projects || 0} projects published, ${currentUser?.metrics?.skills || 0} verified skills, ${currentUser?.statusBadges?.length || 0} status badges. Identity status: ${currentUser?.isVerified ? 'Admin Verified' : 'Standard Member'}.`,
+              title: 'Authentic Profile Analytics',
+              desc: `Network Verified Metrics: ${currentUser?.metrics?.projects || 0} projects published, ${currentUser?.metrics?.skills || 0} skills listed, ${currentUser?.statusBadges?.length || 0} status badges. Account tier: ${currentUser?.plan === 'premium' ? 'Premium Unlimited' : 'Free Tier (3 daily profile views)'}. Verification status: ${currentUser?.isVerified ? 'Admin Verified' : 'Standard Member'}.`,
               icon: BarChart2,
             })
           }
         >
           <div className="left-grp">
             <BarChart2 size={18} />
-            <span>Analytics</span>
+            <span>Profile Stats</span>
           </div>
         </button>
+      </div>
+
+      {/* Beta Scope Notice */}
+      <div
+        style={{
+          background: '#F8FAFC',
+          border: '1px solid #E2E8F0',
+          borderRadius: 12,
+          padding: '12px 14px',
+          marginBottom: 14,
+          fontSize: '0.78rem',
+          color: '#64748B',
+          lineHeight: 1.45,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, fontWeight: 700, color: '#334155' }}>
+          <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#10B981' }} />
+          Independent Beta Scope
+        </div>
+        Active modules: Profiles, People Discovery, Mutual Connections, Direct Messaging & Settings. Communities & Teams activate upon Core federation.
       </div>
 
       {/* Switch to Ecosystem Card */}

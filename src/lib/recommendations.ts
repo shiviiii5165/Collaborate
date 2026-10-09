@@ -142,5 +142,17 @@ export function getRecommendationsForMember(
 
   // Sort descending by match score
   candidates.sort((a, b) => b.matchScore - a.matchScore);
-  return candidates.slice(0, limit);
+
+  // Deduplicate by name to prevent multiple test accounts with identical names from crowding the recommendation rail
+  const seenNames = new Set<string>();
+  const uniqueCandidates: RecommendationMatch[] = [];
+  for (const c of candidates) {
+    const key = c.member.fullName.toLowerCase().trim();
+    if (!seenNames.has(key)) {
+      seenNames.add(key);
+      uniqueCandidates.push(c);
+    }
+  }
+
+  return uniqueCandidates.slice(0, limit);
 }
