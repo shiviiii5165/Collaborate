@@ -100,4 +100,50 @@ export class MessagesRepository {
     assertDatabaseAvailable();
     return [];
   }
+
+  public static async getMissedMessages(
+    recipientId: string,
+    lastEventId: string
+  ): Promise<DirectMessage[]> {
+    if (isNeonConfigured()) {
+      const rows = await queryNeon<any>(
+        `SELECT * FROM direct_messages WHERE recipient_id = $1 AND id > $2 ORDER BY created_at ASC`,
+        [recipientId, lastEventId]
+      );
+      return rows.map((r) => ({
+        id: r.id,
+        conversationId: r.conversation_id,
+        senderId: r.sender_id,
+        recipientId: r.recipient_id,
+        content: r.content,
+        timestamp: new Date(r.created_at).toISOString(),
+        status: r.status as any,
+      }));
+    }
+    assertDatabaseAvailable();
+    return [];
+  }
+
+  public static async getNewMessagesForRecipient(
+    recipientId: string,
+    sinceTimestamp: string
+  ): Promise<DirectMessage[]> {
+    if (isNeonConfigured()) {
+      const rows = await queryNeon<any>(
+        `SELECT * FROM direct_messages WHERE recipient_id = $1 AND created_at > $2 ORDER BY created_at ASC`,
+        [recipientId, sinceTimestamp]
+      );
+      return rows.map((r) => ({
+        id: r.id,
+        conversationId: r.conversation_id,
+        senderId: r.sender_id,
+        recipientId: r.recipient_id,
+        content: r.content,
+        timestamp: new Date(r.created_at).toISOString(),
+        status: r.status as any,
+      }));
+    }
+    assertDatabaseAvailable();
+    return [];
+  }
 }

@@ -35,8 +35,16 @@ jobs:
       - name: Security audit
         run: npm audit --audit-level=high || true
 
-      - name: Run E2E & security regression tests
-        run: node tests/e2e_verification.mjs
+      - name: Start Next.js Server
+        run: |
+          npx next start -p 3001 &
+          sleep 4
         env:
           COLLABORATE_ALLOW_LOCAL_STORAGE: 'true'
           COLLABORATE_ENABLE_FIXTURES: 'true'
+
+      - name: Run E2E & security regression tests
+        run: node tests/e2e_verification.mjs
+
+      - name: Run Staging Acceptance Journey
+        run: node tests/staging_acceptance_journey.mjs

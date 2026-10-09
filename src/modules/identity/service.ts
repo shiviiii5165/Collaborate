@@ -9,7 +9,8 @@ export class IdentityService {
   public static async registerStandalone(
     email: string,
     password: string,
-    fullName: string
+    fullName: string,
+    isUnder18: boolean = false
   ): Promise<{ member: MemberProfile; token: string }> {
     const cleanEmail = email.toLowerCase().trim();
     if (!cleanEmail || !cleanEmail.includes('@')) {
@@ -70,6 +71,7 @@ export class IdentityService {
         autoSyncSkills: false,
         autoSyncAchievements: false,
       },
+      isUnder18: Boolean(isUnder18),
       role: 'member',
     };
 

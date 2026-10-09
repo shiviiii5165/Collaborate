@@ -86,4 +86,44 @@ export class VerificationRepository {
     assertDatabaseAvailable();
     throw new Error('Database unavailable');
   }
+
+  public static async recordRevocation(
+    memberId: string,
+    reviewerId: string,
+    notes: string
+  ): Promise<VerificationAuditLog> {
+    if (isNeonConfigured()) {
+      return await withNeonTransaction(async (client) => {
+        await client.query(
+          `UPDATE members
+           SET is_verified = FALSE, verified_category = NULL, verified_at = NULL, updated_at = CURRENT_TIMESTAMP
+           WHERE id = $1`,
+          [memberId]
+        );
+
+        const auditId = `audit_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
+        const auditRes = await client.query(
+          `INSERT INTO verification_audit_logs (id, request_id, member_id, action, reviewer, category, notes, timestamp)
+           VALUES ($1, 'revocation', $2, 'revoked', $3, 'identity', $4, CURRENT_TIMESTAMP)
+           RETURNING *`,
+          [auditId, memberId, reviewerId, notes]
+        );
+
+        const a = auditRes.rows[0];
+        return {
+          id: a.id,
+          requestId: a.request_id,
+          memberId: a.member_id,
+          action: a.action as any,
+          reviewer: a.reviewer,
+          category: a.category,
+          notes: a.notes,
+          timestamp: new Date(a.timestamp).toISOString(),
+        };
+      });
+    }
+
+    assertDatabaseAvailable();
+    throw new Error('Database unavailable');
+  }
 }

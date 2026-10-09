@@ -11,6 +11,12 @@ import {
   ProfileViewLedgerEntry,
 } from '@/lib/types';
 import { assertDatabaseAvailable, isNeonConfigured } from './neon';
+import { MembersRepository } from './repositories/members';
+import { ConnectionsRepository } from './repositories/connections';
+import { MessagesRepository } from './repositories/messages';
+import { QuotaRepository } from './repositories/quota';
+import { VerificationRepository } from './repositories/verification';
+import { NotificationsRepository } from './repositories/notifications';
 
 export function getKolkataDateKey(): string {
   const now = new Date();
@@ -97,7 +103,12 @@ class DurableCollaborateDatabase {
       }
       const tmpPath = `${DATA_FILE_PATH}.tmp`;
       fs.writeFileSync(tmpPath, JSON.stringify(this.state, null, 2), 'utf-8');
-      fs.renameSync(tmpPath, DATA_FILE_PATH);
+      try {
+        fs.renameSync(tmpPath, DATA_FILE_PATH);
+      } catch {
+        fs.copyFileSync(tmpPath, DATA_FILE_PATH);
+        try { fs.unlinkSync(tmpPath); } catch {}
+      }
     } catch (err) {
       console.error('Failed to persist database state to disk', err);
     } finally {
@@ -554,6 +565,11 @@ class DurableCollaborateDatabase {
   public saveMember(member: MemberProfile): void {
     this.state.members[member.id] = member;
     this.persistToDisk();
+    if (isNeonConfigured()) {
+      MembersRepository.saveMember(member).catch((err) => {
+        console.error('Failed to sync member to Neon:', err);
+      });
+    }
   }
 
   public getAllMembers(): MemberProfile[] {
@@ -653,6 +669,12 @@ class DurableCollaborateDatabase {
     uniqueTargets.add(targetId);
     this.persistToDisk();
 
+    if (isNeonConfigured()) {
+      QuotaRepository.recordViewIfEligible(viewerId, targetId, dateKey, false).catch((err) => {
+        console.error('Failed to sync profile view to Neon:', err);
+      });
+    }
+
     return { allowed: true, remaining: Math.max(0, 3 - uniqueTargets.size), alreadyViewedToday: false };
   }
 
@@ -695,6 +717,11 @@ class DurableCollaborateDatabase {
     };
     this.state.connections[record.id] = record;
     this.persistToDisk();
+    if (isNeonConfigured()) {
+      ConnectionsRepository.setStatus(fromId, toId, 'request_sent', introMessage).catch((err) => {
+        console.error('Failed to sync connection request to Neon:', err);
+      });
+    }
     return record;
   }
 
@@ -715,6 +742,11 @@ class DurableCollaborateDatabase {
     }
     conn.updatedAt = new Date().toISOString();
     this.persistToDisk();
+    if (isNeonConfigured()) {
+      ConnectionsRepository.setStatus(conn.requesterId, conn.recipientId, conn.status).catch((err) => {
+        console.error('Failed to sync connection response to Neon:', err);
+      });
+    }
     return conn;
   }
 
@@ -745,6 +777,11 @@ class DurableCollaborateDatabase {
       conn.updatedAt = new Date().toISOString();
     }
     this.persistToDisk();
+    if (isNeonConfigured()) {
+      ConnectionsRepository.blockUser(blockerId, blockedId).catch((err) => {
+        console.error('Failed to sync block to Neon:', err);
+      });
+    }
   }
 
   public isBlocked(userA: string, userB: string): boolean {
@@ -807,6 +844,11 @@ class DurableCollaborateDatabase {
 
     this.state.messages.push(msg);
     this.persistToDisk();
+    if (isNeonConfigured()) {
+      MessagesRepository.sendMessage(senderId, recipientId, content).catch((err) => {
+        console.error('Failed to sync message to Neon:', err);
+      });
+    }
     return msg;
   }
 
@@ -896,6 +938,11 @@ class DurableCollaborateDatabase {
     };
     this.state.verificationAuditLogs.push(audit);
     this.persistToDisk();
+    if (isNeonConfigured()) {
+      VerificationRepository.recordDecision(requestId, reviewerId, decision, notes).catch((err) => {
+        console.error('Failed to sync verification decision to Neon:', err);
+      });
+    }
     return req;
   }
 
@@ -918,6 +965,11 @@ class DurableCollaborateDatabase {
     };
     this.state.verificationAuditLogs.push(audit);
     this.persistToDisk();
+    if (isNeonConfigured()) {
+      VerificationRepository.recordRevocation(memberId, reviewerId, reason).catch((err) => {
+        console.error('Failed to sync verification revocation to Neon:', err);
+      });
+    }
   }
 
   public getAllVerificationRequests(): VerificationRequest[] {
@@ -948,6 +1000,11 @@ class DurableCollaborateDatabase {
     };
     this.state.notifications.unshift(notif);
     this.persistToDisk();
+    if (isNeonConfigured()) {
+      NotificationsRepository.addNotification(recipientId, type, title, body, actorId).catch((err) => {
+        console.error('Failed to sync notification to Neon:', err);
+      });
+    }
     return notif;
   }
 

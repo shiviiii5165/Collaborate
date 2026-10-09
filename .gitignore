@@ -27,3 +27,7 @@ yarn-error.log*
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# Backups and temporary files
+data/backups/
+*.tmp

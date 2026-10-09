@@ -68,6 +68,23 @@ export async function POST(req: NextRequest) {
       if (!toId) return NextResponse.json({ error: 'Target member ID required' }, { status: 400 });
       if (toId === currentUserId) return NextResponse.json({ error: 'Cannot connect with self' }, { status: 400 });
 
+      const targetMember = durableDb.getMemberById(toId);
+      if (!targetMember) {
+        return NextResponse.json({ error: 'Target member not found' }, { status: 404 });
+      }
+
+      const senderMember = durableDb.getMemberById(currentUserId);
+
+      // Student Safety: Restrict unsolicited adult-to-minor requests
+      if (targetMember.isUnder18 && senderMember && !senderMember.isUnder18 && senderMember.role !== 'admin') {
+        if (!senderMember.isVerified || senderMember.verifiedCategory !== 'institution') {
+          return NextResponse.json(
+            { error: 'SAFETY_RESTRICTION: Direct connection requests to student accounts under 18 require institutional affiliation or verified academic standing.' },
+            { status: 403 }
+          );
+        }
+      }
+
       const conn = durableDb.sendConnectionRequest(currentUserId, toId, introMessage);
       
       const sender = durableDb.getMemberById(currentUserId);

@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server';
 import { durableDb } from '@/lib/db/index';
 import { getSession } from '@/lib/auth/session';
+import { isNeonConfigured } from '@/lib/db/neon';
+import { MessagesRepository } from '@/lib/db/repositories/messages';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +28,7 @@ export async function GET(req: NextRequest) {
   let lastCheckedTime = new Date().toISOString();
 
   const stream = new ReadableStream({
-    start(controller) {
+    async start(controller) {
       const sendEvent = (event: string, data: any, id?: string) => {
         if (isClosed) return;
         const idHeader = id ? `id: ${id}\n` : '';
@@ -38,24 +40,44 @@ export async function GET(req: NextRequest) {
 
       // Replay any missed messages if lastEventId was provided
       if (lastEventId) {
-        const missed = durableDb.messages.filter(
-          (m) => m.recipientId === userId && m.id > lastEventId
-        );
-        for (const msg of missed) {
-          sendEvent('message', msg, msg.id);
+        if (isNeonConfigured()) {
+          try {
+            const missed = await MessagesRepository.getMissedMessages(userId, lastEventId);
+            for (const msg of missed) {
+              sendEvent('message', msg, msg.id);
+            }
+          } catch (err) {
+            console.error('Error fetching missed messages from Neon:', err);
+          }
+        } else {
+          const missed = durableDb.messages.filter(
+            (m) => m.recipientId === userId && m.id > lastEventId
+          );
+          for (const msg of missed) {
+            sendEvent('message', msg, msg.id);
+          }
         }
       }
 
-      const interval = setInterval(() => {
+      const interval = setInterval(async () => {
         if (isClosed) {
           clearInterval(interval);
           return;
         }
 
         // Check for new messages since lastCheckedTime
-        const newMsgs = durableDb.messages.filter(
-          (m) => m.recipientId === userId && m.timestamp > lastCheckedTime
-        );
+        let newMsgs: any[] = [];
+        if (isNeonConfigured()) {
+          try {
+            newMsgs = await MessagesRepository.getNewMessagesForRecipient(userId, lastCheckedTime);
+          } catch (err) {
+            console.error('Error checking new messages from Neon:', err);
+          }
+        } else {
+          newMsgs = durableDb.messages.filter(
+            (m) => m.recipientId === userId && m.timestamp > lastCheckedTime
+          );
+        }
 
         if (newMsgs.length > 0) {
           for (const msg of newMsgs) {

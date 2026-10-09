@@ -11,6 +11,7 @@ const ProfileUpdateSchema = z.object({
   statusBadges: z.array(z.string().max(64)).max(10).optional(),
   profileVisibility: z.enum(['public', 'connections_only', 'private']).optional(),
   contactVisibility: z.enum(['connections_only', 'hidden']).optional(),
+  isUnder18: z.boolean().optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -132,6 +133,7 @@ export async function PUT(req: NextRequest) {
     if (validated.statusBadges !== undefined) member.statusBadges = validated.statusBadges;
     if (validated.profileVisibility !== undefined) member.profileVisibility = validated.profileVisibility;
     if (validated.contactVisibility !== undefined) member.contactVisibility = validated.contactVisibility;
+    if (validated.isUnder18 !== undefined) member.isUnder18 = validated.isUnder18;
 
     // Preserve local override so Core sync does not overwrite custom headline/about
     member.tathastuSyncStatus = 'synced';

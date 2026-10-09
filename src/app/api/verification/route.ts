@@ -92,15 +92,14 @@ export async function POST(req: NextRequest) {
 
     // 3. Admin Revocation — RBAC Required!
     if (action === 'revoke') {
-      const reviewerId = session?.userId || 'usr_admin';
-      const isAuthorizedAdmin = session?.role === 'admin' || reviewerId === 'usr_admin';
-
-      if (!isAuthorizedAdmin) {
+      if (!session || session.role !== 'admin') {
         return NextResponse.json(
           { error: 'FORBIDDEN: Administrative capabilities required to revoke badges' },
           { status: 403 }
         );
       }
+
+      const reviewerId = session.userId;
 
       if (!memberId) {
         return NextResponse.json({ error: 'Member ID required for revocation' }, { status: 400 });
