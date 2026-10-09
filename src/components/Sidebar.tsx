@@ -110,13 +110,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           className="nav-link-btn"
           aria-label="View authentic profile analytics"
-          onClick={() =>
+          onClick={async () => {
+            if (!currentUser) return;
+            try {
+              const res = await fetch(`/api/stats?userId=${currentUser.id}`);
+              const data = await res.json();
+              if (data.stats) {
+                const s = data.stats;
+                setInfoModal({
+                  title: 'Authentic Network Metrics',
+                  desc: `Measured Profile Metrics:
+• Published Projects: ${s.publishedProjects}
+• Listed Skills: ${s.listedSkills}
+• Accepted Connections: ${s.connectionsCount}
+• Daily Profile Views: ${s.dailyViewsUsed} used (${s.dailyViewsRemaining} remaining)
+• Inbound Profile Views: ${s.totalReceivedViews} legitimate peer views recorded
+• Membership Tier: ${s.plan === 'premium' ? 'Premium Unlimited' : 'Free Tier'}
+• Verification Status: ${s.isVerified ? `Admin Verified (${s.verifiedCategory || 'Identity'})` : 'Standard Member'}
+
+Privacy Safeguard: In accordance with student & member privacy protections, individual viewer identities are kept strictly anonymous.`,
+                  icon: BarChart2,
+                });
+                return;
+              }
+            } catch {}
             setInfoModal({
               title: 'Authentic Profile Analytics',
-              desc: `Network Verified Metrics: ${currentUser?.metrics?.projects || 0} projects published, ${currentUser?.metrics?.skills || 0} skills listed, ${currentUser?.statusBadges?.length || 0} status badges. Account tier: ${currentUser?.plan === 'premium' ? 'Premium Unlimited' : 'Free Tier (3 daily profile views)'}. Verification status: ${currentUser?.isVerified ? 'Admin Verified' : 'Standard Member'}.`,
+              desc: `Network Verified Metrics: ${currentUser.projects?.length || 0} projects published, ${currentUser.skills?.length || 0} skills listed. Tier: ${currentUser.plan === 'premium' ? 'Premium' : 'Free'}.`,
               icon: BarChart2,
-            })
-          }
+            });
+          }}
         >
           <div className="left-grp">
             <BarChart2 size={18} />

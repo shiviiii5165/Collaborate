@@ -11,7 +11,23 @@ export function assertDatabaseAvailable(): void {
     return;
   }
 
-  if (process.env.COLLABORATE_ALLOW_LOCAL_STORAGE === 'true') {
+  // In cloud deployments (e.g. Vercel, staging, cloud VMs), local storage overrides are strictly forbidden
+  const isCloudRuntime = Boolean(
+    process.env.VERCEL ||
+    process.env.VERCEL_ENV ||
+    process.env.RENDER ||
+    process.env.FLY_APP_NAME ||
+    process.env.AWS_REGION
+  );
+
+  if (isCloudRuntime && !isNeonConfigured()) {
+    throw new Error(
+      'FATAL: Production database unavailable. DATABASE_URL must be configured with a valid Neon PostgreSQL connection string. In public cloud deployments, local storage overrides are strictly forbidden. Collaborate fails closed to prevent silent data divergence or insecure ephemeral persistence.'
+    );
+  }
+
+  // Local development & test runner override permitted strictly on local developer machines
+  if (process.env.COLLABORATE_ALLOW_LOCAL_STORAGE === 'true' && !isCloudRuntime) {
     return;
   }
 

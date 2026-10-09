@@ -62,6 +62,7 @@ interface DatabaseState {
   profileViewLedger: ProfileViewLedgerEntry[];
   blockedUsers: string[]; // "blockerId:blockedId"
   notifications: AppNotification[];
+  savedMembers?: Record<string, string[]>; // "userId -> [savedMemberId1, ...]"
 }
 
 const DATA_FILE_PATH = path.join(process.cwd(), 'data', 'collaborate.db.json');
@@ -83,6 +84,7 @@ class DurableCollaborateDatabase {
         const raw = fs.readFileSync(DATA_FILE_PATH, 'utf-8');
         const parsed = JSON.parse(raw);
         if (parsed && parsed.members && Object.keys(parsed.members).length > 0) {
+          if (!parsed.savedMembers) parsed.savedMembers = {};
           return parsed;
         }
       }
@@ -784,6 +786,20 @@ class DurableCollaborateDatabase {
     }
   }
 
+  public unblockMember(blockerId: string, blockedId: string): void {
+    const key = `${blockerId}:${blockedId}`;
+    const idx = this.state.blockedUsers.indexOf(key);
+    if (idx !== -1) {
+      this.state.blockedUsers.splice(idx, 1);
+    }
+    const conn = this.getConnectionState(blockerId, blockedId);
+    if (conn && conn.status === 'blocked') {
+      conn.status = 'removed';
+      conn.updatedAt = new Date().toISOString();
+    }
+    this.persistToDisk();
+  }
+
   public isBlocked(userA: string, userB: string): boolean {
     return (
       this.state.blockedUsers.includes(`${userA}:${userB}`) ||
@@ -1046,6 +1062,86 @@ class DurableCollaborateDatabase {
       n.isRead = true;
       this.persistToDisk();
     }
+  }
+
+  // --- Saved Profiles ---
+  public saveMemberBookmark(userId: string, targetMemberId: string): boolean {
+    if (userId === targetMemberId) return false;
+    if (!this.state.savedMembers) this.state.savedMembers = {};
+    if (!this.state.savedMembers[userId]) this.state.savedMembers[userId] = [];
+    if (!this.state.savedMembers[userId].includes(targetMemberId)) {
+      this.state.savedMembers[userId].push(targetMemberId);
+      this.persistToDisk();
+      return true;
+    }
+    return false;
+  }
+
+  public removeMemberBookmark(userId: string, targetMemberId: string): boolean {
+    if (!this.state.savedMembers || !this.state.savedMembers[userId]) return false;
+    const idx = this.state.savedMembers[userId].indexOf(targetMemberId);
+    if (idx !== -1) {
+      this.state.savedMembers[userId].splice(idx, 1);
+      this.persistToDisk();
+      return true;
+    }
+    return false;
+  }
+
+  public getSavedMembers(userId: string): MemberProfile[] {
+    if (!this.state.savedMembers || !this.state.savedMembers[userId]) return [];
+    const targetIds = this.state.savedMembers[userId];
+    const list: MemberProfile[] = [];
+    for (const tid of targetIds) {
+      const member = this.getMemberById(tid);
+      if (!member) continue;
+      // Privacy and safety filter: never show blocked, restricted, or private profiles
+      if (this.isBlocked(userId, tid) || member.isRestricted) continue;
+      if (member.profileVisibility === 'private') continue;
+      list.push(member);
+    }
+    return list;
+  }
+
+  public isMemberSaved(userId: string, targetMemberId: string): boolean {
+    return Boolean(this.state.savedMembers?.[userId]?.includes(targetMemberId));
+  }
+
+  // --- Authentic Profile Stats ---
+  public getProfileStats(userId: string) {
+    const member = this.getMemberById(userId);
+    const publishedProjects = member?.projects?.length || 0;
+    const listedSkills = member?.skills?.length || 0;
+
+    let connectionsCount = 0;
+    for (const conn of Object.values(this.state.connections)) {
+      if (conn.status === 'accepted' && (conn.requesterId === userId || conn.recipientId === userId)) {
+        connectionsCount++;
+      }
+    }
+
+    const dateKey = getKolkataDateKey();
+    const todayEntries = this.getDistinctDailyViews(userId, dateKey);
+    const dailyViewsUsed = new Set(todayEntries.map((e) => e.targetId)).size;
+
+    // Legitimate distinct views received from other users
+    const receivedViews = this.state.profileViewLedger.filter(
+      (e) => e.targetId === userId && e.viewerId !== userId
+    ).length;
+
+    return {
+      fullName: member?.fullName || 'Member',
+      headline: member?.headline || '',
+      publishedProjects,
+      listedSkills,
+      connectionsCount,
+      dailyViewsUsed,
+      dailyViewsRemaining: Math.max(0, 3 - dailyViewsUsed),
+      totalReceivedViews: receivedViews,
+      isVerified: Boolean(member?.isVerified),
+      verifiedCategory: member?.verifiedCategory || null,
+      plan: member?.plan || 'free',
+    };
   }
 }
 

@@ -11275,6 +11275,3416 @@
       "isUnder18": true,
       "safeguardingApproved": false,
       "role": "member"
+    },
+    "usr_1791568294476_c1c7cf": {
+      "id": "usr_1791568294476_c1c7cf",
+      "email": "racer_1791568294432@quota.test",
+      "fullName": "Concurrency Tester",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "racer_1791568294432@quota.test"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568294736_a57dfb": {
+      "id": "usr_1791568294736_a57dfb",
+      "email": "builder_1791568294696@aitathastu.test",
+      "fullName": "Arjun Sen",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "premium",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "builder_1791568294696@aitathastu.test"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member",
+      "planExpiresAt": "2026-11-08T17:51:34.934Z"
+    },
+    "usr_1791568295101_1e1b2a": {
+      "id": "usr_1791568295101_1e1b2a",
+      "email": "builder_1791568295057@p35.test",
+      "fullName": "Vikramaditya Roy",
+      "headline": "Deactivated Account",
+      "avatarUrl": "/images/aman_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "Kolkata, West Bengal, India",
+      "about": "This Collaborate account has been deleted by the user.",
+      "contextTags": [
+        "builder_1791568295057@p35.test"
+      ],
+      "socialLinks": {
+        "github": "https://github.com/vikram-roy-ai",
+        "portfolio": "https://vikramadityaroy.ai"
+      },
+      "metrics": {
+        "projects": 1,
+        "skills": 5,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [
+        "PyTorch",
+        "Quantization",
+        "CUDA",
+        "C++",
+        "Model Optimization"
+      ],
+      "projects": [
+        {
+          "id": "proj_1791568295312",
+          "title": "AutoQuant-LLM",
+          "featured": true,
+          "description": "Post-training 4-bit quantization framework for transformer backbones.",
+          "tags": [
+            "PyTorch",
+            "Quantization",
+            "Transformers",
+            "CUDA"
+          ],
+          "stars": 84,
+          "forks": 19,
+          "demoUrl": "https://autoquant.aitathastu.com",
+          "sourceOrigin": "collaborate"
+        }
+      ],
+      "experience": [
+        {
+          "id": "exp_1791568295312",
+          "role": "Lead ML Systems Engineer",
+          "company": "NeuralGrid Systems",
+          "period": "2025 – Present",
+          "bullets": [
+            "Designed high-throughput inference caching for billion-parameter models."
+          ]
+        }
+      ],
+      "education": [
+        {
+          "id": "edu_1791568295312",
+          "institution": "IIT Kharagpur",
+          "period": "2024 – 2026",
+          "degree": "M.Tech in Artificial Intelligence",
+          "score": "CGPA: 9.4 / 10"
+        }
+      ],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": false,
+      "profileVisibility": "private",
+      "contactVisibility": "hidden",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member",
+      "notificationPreferences": {
+        "connections": true,
+        "messages": true,
+        "verifications": false,
+        "recommendations": false,
+        "securityAlerts": true
+      },
+      "isRestricted": true
+    },
+    "usr_1791568295368_8d3159": {
+      "id": "usr_1791568295368_8d3159",
+      "email": "student_1791568295368@school.edu",
+      "fullName": "Ananya Sharma",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "student_1791568295368@school.edu"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": false,
+      "profileVisibility": "private",
+      "contactVisibility": "hidden",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": true,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568295637_7a33b5": {
+      "id": "usr_1791568295637_7a33b5",
+      "email": "builder_1791568295596@collaborate.local",
+      "fullName": "Independent Builder",
+      "headline": "Full-Stack Distributed Systems Architect",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "Pune, Maharashtra, India",
+      "about": "Building resilient cloud-native networking infrastructure with Next.js and Postgres.",
+      "contextTags": [
+        "builder_1791568295596@collaborate.local"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 4,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [
+        "TypeScript",
+        "Distributed Systems",
+        "PostgreSQL",
+        "Docker"
+      ],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [
+        "High-throughput message queues",
+        "Open-source tooling"
+      ],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "synced",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568295704_a13e45": {
+      "id": "usr_1791568295704_a13e45",
+      "email": "core_linked_1791568295596@aitathastu.test",
+      "fullName": "Rahul Sharma",
+      "headline": "Senior GenAI Engineer & Tathastu Fellow (Custom)",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "Tathastu Member"
+      ],
+      "location": "India",
+      "about": "New Collaborate member from AI Tathastu Core.",
+      "contextTags": [
+        "core_linked_1791568295596@aitathastu.test"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [
+        "Python",
+        "LangChain",
+        "RAG",
+        "FastAPI",
+        "PyTorch",
+        "PostgreSQL",
+        "Agentic Workflows",
+        "Quantum Machine Learning"
+      ],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": true,
+        "autoSyncSkills": true,
+        "autoSyncAchievements": true
+      },
+      "role": "member"
+    },
+    "usr_1791568295769_ff3769": {
+      "id": "usr_1791568295769_ff3769",
+      "email": "charlie_1791568295596@collab.local",
+      "fullName": "Charlie Davis",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "charlie_1791568295596@collab.local"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568295953_818032": {
+      "id": "usr_1791568295953_818032",
+      "email": "stranger_1791568295596@collab.local",
+      "fullName": "Stranger",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "stranger_1791568295596@collab.local"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568296055_507b4e": {
+      "id": "usr_1791568296055_507b4e",
+      "email": "quota_user_1791568295596@test.local",
+      "fullName": "Quota Explorer",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "premium",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "quota_user_1791568295596@test.local"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member",
+      "planExpiresAt": "2026-11-08T17:51:36.127Z"
+    },
+    "usr_1791568296185_600cc7": {
+      "id": "usr_1791568296185_600cc7",
+      "email": "tamper_1791568295596@collab.local",
+      "fullName": "Tamperer",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "tamper_1791568295596@collab.local"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568296236_7acad8": {
+      "id": "usr_1791568296236_7acad8",
+      "email": "minor_1791568295596@school.edu",
+      "fullName": "Student Minor",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "minor_1791568295596@school.edu"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": false,
+      "profileVisibility": "private",
+      "contactVisibility": "hidden",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": true,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568296458_eb37b3": {
+      "id": "usr_1791568296458_eb37b3",
+      "email": "core_user_1791568296404_1@aitathastu.com",
+      "fullName": "Core Password User",
+      "headline": "AI/ML Builder | Tathastu Member",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "Tathastu Member"
+      ],
+      "location": "India",
+      "about": "New Collaborate member from AI Tathastu Core.",
+      "contextTags": [
+        "core_user_1791568296404_1@aitathastu.com"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": true,
+      "tathastuSyncStatus": "synced",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": true,
+        "autoSyncSkills": true,
+        "autoSyncAchievements": true
+      },
+      "role": "member"
+    },
+    "usr_1791568296474_08a52c": {
+      "id": "usr_1791568296474_08a52c",
+      "email": "collab_local_1791568296404@collaborate.local",
+      "fullName": "Collab Local User",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "collab_local_1791568296404@collaborate.local"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568296618_c828b0": {
+      "id": "usr_1791568296618_c828b0",
+      "email": "second_collab_1791568296404@collaborate.local",
+      "fullName": "Second Collab User",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "second_collab_1791568296404@collaborate.local"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568296676_2167a5": {
+      "id": "usr_1791568296676_2167a5",
+      "email": "single_use_1791568296404@test.aitathastu.com",
+      "fullName": "Single Use User",
+      "headline": "AI/ML Builder | Tathastu Member",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "Tathastu Member"
+      ],
+      "location": "India",
+      "about": "New Collaborate member from AI Tathastu Core.",
+      "contextTags": [
+        "single_use_1791568296404@test.aitathastu.com"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": true,
+      "tathastuSyncStatus": "synced",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": true,
+        "autoSyncSkills": true,
+        "autoSyncAchievements": true
+      },
+      "role": "member"
+    },
+    "usr_1791568296752_8d85f4": {
+      "id": "usr_1791568296752_8d85f4",
+      "email": "bob_rev_1791568296404@staging.collaborate",
+      "fullName": "Bob Revoke",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "bob_rev_1791568296404@staging.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568296978_82a1f8": {
+      "id": "usr_1791568296978_82a1f8",
+      "email": "alice_1791568296932@staging.collaborate",
+      "fullName": "Alice Verma",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "alice_1791568296932@staging.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568297036_a57d89": {
+      "id": "usr_1791568297036_a57d89",
+      "email": "bob_1791568296932@staging.collaborate",
+      "fullName": "Bob Chatterjee",
+      "headline": "Distributed Systems & GenAI Engineer",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "Bengaluru, India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "bob_1791568296932@staging.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [
+        "Python",
+        "LangChain",
+        "RAG",
+        "FastAPI",
+        "PyTorch",
+        "PostgreSQL"
+      ],
+      "projects": [
+        {
+          "id": "proj_c1",
+          "title": "Tathastu AI Assistant",
+          "featured": true,
+          "description": "A RAG-based AI assistant for students with multi-source document understanding and grounded citations.",
+          "tags": [
+            "Python",
+            "RAG",
+            "OpenAI",
+            "FastAPI"
+          ],
+          "stars": 112,
+          "forks": 28,
+          "demoUrl": "https://tathastu-assistant.demo.aitathastu.com",
+          "imageUrl": "/images/tathastu_robot.jpg",
+          "sourceOrigin": "tathastu_core"
+        },
+        {
+          "id": "proj_c2",
+          "title": "Autonomous Code Review Agent",
+          "featured": false,
+          "description": "Multi-agent review system using AST parsing and LLM feedback to detect security vulnerabilities.",
+          "tags": [
+            "TypeScript",
+            "LangChain",
+            "Next.js"
+          ],
+          "stars": 45,
+          "forks": 12,
+          "sourceOrigin": "tathastu_core"
+        }
+      ],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": true,
+        "autoSyncSkills": true,
+        "autoSyncAchievements": true
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568297283_261d54": {
+      "id": "usr_1791568297283_261d54",
+      "email": "student_minor_1791568297283@staging.collaborate",
+      "fullName": "Young Student",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "student_minor_1791568297283@staging.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": false,
+      "profileVisibility": "private",
+      "contactVisibility": "hidden",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "synced",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": true,
+      "safeguardingApproved": false,
+      "role": "member",
+      "institutionDomain": "lpu.in"
+    },
+    "usr_1791568297345_6f5348": {
+      "id": "usr_1791568297345_6f5348",
+      "email": "mentor_1791568297345@lpu.in",
+      "fullName": "Dr. Vikram",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": true,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "mentor_1791568297345@lpu.in"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "synced",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": true,
+      "role": "member",
+      "verifiedCategory": "institution",
+      "verifiedAt": "2026-10-09T17:51:37.403Z",
+      "institutionDomain": "lpu.in"
+    },
+    "usr_1791568297593_b9d278": {
+      "id": "usr_1791568297593_b9d278",
+      "email": "beta_alice_1791568297548@staging.collaborate",
+      "fullName": "Alice Beta",
+      "headline": "Deactivated Account",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "This Collaborate account has been deleted by the user.",
+      "contextTags": [
+        "beta_alice_1791568297548@staging.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 5,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [
+        "Distributed Systems",
+        "Ray",
+        "CUDA",
+        "Next.js",
+        "Python"
+      ],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": false,
+      "profileVisibility": "private",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member",
+      "isRestricted": true
+    },
+    "usr_1791568297737_057b64": {
+      "id": "usr_1791568297737_057b64",
+      "email": "beta_bob_1791568297548@staging.collaborate",
+      "fullName": "Bob Beta",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "beta_bob_1791568297548@staging.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568297835_836a4a": {
+      "id": "usr_1791568297835_836a4a",
+      "email": "quota_beta_1791568297548@collaborate.local",
+      "fullName": "Quota Tester",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "quota_beta_1791568297548@collaborate.local"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568297910_e9f025": {
+      "id": "usr_1791568297910_e9f025",
+      "email": "student_beta_1791568297548@staging.collaborate",
+      "fullName": "High School Student",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "student_beta_1791568297548@staging.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": false,
+      "profileVisibility": "private",
+      "contactVisibility": "hidden",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": true,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568753794_7fe602": {
+      "id": "usr_1791568753794_7fe602",
+      "email": "devika_1791568753743@beta.collaborate",
+      "fullName": "Devika Patel",
+      "headline": "Staff AI Scientist @ DeepMind Research | LLM Alignment",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "Bengaluru, Karnataka, India",
+      "about": "Researching scalable oversight, RL from human preferences, and multi-agent debate protocols.",
+      "contextTags": [
+        "devika_1791568753743@beta.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 1,
+        "skills": 6,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [
+        "Python",
+        "PyTorch",
+        "Transformers",
+        "RLHF",
+        "Distributed Training",
+        "Next.js"
+      ],
+      "projects": [
+        {
+          "id": "proj_devika_1791568753743",
+          "title": "AlignEval Benchmark Suite",
+          "featured": true,
+          "description": "Automated evaluation framework for alignment drift in frontier language models.",
+          "tags": [
+            "Python",
+            "RLHF",
+            "Eval"
+          ],
+          "stars": 84,
+          "forks": 19
+        }
+      ],
+      "experience": [
+        {
+          "id": "exp_devika_1791568753743",
+          "role": "Senior Research Scientist",
+          "company": "Tathastu AI Labs",
+          "period": "2024 - Present",
+          "bullets": [
+            "Led technical research for multi-agent reasoning verification."
+          ]
+        }
+      ],
+      "education": [
+        {
+          "id": "edu_devika_1791568753743",
+          "institution": "Indian Institute of Science (IISc)",
+          "period": "2020 - 2022",
+          "degree": "M.Tech in Computational Science",
+          "score": "9.4 CGPA"
+        }
+      ],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [
+        "RLHF benchmark sharing",
+        "Open reasoning protocols"
+      ],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "synced",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568753934_a1cb08": {
+      "id": "usr_1791568753934_a1cb08",
+      "email": "karan_1791568753743@beta.collaborate",
+      "fullName": "Karan Malhotra",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "karan_1791568753743@beta.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568754071_94a3f1": {
+      "id": "usr_1791568754071_94a3f1",
+      "email": "siddharth_1791568753743@beta.collaborate",
+      "fullName": "Siddharth Nair",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "siddharth_1791568753743@beta.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": false,
+      "profileVisibility": "private",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568754345_56b7c2": {
+      "id": "usr_1791568754345_56b7c2",
+      "email": "disposable_1791568753743@beta.collaborate",
+      "fullName": "Disposable Tester",
+      "headline": "Deactivated Account",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "This Collaborate account has been deleted by the user.",
+      "contextTags": [
+        "disposable_1791568753743@beta.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": false,
+      "profileVisibility": "private",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member",
+      "isRestricted": true
+    },
+    "usr_1791568798430_aad82f": {
+      "id": "usr_1791568798430_aad82f",
+      "email": "devika_1791568798385@beta.collaborate",
+      "fullName": "Devika Patel",
+      "headline": "Staff AI Scientist @ DeepMind Research | LLM Alignment",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "Bengaluru, Karnataka, India",
+      "about": "Researching scalable oversight, RL from human preferences, and multi-agent debate protocols.",
+      "contextTags": [
+        "devika_1791568798385@beta.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 1,
+        "skills": 6,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [
+        "Python",
+        "PyTorch",
+        "Transformers",
+        "RLHF",
+        "Distributed Training",
+        "Next.js"
+      ],
+      "projects": [
+        {
+          "id": "proj_devika_1791568798385",
+          "title": "AlignEval Benchmark Suite",
+          "featured": true,
+          "description": "Automated evaluation framework for alignment drift in frontier language models.",
+          "tags": [
+            "Python",
+            "RLHF",
+            "Eval"
+          ],
+          "stars": 84,
+          "forks": 19
+        }
+      ],
+      "experience": [
+        {
+          "id": "exp_devika_1791568798385",
+          "role": "Senior Research Scientist",
+          "company": "Tathastu AI Labs",
+          "period": "2024 - Present",
+          "bullets": [
+            "Led technical research for multi-agent reasoning verification."
+          ]
+        }
+      ],
+      "education": [
+        {
+          "id": "edu_devika_1791568798385",
+          "institution": "Indian Institute of Science (IISc)",
+          "period": "2020 - 2022",
+          "degree": "M.Tech in Computational Science",
+          "score": "9.4 CGPA"
+        }
+      ],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [
+        "RLHF benchmark sharing",
+        "Open reasoning protocols"
+      ],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "synced",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568798543_82cdb4": {
+      "id": "usr_1791568798543_82cdb4",
+      "email": "karan_1791568798385@beta.collaborate",
+      "fullName": "Karan Malhotra",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "karan_1791568798385@beta.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568798662_301e5c": {
+      "id": "usr_1791568798662_301e5c",
+      "email": "siddharth_1791568798385@beta.collaborate",
+      "fullName": "Siddharth Nair",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "siddharth_1791568798385@beta.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": false,
+      "profileVisibility": "private",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568798935_7a0338": {
+      "id": "usr_1791568798935_7a0338",
+      "email": "disposable_1791568798385@beta.collaborate",
+      "fullName": "Disposable Tester",
+      "headline": "Deactivated Account",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "This Collaborate account has been deleted by the user.",
+      "contextTags": [
+        "disposable_1791568798385@beta.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": false,
+      "profileVisibility": "private",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member",
+      "isRestricted": true
+    },
+    "usr_1791568848867_a86cd0": {
+      "id": "usr_1791568848867_a86cd0",
+      "email": "devika_1791568848823@beta.collaborate",
+      "fullName": "Devika Patel",
+      "headline": "Staff AI Scientist @ DeepMind Research | LLM Alignment",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "Bengaluru, Karnataka, India",
+      "about": "Researching scalable oversight, RL from human preferences, and multi-agent debate protocols.",
+      "contextTags": [
+        "devika_1791568848823@beta.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 1,
+        "skills": 6,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [
+        "Python",
+        "PyTorch",
+        "Transformers",
+        "RLHF",
+        "Distributed Training",
+        "Next.js"
+      ],
+      "projects": [
+        {
+          "id": "proj_devika_1791568848823",
+          "title": "AlignEval Benchmark Suite",
+          "featured": true,
+          "description": "Automated evaluation framework for alignment drift in frontier language models.",
+          "tags": [
+            "Python",
+            "RLHF",
+            "Eval"
+          ],
+          "stars": 84,
+          "forks": 19
+        }
+      ],
+      "experience": [
+        {
+          "id": "exp_devika_1791568848823",
+          "role": "Senior Research Scientist",
+          "company": "Tathastu AI Labs",
+          "period": "2024 - Present",
+          "bullets": [
+            "Led technical research for multi-agent reasoning verification."
+          ]
+        }
+      ],
+      "education": [
+        {
+          "id": "edu_devika_1791568848823",
+          "institution": "Indian Institute of Science (IISc)",
+          "period": "2020 - 2022",
+          "degree": "M.Tech in Computational Science",
+          "score": "9.4 CGPA"
+        }
+      ],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [
+        "RLHF benchmark sharing",
+        "Open reasoning protocols"
+      ],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "synced",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568849019_a2b199": {
+      "id": "usr_1791568849019_a2b199",
+      "email": "karan_1791568848823@beta.collaborate",
+      "fullName": "Karan Malhotra",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "karan_1791568848823@beta.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568849151_c4d6b7": {
+      "id": "usr_1791568849151_c4d6b7",
+      "email": "siddharth_1791568848823@beta.collaborate",
+      "fullName": "Siddharth Nair",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "siddharth_1791568848823@beta.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": false,
+      "profileVisibility": "private",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568849420_09b3f7": {
+      "id": "usr_1791568849420_09b3f7",
+      "email": "disposable_1791568848823@beta.collaborate",
+      "fullName": "Disposable Tester",
+      "headline": "Deactivated Account",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "This Collaborate account has been deleted by the user.",
+      "contextTags": [
+        "disposable_1791568848823@beta.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": false,
+      "profileVisibility": "private",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member",
+      "isRestricted": true
+    },
+    "usr_1791568859995_e3340e": {
+      "id": "usr_1791568859995_e3340e",
+      "email": "racer_1791568859946@quota.test",
+      "fullName": "Concurrency Tester",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "racer_1791568859946@quota.test"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568860584_085868": {
+      "id": "usr_1791568860584_085868",
+      "email": "builder_1791568860543@aitathastu.test",
+      "fullName": "Arjun Sen",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "premium",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "builder_1791568860543@aitathastu.test"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member",
+      "planExpiresAt": "2026-11-08T18:01:01.513Z"
+    },
+    "usr_1791568861697_2431e6": {
+      "id": "usr_1791568861697_2431e6",
+      "email": "builder_1791568861654@p35.test",
+      "fullName": "Vikramaditya Roy",
+      "headline": "Deactivated Account",
+      "avatarUrl": "/images/aman_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "Kolkata, West Bengal, India",
+      "about": "This Collaborate account has been deleted by the user.",
+      "contextTags": [
+        "builder_1791568861654@p35.test"
+      ],
+      "socialLinks": {
+        "github": "https://github.com/vikram-roy-ai",
+        "portfolio": "https://vikramadityaroy.ai"
+      },
+      "metrics": {
+        "projects": 1,
+        "skills": 5,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [
+        "PyTorch",
+        "Quantization",
+        "CUDA",
+        "C++",
+        "Model Optimization"
+      ],
+      "projects": [
+        {
+          "id": "proj_1791568862831",
+          "title": "AutoQuant-LLM",
+          "featured": true,
+          "description": "Post-training 4-bit quantization framework for transformer backbones.",
+          "tags": [
+            "PyTorch",
+            "Quantization",
+            "Transformers",
+            "CUDA"
+          ],
+          "stars": 84,
+          "forks": 19,
+          "demoUrl": "https://autoquant.aitathastu.com",
+          "sourceOrigin": "collaborate"
+        }
+      ],
+      "experience": [
+        {
+          "id": "exp_1791568862831",
+          "role": "Lead ML Systems Engineer",
+          "company": "NeuralGrid Systems",
+          "period": "2025 – Present",
+          "bullets": [
+            "Designed high-throughput inference caching for billion-parameter models."
+          ]
+        }
+      ],
+      "education": [
+        {
+          "id": "edu_1791568862831",
+          "institution": "IIT Kharagpur",
+          "period": "2024 – 2026",
+          "degree": "M.Tech in Artificial Intelligence",
+          "score": "CGPA: 9.4 / 10"
+        }
+      ],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": false,
+      "profileVisibility": "private",
+      "contactVisibility": "hidden",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member",
+      "notificationPreferences": {
+        "connections": true,
+        "messages": true,
+        "verifications": false,
+        "recommendations": false,
+        "securityAlerts": true
+      },
+      "isRestricted": true
+    },
+    "usr_1791568863406_422fa4": {
+      "id": "usr_1791568863406_422fa4",
+      "email": "student_1791568863405@school.edu",
+      "fullName": "Ananya Sharma",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "student_1791568863405@school.edu"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": false,
+      "profileVisibility": "private",
+      "contactVisibility": "hidden",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": true,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568864121_f4a74d": {
+      "id": "usr_1791568864121_f4a74d",
+      "email": "builder_1791568864019@collaborate.local",
+      "fullName": "Independent Builder",
+      "headline": "Full-Stack Distributed Systems Architect",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "Pune, Maharashtra, India",
+      "about": "Building resilient cloud-native networking infrastructure with Next.js and Postgres.",
+      "contextTags": [
+        "builder_1791568864019@collaborate.local"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 4,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [
+        "TypeScript",
+        "Distributed Systems",
+        "PostgreSQL",
+        "Docker"
+      ],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [
+        "High-throughput message queues",
+        "Open-source tooling"
+      ],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "synced",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568864372_ba2552": {
+      "id": "usr_1791568864372_ba2552",
+      "email": "core_linked_1791568864019@aitathastu.test",
+      "fullName": "Rahul Sharma",
+      "headline": "Senior GenAI Engineer & Tathastu Fellow (Custom)",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "Tathastu Member"
+      ],
+      "location": "India",
+      "about": "New Collaborate member from AI Tathastu Core.",
+      "contextTags": [
+        "core_linked_1791568864019@aitathastu.test"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [
+        "Python",
+        "LangChain",
+        "RAG",
+        "FastAPI",
+        "PyTorch",
+        "PostgreSQL",
+        "Agentic Workflows",
+        "Quantum Machine Learning"
+      ],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": true,
+        "autoSyncSkills": true,
+        "autoSyncAchievements": true
+      },
+      "role": "member"
+    },
+    "usr_1791568864614_4295c9": {
+      "id": "usr_1791568864614_4295c9",
+      "email": "charlie_1791568864019@collab.local",
+      "fullName": "Charlie Davis",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "charlie_1791568864019@collab.local"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568864959_f7a258": {
+      "id": "usr_1791568864959_f7a258",
+      "email": "stranger_1791568864019@collab.local",
+      "fullName": "Stranger",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "stranger_1791568864019@collab.local"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568865525_b025e5": {
+      "id": "usr_1791568865525_b025e5",
+      "email": "quota_user_1791568864019@test.local",
+      "fullName": "Quota Explorer",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "premium",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "quota_user_1791568864019@test.local"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member",
+      "planExpiresAt": "2026-11-08T18:01:05.915Z"
+    },
+    "usr_1791568866179_8f83a2": {
+      "id": "usr_1791568866179_8f83a2",
+      "email": "tamper_1791568864019@collab.local",
+      "fullName": "Tamperer",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "tamper_1791568864019@collab.local"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568866499_7455a2": {
+      "id": "usr_1791568866499_7455a2",
+      "email": "minor_1791568864019@school.edu",
+      "fullName": "Student Minor",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "minor_1791568864019@school.edu"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": false,
+      "profileVisibility": "private",
+      "contactVisibility": "hidden",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": true,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568866831_617ecb": {
+      "id": "usr_1791568866831_617ecb",
+      "email": "core_user_1791568866771_1@aitathastu.com",
+      "fullName": "Core Password User",
+      "headline": "AI/ML Builder | Tathastu Member",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "Tathastu Member"
+      ],
+      "location": "India",
+      "about": "New Collaborate member from AI Tathastu Core.",
+      "contextTags": [
+        "core_user_1791568866771_1@aitathastu.com"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": true,
+      "tathastuSyncStatus": "synced",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": true,
+        "autoSyncSkills": true,
+        "autoSyncAchievements": true
+      },
+      "role": "member"
+    },
+    "usr_1791568866990_0ab072": {
+      "id": "usr_1791568866990_0ab072",
+      "email": "collab_local_1791568866771@collaborate.local",
+      "fullName": "Collab Local User",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "collab_local_1791568866771@collaborate.local"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568867345_40b182": {
+      "id": "usr_1791568867345_40b182",
+      "email": "second_collab_1791568866771@collaborate.local",
+      "fullName": "Second Collab User",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "second_collab_1791568866771@collaborate.local"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568867480_b4efd6": {
+      "id": "usr_1791568867480_b4efd6",
+      "email": "single_use_1791568866771@test.aitathastu.com",
+      "fullName": "Single Use User",
+      "headline": "AI/ML Builder | Tathastu Member",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "Tathastu Member"
+      ],
+      "location": "India",
+      "about": "New Collaborate member from AI Tathastu Core.",
+      "contextTags": [
+        "single_use_1791568866771@test.aitathastu.com"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": true,
+      "tathastuSyncStatus": "synced",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": true,
+        "autoSyncSkills": true,
+        "autoSyncAchievements": true
+      },
+      "role": "member"
+    },
+    "usr_1791568867643_7f224a": {
+      "id": "usr_1791568867643_7f224a",
+      "email": "bob_rev_1791568866771@staging.collaborate",
+      "fullName": "Bob Revoke",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "bob_rev_1791568866771@staging.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568868129_ab3a77": {
+      "id": "usr_1791568868129_ab3a77",
+      "email": "alice_1791568868077@staging.collaborate",
+      "fullName": "Alice Verma",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "alice_1791568868077@staging.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568868374_b6cdba": {
+      "id": "usr_1791568868374_b6cdba",
+      "email": "bob_1791568868077@staging.collaborate",
+      "fullName": "Bob Chatterjee",
+      "headline": "Distributed Systems & GenAI Engineer",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "Bengaluru, India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "bob_1791568868077@staging.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [
+        "Python",
+        "LangChain",
+        "RAG",
+        "FastAPI",
+        "PyTorch",
+        "PostgreSQL"
+      ],
+      "projects": [
+        {
+          "id": "proj_c1",
+          "title": "Tathastu AI Assistant",
+          "featured": true,
+          "description": "A RAG-based AI assistant for students with multi-source document understanding and grounded citations.",
+          "tags": [
+            "Python",
+            "RAG",
+            "OpenAI",
+            "FastAPI"
+          ],
+          "stars": 112,
+          "forks": 28,
+          "demoUrl": "https://tathastu-assistant.demo.aitathastu.com",
+          "imageUrl": "/images/tathastu_robot.jpg",
+          "sourceOrigin": "tathastu_core"
+        },
+        {
+          "id": "proj_c2",
+          "title": "Autonomous Code Review Agent",
+          "featured": false,
+          "description": "Multi-agent review system using AST parsing and LLM feedback to detect security vulnerabilities.",
+          "tags": [
+            "TypeScript",
+            "LangChain",
+            "Next.js"
+          ],
+          "stars": 45,
+          "forks": 12,
+          "sourceOrigin": "tathastu_core"
+        }
+      ],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": true,
+        "autoSyncSkills": true,
+        "autoSyncAchievements": true
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568869986_b5c21b": {
+      "id": "usr_1791568869986_b5c21b",
+      "email": "student_minor_1791568869987@staging.collaborate",
+      "fullName": "Young Student",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "student_minor_1791568869987@staging.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": false,
+      "profileVisibility": "private",
+      "contactVisibility": "hidden",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "synced",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": true,
+      "safeguardingApproved": false,
+      "role": "member",
+      "institutionDomain": "lpu.in"
+    },
+    "usr_1791568870522_f987f9": {
+      "id": "usr_1791568870522_f987f9",
+      "email": "mentor_1791568870522@lpu.in",
+      "fullName": "Dr. Vikram",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": true,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "mentor_1791568870522@lpu.in"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "synced",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": true,
+      "role": "member",
+      "verifiedCategory": "institution",
+      "verifiedAt": "2026-10-09T18:01:11.031Z",
+      "institutionDomain": "lpu.in"
+    },
+    "usr_1791568871424_be3841": {
+      "id": "usr_1791568871424_be3841",
+      "email": "beta_alice_1791568871310@staging.collaborate",
+      "fullName": "Alice Beta",
+      "headline": "Deactivated Account",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "This Collaborate account has been deleted by the user.",
+      "contextTags": [
+        "beta_alice_1791568871310@staging.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 5,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [
+        "Distributed Systems",
+        "Ray",
+        "CUDA",
+        "Next.js",
+        "Python"
+      ],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": false,
+      "profileVisibility": "private",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member",
+      "isRestricted": true
+    },
+    "usr_1791568872052_f26cb4": {
+      "id": "usr_1791568872052_f26cb4",
+      "email": "beta_bob_1791568871310@staging.collaborate",
+      "fullName": "Bob Beta",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "beta_bob_1791568871310@staging.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568872393_19d269": {
+      "id": "usr_1791568872393_19d269",
+      "email": "quota_beta_1791568871310@collaborate.local",
+      "fullName": "Quota Tester",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "quota_beta_1791568871310@collaborate.local"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568872661_961b52": {
+      "id": "usr_1791568872661_961b52",
+      "email": "student_beta_1791568871310@staging.collaborate",
+      "fullName": "High School Student",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "student_beta_1791568871310@staging.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": false,
+      "profileVisibility": "private",
+      "contactVisibility": "hidden",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": true,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568873864_115579": {
+      "id": "usr_1791568873864_115579",
+      "email": "devika_1791568873754@beta.collaborate",
+      "fullName": "Devika Patel",
+      "headline": "Staff AI Scientist @ DeepMind Research | LLM Alignment",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "Bengaluru, Karnataka, India",
+      "about": "Researching scalable oversight, RL from human preferences, and multi-agent debate protocols.",
+      "contextTags": [
+        "devika_1791568873754@beta.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 1,
+        "skills": 6,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [
+        "Python",
+        "PyTorch",
+        "Transformers",
+        "RLHF",
+        "Distributed Training",
+        "Next.js"
+      ],
+      "projects": [
+        {
+          "id": "proj_devika_1791568873754",
+          "title": "AlignEval Benchmark Suite",
+          "featured": true,
+          "description": "Automated evaluation framework for alignment drift in frontier language models.",
+          "tags": [
+            "Python",
+            "RLHF",
+            "Eval"
+          ],
+          "stars": 84,
+          "forks": 19
+        }
+      ],
+      "experience": [
+        {
+          "id": "exp_devika_1791568873754",
+          "role": "Senior Research Scientist",
+          "company": "Tathastu AI Labs",
+          "period": "2024 - Present",
+          "bullets": [
+            "Led technical research for multi-agent reasoning verification."
+          ]
+        }
+      ],
+      "education": [
+        {
+          "id": "edu_devika_1791568873754",
+          "institution": "Indian Institute of Science (IISc)",
+          "period": "2020 - 2022",
+          "degree": "M.Tech in Computational Science",
+          "score": "9.4 CGPA"
+        }
+      ],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [
+        "RLHF benchmark sharing",
+        "Open reasoning protocols"
+      ],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "synced",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568874192_e06550": {
+      "id": "usr_1791568874192_e06550",
+      "email": "karan_1791568873754@beta.collaborate",
+      "fullName": "Karan Malhotra",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "karan_1791568873754@beta.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568874799_a29078": {
+      "id": "usr_1791568874799_a29078",
+      "email": "siddharth_1791568873754@beta.collaborate",
+      "fullName": "Siddharth Nair",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "siddharth_1791568873754@beta.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": false,
+      "profileVisibility": "private",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member"
+    },
+    "usr_1791568875719_2486c5": {
+      "id": "usr_1791568875719_2486c5",
+      "email": "disposable_1791568873754@beta.collaborate",
+      "fullName": "Disposable Tester",
+      "headline": "Deactivated Account",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "This Collaborate account has been deleted by the user.",
+      "contextTags": [
+        "disposable_1791568873754@beta.collaborate"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": false,
+      "profileVisibility": "private",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "isUnder18": false,
+      "safeguardingApproved": false,
+      "role": "member",
+      "isRestricted": true
     }
   },
   "credentials": {
@@ -12029,6 +15439,238 @@
     "usr_1791567500823_3a57b0": {
       "passwordHash": "b3ae44b45b833db6819428afcab9f1bc0d15acb1ca447456b96238f2c5b741b161983fac238502af0e7ee37996ba78c47a11a8b87bea9b3b61010790e87d6980",
       "salt": "978416345a7f6261f1a90aa8694ab01d"
+    },
+    "usr_1791568294476_c1c7cf": {
+      "passwordHash": "31808d188be7223d8adf3ff8d4dee9eb60a69154e437621c4d8b945dbb2299035c0aef41eaa8c405d68584c0132c300e4ec6b8dda8c521d01211ed539ea19701",
+      "salt": "b3c75be074dd9b9df0f1d2ba50a42317"
+    },
+    "usr_1791568294736_a57dfb": {
+      "passwordHash": "53f4aca1e535593232293896b759bcd6318fa50db35aff04294e7c89840508781747dce91a881ebdbc8d3a3ab071aa3941d96cf25e32b5f4c84635f2ed226239",
+      "salt": "1671686c5372ad2b26c18d1be73a378e"
+    },
+    "usr_1791568295101_1e1b2a": {
+      "passwordHash": "eb8da950691d829e7b4b24c702ec1cde90cb9bb4482313e0d7e439a33668c1ccf930513d96b79fbab1983446cc488642a944ee07b08a9bca3fe0417715f171a0",
+      "salt": "ac72cf4f1915194cdd5c3e045de8e968"
+    },
+    "usr_1791568295368_8d3159": {
+      "passwordHash": "921bb600fab28a5316f8774f939b184eb91fc8285b5a77cdb98ab1b1913080dd0d246a137c9181f3a25a5bf6a607c22688090dbe39cbdaaa56ae07b384c5eb92",
+      "salt": "366b914297a46d258b5c96f8a24300f1"
+    },
+    "usr_1791568295637_7a33b5": {
+      "passwordHash": "5be49a7067534b8afe97341f43950dc134aa2776b6fd6749a414cf9365d9a7da405b53490071615c41182797daef9b8ba22573bf1ade44a937efbad1ed80b959",
+      "salt": "9833b2af16dc4991b4e91dbecc22089b"
+    },
+    "usr_1791568295769_ff3769": {
+      "passwordHash": "dc0fbfbd40b9d212f4a3998dfb5cf38e4259036e69f2387b0c870da27d72a5f63b307438215bd2e42264ea77daf76af7ee66aa8a5dcea9d5ee201ce545d720d0",
+      "salt": "4f68c285e43a683390388f4473a1104d"
+    },
+    "usr_1791568295953_818032": {
+      "passwordHash": "75d8593bf51ec898491ebf80e226c39fd80a93ce706f4c5840fbc1a1dda7f3d470213815900ecfadcd0344d5d8192150478015e7acbf9c76c1baec9d38526951",
+      "salt": "6b86a4133853c88869fd60ed54a0fb30"
+    },
+    "usr_1791568296055_507b4e": {
+      "passwordHash": "4c778d8447bc4a5182e913cb6c980085e4e0fdb79c78cc9d4d11695ebc3f5a6d38f0d4d98c4b54c653c7d117142b241063fea488a1a10ae9c4d43d309d9d3007",
+      "salt": "a039064e27fbcf339e4167eac8bd8a55"
+    },
+    "usr_1791568296185_600cc7": {
+      "passwordHash": "bccc3f4bbe7c4904b3ec39763d9084ba49000d727b77a05ef5694e306a983456c41fc94fa39ef1edee517449993a8c5e5d2d3ab70b622ba4ae5bc39d6bdfcb2c",
+      "salt": "9306ed0cc131633791bacd7e88340194"
+    },
+    "usr_1791568296236_7acad8": {
+      "passwordHash": "f21f57fc0d2d200e58184fa91b89bec72f3e79064bbc10c0bc03e7c9ecfc7c1a06b860c9b1cafc31f49f247b0237aa8ca93cf27eb08a1a3b7e4cfb2c8304cf77",
+      "salt": "3925a0a9034768e3839a02c9c80108d2"
+    },
+    "usr_1791568296474_08a52c": {
+      "passwordHash": "7298d08ddf5245f196c5558e5101feeb633e9663810e44865b8bb0d907eb479c8c6cfd28229a8374ffa6cebd577ea488ca730d86eac1bf6592c9cc851b35d7e0",
+      "salt": "26ebc26f91c1ea72cb103cd6f959dea4"
+    },
+    "usr_1791568296618_c828b0": {
+      "passwordHash": "086ec4f21fddef2b078309205baea2780fc99dcf00d0b487c3de0203c0e5db76677c40524103ea4436768bab13f284945376777a4c71492cc416b453067b4533",
+      "salt": "4b37a1d29b610861cf5c347fc3dba39c"
+    },
+    "usr_1791568296752_8d85f4": {
+      "passwordHash": "d711b8d447bb5252bdbf3b2217d44705f59bae742abd963410bcaa5c8b58fd62b420f7b506031fd21612d0910a2ab4a3730bc842921161206b5b3b36bf41e6fc",
+      "salt": "3ca3f6fcb16ce22046423f50cf77430d"
+    },
+    "usr_1791568296978_82a1f8": {
+      "passwordHash": "c9c10905ccc12d00b9b7bc0d108a4c0e54cbe7f6b241f34aa7dc07b7b7106354912d4629c5892803323e450304194a73ff161a9931b0b83529655a77342a8864",
+      "salt": "40b16347abfbe394f070b42a38891357"
+    },
+    "usr_1791568297036_a57d89": {
+      "passwordHash": "2c511555a100e1052cb2abf991451c4fcb823d659ca742eadb98c76ddb25622be723f73e32a0dac850d71a76da3280be4f1652aabb3c2fe6de3d882b3eebeeca",
+      "salt": "f0d62899f758e2139eb751ef73eda1b6"
+    },
+    "usr_1791568297283_261d54": {
+      "passwordHash": "666c821e849c45d902f412ff04379a6abe09ce50e02d030b8951fbdd7ae1d7dadfd38d4b036fe49000ae5333cc00e2f8c944fcc2b15d4c86e68cf288f7b03c39",
+      "salt": "1d90754d0253b2699d2c35f30856312a"
+    },
+    "usr_1791568297345_6f5348": {
+      "passwordHash": "4e9f6b0234617c86f0a54908eb2a1909b66e89cdd64a954173c978b1efa78add06642683f9ed5976509503ee14ec7fc40d8e6297375a8514e4faddf2e58af85a",
+      "salt": "6f57c71e5c60c82c0efb05d41decd8ff"
+    },
+    "usr_1791568297593_b9d278": {
+      "passwordHash": "c7e0dd4df2a1a95839b1bf7794e78801fc909452f48e52a4d80c18eec9d6e466599bebe9ded3c2a1e81d600ee5a15a2efdbf07f7817af9f2a850e3677a83e1f3",
+      "salt": "3d83142906b3d513082074d81a2768aa"
+    },
+    "usr_1791568297737_057b64": {
+      "passwordHash": "abebb5d2671f46cd6e3daadcf2fc8fad4c973b7616e5916011beb18e25bf44cf218a773cdb164f41858cf1154fde0e43c086c4c6aa64ee8527ae01e6d8d83adc",
+      "salt": "3b6afa7596da9a2c63c5f2e2e250e064"
+    },
+    "usr_1791568297835_836a4a": {
+      "passwordHash": "cbe5ef3b1ead1430db8d631fb3c1eb83688c3315b573faa43ab3013781d327345f18fe150fc0b4f89bb54f62e79b61d00e379a383b92a9df5d593f5732be35fc",
+      "salt": "42612c09e860757def756c9a167b8d29"
+    },
+    "usr_1791568297910_e9f025": {
+      "passwordHash": "43aaedb7aef6a654aed3f271f5082e3bb12215645ad921f81d466c463b9f8cb3e16ff8d07f24183364c103be4344ab53b42a0bfe2a7803683d581465be7fbdbf",
+      "salt": "745ae56310069a6a1d0a3f20e53f1f13"
+    },
+    "usr_1791568753794_7fe602": {
+      "passwordHash": "65283a7e9bbdcd583b9e1b0f1e0c6c520ded40494c11a65c94fc0398772146a2f41f58bf00c97be0932c9a01e5de62496cc7dc9b1579031feec01bb4dc72d284",
+      "salt": "8a0b3a7bd203773297ad91097e414f1b"
+    },
+    "usr_1791568753934_a1cb08": {
+      "passwordHash": "2c7a314ed58e99822541e896979246eb18a677fb1fffe2efd808be7df51d58a6001df296423aa967ffb44a96a3cd4ac4d4e857473378ba1b704c3d5524cadbd7",
+      "salt": "62e49ab5f0b1f4f02a1afac4dd05ba33"
+    },
+    "usr_1791568754071_94a3f1": {
+      "passwordHash": "d935ef7439ed67e3aaba6c949b2ab072394a89fda116b6da453d6f67dbd376a1f9cf0be658c3cdb214f6c97119ca5197bfd604aa3bf5af654cadbadcbd100ac5",
+      "salt": "2a48f92ce99ca8be257633038265be48"
+    },
+    "usr_1791568754345_56b7c2": {
+      "passwordHash": "ea984e958b36360ebe0f385cf7aae5da90d8228bd442c445972ed47f5f450794312c727c4aa7e8cf4a754347eea8ad2df5ff1f64e0774e23b5757bf57486627d",
+      "salt": "478b74cead834586dcfd85ff63c709ed"
+    },
+    "usr_1791568798430_aad82f": {
+      "passwordHash": "b40a1b71baa7615ee735549fc63270bbd44ce40610677dedfb3957d9e040430de98474498b70eff75140e157d46b14689c2b1c187bc53ff941af74b36bc7dcce",
+      "salt": "6ef5d7d697f948e653c829e83a35a896"
+    },
+    "usr_1791568798543_82cdb4": {
+      "passwordHash": "252981d9bcff9aba54006504b69cc441905e8a8f6b6a6b88c6df8bebf7a5a18029869867f9ae0388cf65b84f079728eda827c2b8a1af99cf5eee78f6fae71be0",
+      "salt": "5c6902fe6e97710e1af798d5bb718ba0"
+    },
+    "usr_1791568798662_301e5c": {
+      "passwordHash": "8f50aa412339a8a54ce53c362a92be858e0557621354d49b3574a5620b67e66944c725d85e27204de8fe248eb0f1d8ecf85a1a950d7e20c202ee92072c469882",
+      "salt": "0a43a2d74a989c55753de34dbb0cd0b1"
+    },
+    "usr_1791568798935_7a0338": {
+      "passwordHash": "81f5ca020ca781ce9c5e1969d7a0e367f351f93efa7ba027efded2dfca1b00fe0b6555443ec344cd52ed1acf47b257d248872d4e0a2c2d105c2fe04eb4a9599e",
+      "salt": "970db2bd68770d2f09c80fa25051d5d9"
+    },
+    "usr_1791568848867_a86cd0": {
+      "passwordHash": "04ed77eed95ec966b09ae5e394c130f10bdc97c9419643a60a069d3065a866fb4a9b05c329ab76bfcd0d2d23e6e30796570283776621ad085f385b12ce751d56",
+      "salt": "dd3510cec8e24ce92de9b1a8d303cd73"
+    },
+    "usr_1791568849019_a2b199": {
+      "passwordHash": "1ed763ceb29c01704472d083e5436877aa1ad793d77dafeba7081a79424b9c39875251772a0c1ccddc2426f3ae91a2aa10680b4894ab2cc6c4aa217d0f8c5f4f",
+      "salt": "a3378b30078e6aff84bbda1655eb9c63"
+    },
+    "usr_1791568849151_c4d6b7": {
+      "passwordHash": "84ee307ad58dbcf67ac4de98396ad333ea9a8c6e054c8ee1d6d158ec2c9940eeed1cb00755a9c423484929bab545f83f97f6c8e08ac651a51921ac7cae0c6e2e",
+      "salt": "6d2414f296cbd668789896821f9a2492"
+    },
+    "usr_1791568849420_09b3f7": {
+      "passwordHash": "b3d8d12f750d723816168da53ebee1617b9f3dcb7e9fd0069c345b2f8c41cd6db08495987eb5f20e18c2f285e043468a0272ccb0fab0c9f87b27ea233e43eeaa",
+      "salt": "7f1af0b6520ce1697fa56da0703f7ede"
+    },
+    "usr_1791568859995_e3340e": {
+      "passwordHash": "0baa9f78017be50c05726d00700757edd4e8e0dc99def8de2623c28644ea528d7d74024ba29c7341e31e6a6b38f5b86540121ba57cca0c35549d4f408d2c0be1",
+      "salt": "9929d268718bf9a40e3b53075ca24cca"
+    },
+    "usr_1791568860584_085868": {
+      "passwordHash": "858a2a52b0247fe891995c72a7e29b40d58d9e23255a7dc72440e1f0d65af7b4f6f26014c348bca6ce61237653602a65524141920087c76c687b7332e92e7454",
+      "salt": "ecaa4d15057d68098e6bb30d7769fd60"
+    },
+    "usr_1791568861697_2431e6": {
+      "passwordHash": "10504e93be18953a8f3d8b77c0adb831d3a80519a3a5373198c51a35b93e287ed1c34fdb1edea76a59716c2826273e6ac09b9387245e7d6d630465e83da4a855",
+      "salt": "44105827ff74b42c0d20960ecc9dea0a"
+    },
+    "usr_1791568863406_422fa4": {
+      "passwordHash": "0bc44b9e5cc3d17323bb4c7b30384ddf8d56530d433fca2ad37fed293cb226b07e33ce34097677c52ea771eac61ae1b8c9d7fb1c07555a136449ac42cb908e67",
+      "salt": "fc3bd17734740cece0657ddd2b65b5e4"
+    },
+    "usr_1791568864121_f4a74d": {
+      "passwordHash": "234c97a12142b05f5e734c72709eb6621939363aab7ad08c368c65028b60cf400d474d4c8140e34d31ac943721d76908f1d66d64da57c904cbc19a07b8efa590",
+      "salt": "b124381ae0ec6eb8e73e11a5f3a374af"
+    },
+    "usr_1791568864614_4295c9": {
+      "passwordHash": "8673ea0ba04e335bc3063b7a3123d900811d2ed4f5a6d70e363a6b830bd4536be1c3b9ca06475acb4319ef53e298e53b42224913744d210c3a5473386f4408c0",
+      "salt": "14d6a843fa45a888bef0998d8c55bf9e"
+    },
+    "usr_1791568864959_f7a258": {
+      "passwordHash": "00a1aac8b30a8f5a529012b371e17426bff71d280c689394d210b1eaf1c854e559053fd5ac8376832ee4203377b24e2a22b14f4d374ecd3a2c8852aed8bf405a",
+      "salt": "939d0393c44094f6c711aa6df0852650"
+    },
+    "usr_1791568865525_b025e5": {
+      "passwordHash": "e36fda050d57abd1ab2aa71da8c217db534972c34ac71f5dff47fd09142fafdd0db9bb7bb484c100922ccfef984be611ad1b546efc36f13ab7bf6c8c7583b8bc",
+      "salt": "87108571eb6ee070340a42ec1c2625db"
+    },
+    "usr_1791568866179_8f83a2": {
+      "passwordHash": "9316a86b295fd0fbf5325c7e0e00585efbeab7abd3ea3f0d9f3d55e78974ea1235b7a269860175585f77d1fbe38419418d34096f5c0a463f2fc0fd4982c25264",
+      "salt": "05c2d77d90f60dcf21249c724bd16715"
+    },
+    "usr_1791568866499_7455a2": {
+      "passwordHash": "6f72374c6de81c86c8265575980aa4a2a940749e49353ec68d7c2a3582a61d5bac79698e3a7759b1430d034d05fdfde527d58b751bc191fe4fcae55d0f553a5f",
+      "salt": "8b75b3ad7815498311ec4014f3e3a408"
+    },
+    "usr_1791568866990_0ab072": {
+      "passwordHash": "0b59b7e3c7b4ef96b051a91270a37a64af8faa4ad2b9904b2914c790b48dfa9a5ec4bd1d587f0b13e19f94b499998a3e8e5af9a9580b9301f529951bb2489e68",
+      "salt": "9a13bdbf6e61e05f25af8fcc8efdca2f"
+    },
+    "usr_1791568867345_40b182": {
+      "passwordHash": "1fc083d4244c155b9966e46316d7dca2ff49e3446ae174199e130f91b0d59f9bf7a903d7108cc9d986db8c410b3630854a78e26d2fbb87e708c0cf412fb0b728",
+      "salt": "e9aa2af58672b72576fbb5ec29f56db5"
+    },
+    "usr_1791568867643_7f224a": {
+      "passwordHash": "d32f1bd7001fbb5b2c926b31eaab3f7cf18763c9f531c43a3d37d9e47e416e28dc11d65b841cb5e372d1ff2d99806a2fac1ffcb5defd3eefa085d1e98547c17f",
+      "salt": "00d05aa71f3e3527609ff8582a05f4ef"
+    },
+    "usr_1791568868129_ab3a77": {
+      "passwordHash": "4773b4eed4a70e4901670ef1778963942dc2448830c46f87dcb2d255cc815fe053eff8849c968d8f2f9e577d1edb9b3a7db1e50fe6873c72bbf63746e1c812f2",
+      "salt": "d82d3eb6141dc9c232e99b10d343c29d"
+    },
+    "usr_1791568868374_b6cdba": {
+      "passwordHash": "baf972a9d6849729a2b2bf842eeaa0ad0fbbb51584babf75fed6c30f3d67bc0ae7c57af6b0c90cf6dbc7abc65db773a91632ccc7c3b220ade8dd762dab74e5b8",
+      "salt": "f44e20b29ffe66c141485e3ba98171e3"
+    },
+    "usr_1791568869986_b5c21b": {
+      "passwordHash": "5e5a6f0380fe526dea85bdd909c62697dd426f9c7bf0c931d12563294f183935d4ab2207de856ec1a26be75f64224f06e966f0fbcebc07ad388f8b4b1f5eac28",
+      "salt": "cf0de0511b57dedd6014943d5b6f5714"
+    },
+    "usr_1791568870522_f987f9": {
+      "passwordHash": "0379faa4e90db75c560f26ff70df194edf35b0430699b3b27e5e2b1488722302e319dfa79419ccbe0161f4b67ac8098db7ed2de88255d5f4ff3b0af6b49bff85",
+      "salt": "0935c04e1dd4be50ea55a7daf89c5753"
+    },
+    "usr_1791568871424_be3841": {
+      "passwordHash": "afbc6c483c6785b9ca9501f9e1aceea360b2fc8367164b9662f276406c6ebe70c9ec3af5f2b4daa9b9552fcc72b3a8d6a7f92d0b323b7adc791ecc5d5da44ead",
+      "salt": "f3d9483bdbb4002a0839036faaf56ce4"
+    },
+    "usr_1791568872052_f26cb4": {
+      "passwordHash": "543663210fb1851aa396f116724bc5a57929b186e327193d39b5b38ea2d4a78a5bce30bb598843fa3b14cb15fc152af9b8d28713c7326bf82b62bd1fd1c9f9ea",
+      "salt": "436c2a4df99c30f609d7f72b14ff8e4b"
+    },
+    "usr_1791568872393_19d269": {
+      "passwordHash": "b0b3005ad3ee716989d832b02f186a67be95235d380b328303e8256bd763bbbf18b44509abab117f6563fb13380c0879e57c0ef34be5964141c3581f0ec757bd",
+      "salt": "8ab5d23d075b99a49802e4f2dc74c827"
+    },
+    "usr_1791568872661_961b52": {
+      "passwordHash": "c9a90013d3afd7c40d03550671314dec707d9b22f0bfbf67aea5e79d4946edb74e47f3b9776430846f4b63e859e9f34f2c81420b373ae5e6c9bd29cd9c8ee78c",
+      "salt": "94d8a70e029021ddbf2f0b8969739caa"
+    },
+    "usr_1791568873864_115579": {
+      "passwordHash": "20a495052689082c55efd2d6b0a268dea50a6c570edc4271d23422de84e8d2cd641640052388a06cd38a2bf90a0a4276c91ce2b47edb55a982a77ce4752979c6",
+      "salt": "cf1bb56d063f057ed13358ecf7dd2ef2"
+    },
+    "usr_1791568874192_e06550": {
+      "passwordHash": "23e0b53f601afe5f165c05519b16f0f659cce352037df9df6390151b571087e70e6fa965e66947d6bf6b08ef95ca371aa20d49c400ee023fe3aaf17b98896193",
+      "salt": "5d719e5b046df1f1a96a4f52eec9fe1e"
+    },
+    "usr_1791568874799_a29078": {
+      "passwordHash": "40dd954bb1d258ef1d59194a365347d3098dabe9f132993c21d1e8958bc2480e4eedbe48e50000dec3ef3f0103c31b30f17312ff860f83cf2b76fe2c1cccbfb3",
+      "salt": "06f6b3d53e06d6a3d033e24b0eceab16"
+    },
+    "usr_1791568875719_2486c5": {
+      "passwordHash": "b37a142aac7ab2ee71690bb0322ece2c69f77219effcd523032e0dd6184624edfd9b33d72ea53c376fb8decc3735ed8e5477eb82dd4581e4dc0bb9f2b5cbdcc9",
+      "salt": "d2dfc1871c22688fdbb602b2a2d1b81e"
     }
   },
   "identityMappings": {
@@ -12207,6 +15849,54 @@
       "externalSubjectId": "sub_single_use_1791567499501",
       "externalEmail": "single_use_1791567499501@test.aitathastu.com",
       "createdAt": "2026-10-09T17:38:19.737Z"
+    },
+    "map_1791568296462": {
+      "id": "map_1791568296462",
+      "memberId": "usr_1791568296458_eb37b3",
+      "provider": "aitathastu_oidc",
+      "externalSubjectId": "core_person_1791568296404_1",
+      "externalEmail": "core_user_1791568296404_1@aitathastu.com",
+      "createdAt": "2026-10-09T17:51:36.462Z"
+    },
+    "map_1791568296611": {
+      "id": "map_1791568296611",
+      "memberId": "usr_1791568296474_08a52c",
+      "provider": "aitathastu_oidc",
+      "externalSubjectId": "legit_core_sub_1791568296404",
+      "externalEmail": "collab_local_1791568296404@collaborate.local",
+      "createdAt": "2026-10-09T17:51:36.611Z"
+    },
+    "map_1791568296680": {
+      "id": "map_1791568296680",
+      "memberId": "usr_1791568296676_2167a5",
+      "provider": "aitathastu_oidc",
+      "externalSubjectId": "sub_single_use_1791568296404",
+      "externalEmail": "single_use_1791568296404@test.aitathastu.com",
+      "createdAt": "2026-10-09T17:51:36.680Z"
+    },
+    "map_1791568866841": {
+      "id": "map_1791568866841",
+      "memberId": "usr_1791568866831_617ecb",
+      "provider": "aitathastu_oidc",
+      "externalSubjectId": "core_person_1791568866771_1",
+      "externalEmail": "core_user_1791568866771_1@aitathastu.com",
+      "createdAt": "2026-10-09T18:01:06.841Z"
+    },
+    "map_1791568867329": {
+      "id": "map_1791568867329",
+      "memberId": "usr_1791568866990_0ab072",
+      "provider": "aitathastu_oidc",
+      "externalSubjectId": "legit_core_sub_1791568866771",
+      "externalEmail": "collab_local_1791568866771@collaborate.local",
+      "createdAt": "2026-10-09T18:01:07.329Z"
+    },
+    "map_1791568867491": {
+      "id": "map_1791568867491",
+      "memberId": "usr_1791568867480_b4efd6",
+      "provider": "aitathastu_oidc",
+      "externalSubjectId": "sub_single_use_1791568866771",
+      "externalEmail": "single_use_1791568866771@test.aitathastu.com",
+      "createdAt": "2026-10-09T18:01:07.491Z"
     }
   },
   "connections": {
@@ -12640,6 +16330,132 @@
       "introMessage": "Hi Bob, excited to connect on distributed machine learning!",
       "createdAt": "2026-10-09T17:38:20.729Z",
       "updatedAt": "2026-10-09T17:38:20.738Z"
+    },
+    "conn_1791568295746_979w": {
+      "id": "conn_1791568295746_979w",
+      "requesterId": "usr_1791568295637_7a33b5",
+      "recipientId": "usr_1791568295704_a13e45",
+      "status": "blocked",
+      "introMessage": "Hi Rahul, would love to collaborate on distributed RAG architectures!",
+      "createdAt": "2026-10-09T17:51:35.746Z",
+      "updatedAt": "2026-10-09T17:51:36.006Z"
+    },
+    "conn_1791568295852_mx8u": {
+      "id": "conn_1791568295852_mx8u",
+      "requesterId": "usr_1791568295769_ff3769",
+      "recipientId": "usr_1791568295637_7a33b5",
+      "status": "withdrawn",
+      "introMessage": "Test withdraw",
+      "createdAt": "2026-10-09T17:51:35.852Z",
+      "updatedAt": "2026-10-09T17:51:35.898Z"
+    },
+    "conn_1791568297121_67jg": {
+      "id": "conn_1791568297121_67jg",
+      "requesterId": "usr_1791568296978_82a1f8",
+      "recipientId": "usr_1791568297036_a57d89",
+      "status": "blocked",
+      "introMessage": "Hi Bob, excited to connect on distributed AI systems!",
+      "createdAt": "2026-10-09T17:51:37.121Z",
+      "updatedAt": "2026-10-09T17:51:37.261Z"
+    },
+    "conn_1791568297430_96ps": {
+      "id": "conn_1791568297430_96ps",
+      "requesterId": "usr_1791568297345_6f5348",
+      "recipientId": "usr_1791568297283_261d54",
+      "status": "request_sent",
+      "introMessage": "Official academic research mentorship pairing.",
+      "createdAt": "2026-10-09T17:51:37.430Z",
+      "updatedAt": "2026-10-09T17:51:37.430Z"
+    },
+    "conn_1791568297800_q6nz": {
+      "id": "conn_1791568297800_q6nz",
+      "requesterId": "usr_1791568297593_b9d278",
+      "recipientId": "usr_1791568297737_057b64",
+      "status": "accepted",
+      "introMessage": "Hi Bob, excited to connect on distributed machine learning!",
+      "createdAt": "2026-10-09T17:51:37.800Z",
+      "updatedAt": "2026-10-09T17:51:37.812Z"
+    },
+    "conn_1791568754000_kmut": {
+      "id": "conn_1791568754000_kmut",
+      "requesterId": "usr_1791568753794_7fe602",
+      "recipientId": "usr_1791568753934_a1cb08",
+      "status": "blocked",
+      "introMessage": "Hi Karan, I saw your high-throughput inference work and would love to collaborate on AlignEval.",
+      "createdAt": "2026-10-09T17:59:14.000Z",
+      "updatedAt": "2026-10-09T17:59:14.141Z"
+    },
+    "conn_1791568798602_vhnp": {
+      "id": "conn_1791568798602_vhnp",
+      "requesterId": "usr_1791568798430_aad82f",
+      "recipientId": "usr_1791568798543_82cdb4",
+      "status": "blocked",
+      "introMessage": "Hi Karan, I saw your high-throughput inference work and would love to collaborate on AlignEval.",
+      "createdAt": "2026-10-09T17:59:58.602Z",
+      "updatedAt": "2026-10-09T17:59:58.728Z"
+    },
+    "conn_1791568849085_8g8n": {
+      "id": "conn_1791568849085_8g8n",
+      "requesterId": "usr_1791568848867_a86cd0",
+      "recipientId": "usr_1791568849019_a2b199",
+      "status": "removed",
+      "introMessage": "Hi Karan, I saw your high-throughput inference work and would love to collaborate on AlignEval.",
+      "createdAt": "2026-10-09T18:00:49.085Z",
+      "updatedAt": "2026-10-09T18:00:49.227Z"
+    },
+    "conn_1791568864561_newa": {
+      "id": "conn_1791568864561_newa",
+      "requesterId": "usr_1791568864121_f4a74d",
+      "recipientId": "usr_1791568864372_ba2552",
+      "status": "blocked",
+      "introMessage": "Hi Rahul, would love to collaborate on distributed RAG architectures!",
+      "createdAt": "2026-10-09T18:01:04.561Z",
+      "updatedAt": "2026-10-09T18:01:05.082Z"
+    },
+    "conn_1791568864734_xua0": {
+      "id": "conn_1791568864734_xua0",
+      "requesterId": "usr_1791568864614_4295c9",
+      "recipientId": "usr_1791568864121_f4a74d",
+      "status": "withdrawn",
+      "introMessage": "Test withdraw",
+      "createdAt": "2026-10-09T18:01:04.734Z",
+      "updatedAt": "2026-10-09T18:01:04.865Z"
+    },
+    "conn_1791568868938_88lw": {
+      "id": "conn_1791568868938_88lw",
+      "requesterId": "usr_1791568868129_ab3a77",
+      "recipientId": "usr_1791568868374_b6cdba",
+      "status": "blocked",
+      "introMessage": "Hi Bob, excited to connect on distributed AI systems!",
+      "createdAt": "2026-10-09T18:01:08.938Z",
+      "updatedAt": "2026-10-09T18:01:09.813Z"
+    },
+    "conn_1791568871095_as7e": {
+      "id": "conn_1791568871095_as7e",
+      "requesterId": "usr_1791568870522_f987f9",
+      "recipientId": "usr_1791568869986_b5c21b",
+      "status": "request_sent",
+      "introMessage": "Official academic research mentorship pairing.",
+      "createdAt": "2026-10-09T18:01:11.095Z",
+      "updatedAt": "2026-10-09T18:01:11.095Z"
+    },
+    "conn_1791568872200_ew5z": {
+      "id": "conn_1791568872200_ew5z",
+      "requesterId": "usr_1791568871424_be3841",
+      "recipientId": "usr_1791568872052_f26cb4",
+      "status": "accepted",
+      "introMessage": "Hi Bob, excited to connect on distributed machine learning!",
+      "createdAt": "2026-10-09T18:01:12.200Z",
+      "updatedAt": "2026-10-09T18:01:12.285Z"
+    },
+    "conn_1791568874432_0rug": {
+      "id": "conn_1791568874432_0rug",
+      "requesterId": "usr_1791568873864_115579",
+      "recipientId": "usr_1791568874192_e06550",
+      "status": "removed",
+      "introMessage": "Hi Karan, I saw your high-throughput inference work and would love to collaborate on AlignEval.",
+      "createdAt": "2026-10-09T18:01:14.432Z",
+      "updatedAt": "2026-10-09T18:01:15.173Z"
     }
   },
   "conversations": {
@@ -13117,6 +16933,176 @@
         "content": "Hello Bob! The connection is accepted. Let us collaborate on distributed benchmarks.",
         "timestamp": "2026-10-09T17:38:20.749Z",
         "senderId": "usr_1791567500549_5a1945"
+      }
+    },
+    "conv_usr_1791568295637_7a33b5_usr_1791568295704_a13e45_1791568295926": {
+      "id": "conv_usr_1791568295637_7a33b5_usr_1791568295704_a13e45_1791568295926",
+      "participantIds": [
+        "usr_1791568295637_7a33b5",
+        "usr_1791568295704_a13e45"
+      ],
+      "unreadCounts": {
+        "usr_1791568295637_7a33b5": 1,
+        "usr_1791568295704_a13e45": 0
+      },
+      "updatedAt": "2026-10-09T17:51:35.942Z",
+      "lastMessage": {
+        "content": "Thanks! Absolutely, let us sync up on the architecture.",
+        "timestamp": "2026-10-09T17:51:35.942Z",
+        "senderId": "usr_1791568295704_a13e45"
+      }
+    },
+    "conv_usr_1791568296978_82a1f8_usr_1791568297036_a57d89_1791568297144": {
+      "id": "conv_usr_1791568296978_82a1f8_usr_1791568297036_a57d89_1791568297144",
+      "participantIds": [
+        "usr_1791568296978_82a1f8",
+        "usr_1791568297036_a57d89"
+      ],
+      "unreadCounts": {
+        "usr_1791568296978_82a1f8": 0,
+        "usr_1791568297036_a57d89": 1
+      },
+      "updatedAt": "2026-10-09T17:51:37.156Z",
+      "lastMessage": {
+        "content": "Hey Alice! Absolutely, database isolation is looking rock solid.",
+        "timestamp": "2026-10-09T17:51:37.156Z",
+        "senderId": "usr_1791568297036_a57d89"
+      }
+    },
+    "conv_usr_1791568297593_b9d278_usr_1791568297737_057b64_1791568297824": {
+      "id": "conv_usr_1791568297593_b9d278_usr_1791568297737_057b64_1791568297824",
+      "participantIds": [
+        "usr_1791568297593_b9d278",
+        "usr_1791568297737_057b64"
+      ],
+      "unreadCounts": {
+        "usr_1791568297593_b9d278": 0,
+        "usr_1791568297737_057b64": 1
+      },
+      "updatedAt": "2026-10-09T17:51:37.824Z",
+      "lastMessage": {
+        "content": "Hello Bob! The connection is accepted. Let us collaborate on distributed benchmarks.",
+        "timestamp": "2026-10-09T17:51:37.824Z",
+        "senderId": "usr_1791568297593_b9d278"
+      }
+    },
+    "conv_usr_1791568753794_7fe602_usr_1791568753934_a1cb08_1791568754031": {
+      "id": "conv_usr_1791568753794_7fe602_usr_1791568753934_a1cb08_1791568754031",
+      "participantIds": [
+        "usr_1791568753794_7fe602",
+        "usr_1791568753934_a1cb08"
+      ],
+      "unreadCounts": {
+        "usr_1791568753794_7fe602": 0,
+        "usr_1791568753934_a1cb08": 1
+      },
+      "updatedAt": "2026-10-09T17:59:14.043Z",
+      "lastMessage": {
+        "content": "Absolutely Devika! I will benchmark the kernel latency across A100 and H100 clusters tonight.",
+        "timestamp": "2026-10-09T17:59:14.043Z",
+        "senderId": "usr_1791568753934_a1cb08"
+      }
+    },
+    "conv_usr_1791568798430_aad82f_usr_1791568798543_82cdb4_1791568798628": {
+      "id": "conv_usr_1791568798430_aad82f_usr_1791568798543_82cdb4_1791568798628",
+      "participantIds": [
+        "usr_1791568798430_aad82f",
+        "usr_1791568798543_82cdb4"
+      ],
+      "unreadCounts": {
+        "usr_1791568798430_aad82f": 0,
+        "usr_1791568798543_82cdb4": 1
+      },
+      "updatedAt": "2026-10-09T17:59:58.640Z",
+      "lastMessage": {
+        "content": "Absolutely Devika! I will benchmark the kernel latency across A100 and H100 clusters tonight.",
+        "timestamp": "2026-10-09T17:59:58.640Z",
+        "senderId": "usr_1791568798543_82cdb4"
+      }
+    },
+    "conv_usr_1791568848867_a86cd0_usr_1791568849019_a2b199_1791568849119": {
+      "id": "conv_usr_1791568848867_a86cd0_usr_1791568849019_a2b199_1791568849119",
+      "participantIds": [
+        "usr_1791568848867_a86cd0",
+        "usr_1791568849019_a2b199"
+      ],
+      "unreadCounts": {
+        "usr_1791568848867_a86cd0": 0,
+        "usr_1791568849019_a2b199": 1
+      },
+      "updatedAt": "2026-10-09T18:00:49.130Z",
+      "lastMessage": {
+        "content": "Absolutely Devika! I will benchmark the kernel latency across A100 and H100 clusters tonight.",
+        "timestamp": "2026-10-09T18:00:49.130Z",
+        "senderId": "usr_1791568849019_a2b199"
+      }
+    },
+    "conv_usr_1791568864121_f4a74d_usr_1791568864372_ba2552_1791568864898": {
+      "id": "conv_usr_1791568864121_f4a74d_usr_1791568864372_ba2552_1791568864898",
+      "participantIds": [
+        "usr_1791568864121_f4a74d",
+        "usr_1791568864372_ba2552"
+      ],
+      "unreadCounts": {
+        "usr_1791568864121_f4a74d": 1,
+        "usr_1791568864372_ba2552": 0
+      },
+      "updatedAt": "2026-10-09T18:01:04.938Z",
+      "lastMessage": {
+        "content": "Thanks! Absolutely, let us sync up on the architecture.",
+        "timestamp": "2026-10-09T18:01:04.938Z",
+        "senderId": "usr_1791568864372_ba2552"
+      }
+    },
+    "conv_usr_1791568868129_ab3a77_usr_1791568868374_b6cdba_1791568869005": {
+      "id": "conv_usr_1791568868129_ab3a77_usr_1791568868374_b6cdba_1791568869005",
+      "participantIds": [
+        "usr_1791568868129_ab3a77",
+        "usr_1791568868374_b6cdba"
+      ],
+      "unreadCounts": {
+        "usr_1791568868129_ab3a77": 0,
+        "usr_1791568868374_b6cdba": 1
+      },
+      "updatedAt": "2026-10-09T18:01:09.141Z",
+      "lastMessage": {
+        "content": "Hey Alice! Absolutely, database isolation is looking rock solid.",
+        "timestamp": "2026-10-09T18:01:09.141Z",
+        "senderId": "usr_1791568868374_b6cdba"
+      }
+    },
+    "conv_usr_1791568871424_be3841_usr_1791568872052_f26cb4_1791568872359": {
+      "id": "conv_usr_1791568871424_be3841_usr_1791568872052_f26cb4_1791568872359",
+      "participantIds": [
+        "usr_1791568871424_be3841",
+        "usr_1791568872052_f26cb4"
+      ],
+      "unreadCounts": {
+        "usr_1791568871424_be3841": 0,
+        "usr_1791568872052_f26cb4": 1
+      },
+      "updatedAt": "2026-10-09T18:01:12.359Z",
+      "lastMessage": {
+        "content": "Hello Bob! The connection is accepted. Let us collaborate on distributed benchmarks.",
+        "timestamp": "2026-10-09T18:01:12.359Z",
+        "senderId": "usr_1791568871424_be3841"
+      }
+    },
+    "conv_usr_1791568873864_115579_usr_1791568874192_e06550_1791568874631": {
+      "id": "conv_usr_1791568873864_115579_usr_1791568874192_e06550_1791568874631",
+      "participantIds": [
+        "usr_1791568873864_115579",
+        "usr_1791568874192_e06550"
+      ],
+      "unreadCounts": {
+        "usr_1791568873864_115579": 0,
+        "usr_1791568874192_e06550": 1
+      },
+      "updatedAt": "2026-10-09T18:01:14.747Z",
+      "lastMessage": {
+        "content": "Absolutely Devika! I will benchmark the kernel latency across A100 and H100 clusters tonight.",
+        "timestamp": "2026-10-09T18:01:14.747Z",
+        "senderId": "usr_1791568874192_e06550"
       }
     }
   },
@@ -13615,6 +17601,168 @@
       "content": "Hello Bob! The connection is accepted. Let us collaborate on distributed benchmarks.",
       "timestamp": "2026-10-09T17:38:20.749Z",
       "status": "delivered"
+    },
+    {
+      "id": "msg_1791568295926_h2qz",
+      "conversationId": "conv_usr_1791568295637_7a33b5_usr_1791568295704_a13e45_1791568295926",
+      "senderId": "usr_1791568295637_7a33b5",
+      "recipientId": "usr_1791568295704_a13e45",
+      "content": "Hey Rahul, congratulations on connecting! Let us build something awesome.",
+      "timestamp": "2026-10-09T17:51:35.926Z",
+      "status": "read"
+    },
+    {
+      "id": "msg_1791568295942_rsox",
+      "conversationId": "conv_usr_1791568295637_7a33b5_usr_1791568295704_a13e45_1791568295926",
+      "senderId": "usr_1791568295704_a13e45",
+      "recipientId": "usr_1791568295637_7a33b5",
+      "content": "Thanks! Absolutely, let us sync up on the architecture.",
+      "timestamp": "2026-10-09T17:51:35.942Z",
+      "status": "delivered"
+    },
+    {
+      "id": "msg_1791568297144_dquc",
+      "conversationId": "conv_usr_1791568296978_82a1f8_usr_1791568297036_a57d89_1791568297144",
+      "senderId": "usr_1791568296978_82a1f8",
+      "recipientId": "usr_1791568297036_a57d89",
+      "content": "Hello Bob! Ready to collaborate on our Next.js + Neon pipeline.",
+      "timestamp": "2026-10-09T17:51:37.144Z",
+      "status": "delivered"
+    },
+    {
+      "id": "msg_1791568297156_by2q",
+      "conversationId": "conv_usr_1791568296978_82a1f8_usr_1791568297036_a57d89_1791568297144",
+      "senderId": "usr_1791568297036_a57d89",
+      "recipientId": "usr_1791568296978_82a1f8",
+      "content": "Hey Alice! Absolutely, database isolation is looking rock solid.",
+      "timestamp": "2026-10-09T17:51:37.156Z",
+      "status": "read"
+    },
+    {
+      "id": "msg_1791568297824_e33a",
+      "conversationId": "conv_usr_1791568297593_b9d278_usr_1791568297737_057b64_1791568297824",
+      "senderId": "usr_1791568297593_b9d278",
+      "recipientId": "usr_1791568297737_057b64",
+      "content": "Hello Bob! The connection is accepted. Let us collaborate on distributed benchmarks.",
+      "timestamp": "2026-10-09T17:51:37.824Z",
+      "status": "delivered"
+    },
+    {
+      "id": "msg_1791568754031_bc6u",
+      "conversationId": "conv_usr_1791568753794_7fe602_usr_1791568753934_a1cb08_1791568754031",
+      "senderId": "usr_1791568753794_7fe602",
+      "recipientId": "usr_1791568753934_a1cb08",
+      "content": "Hi Karan! Excited to connect. Can you review our TensorRT inference kernel benchmark?",
+      "timestamp": "2026-10-09T17:59:14.031Z",
+      "status": "delivered"
+    },
+    {
+      "id": "msg_1791568754043_yywo",
+      "conversationId": "conv_usr_1791568753794_7fe602_usr_1791568753934_a1cb08_1791568754031",
+      "senderId": "usr_1791568753934_a1cb08",
+      "recipientId": "usr_1791568753794_7fe602",
+      "content": "Absolutely Devika! I will benchmark the kernel latency across A100 and H100 clusters tonight.",
+      "timestamp": "2026-10-09T17:59:14.043Z",
+      "status": "read"
+    },
+    {
+      "id": "msg_1791568798628_tdal",
+      "conversationId": "conv_usr_1791568798430_aad82f_usr_1791568798543_82cdb4_1791568798628",
+      "senderId": "usr_1791568798430_aad82f",
+      "recipientId": "usr_1791568798543_82cdb4",
+      "content": "Hi Karan! Excited to connect. Can you review our TensorRT inference kernel benchmark?",
+      "timestamp": "2026-10-09T17:59:58.628Z",
+      "status": "delivered"
+    },
+    {
+      "id": "msg_1791568798640_v1i1",
+      "conversationId": "conv_usr_1791568798430_aad82f_usr_1791568798543_82cdb4_1791568798628",
+      "senderId": "usr_1791568798543_82cdb4",
+      "recipientId": "usr_1791568798430_aad82f",
+      "content": "Absolutely Devika! I will benchmark the kernel latency across A100 and H100 clusters tonight.",
+      "timestamp": "2026-10-09T17:59:58.640Z",
+      "status": "read"
+    },
+    {
+      "id": "msg_1791568849119_3mg0",
+      "conversationId": "conv_usr_1791568848867_a86cd0_usr_1791568849019_a2b199_1791568849119",
+      "senderId": "usr_1791568848867_a86cd0",
+      "recipientId": "usr_1791568849019_a2b199",
+      "content": "Hi Karan! Excited to connect. Can you review our TensorRT inference kernel benchmark?",
+      "timestamp": "2026-10-09T18:00:49.119Z",
+      "status": "delivered"
+    },
+    {
+      "id": "msg_1791568849130_gd3z",
+      "conversationId": "conv_usr_1791568848867_a86cd0_usr_1791568849019_a2b199_1791568849119",
+      "senderId": "usr_1791568849019_a2b199",
+      "recipientId": "usr_1791568848867_a86cd0",
+      "content": "Absolutely Devika! I will benchmark the kernel latency across A100 and H100 clusters tonight.",
+      "timestamp": "2026-10-09T18:00:49.130Z",
+      "status": "read"
+    },
+    {
+      "id": "msg_1791568864898_rqck",
+      "conversationId": "conv_usr_1791568864121_f4a74d_usr_1791568864372_ba2552_1791568864898",
+      "senderId": "usr_1791568864121_f4a74d",
+      "recipientId": "usr_1791568864372_ba2552",
+      "content": "Hey Rahul, congratulations on connecting! Let us build something awesome.",
+      "timestamp": "2026-10-09T18:01:04.898Z",
+      "status": "read"
+    },
+    {
+      "id": "msg_1791568864938_6eq8",
+      "conversationId": "conv_usr_1791568864121_f4a74d_usr_1791568864372_ba2552_1791568864898",
+      "senderId": "usr_1791568864372_ba2552",
+      "recipientId": "usr_1791568864121_f4a74d",
+      "content": "Thanks! Absolutely, let us sync up on the architecture.",
+      "timestamp": "2026-10-09T18:01:04.938Z",
+      "status": "delivered"
+    },
+    {
+      "id": "msg_1791568869005_9v8a",
+      "conversationId": "conv_usr_1791568868129_ab3a77_usr_1791568868374_b6cdba_1791568869005",
+      "senderId": "usr_1791568868129_ab3a77",
+      "recipientId": "usr_1791568868374_b6cdba",
+      "content": "Hello Bob! Ready to collaborate on our Next.js + Neon pipeline.",
+      "timestamp": "2026-10-09T18:01:09.005Z",
+      "status": "delivered"
+    },
+    {
+      "id": "msg_1791568869141_kr8o",
+      "conversationId": "conv_usr_1791568868129_ab3a77_usr_1791568868374_b6cdba_1791568869005",
+      "senderId": "usr_1791568868374_b6cdba",
+      "recipientId": "usr_1791568868129_ab3a77",
+      "content": "Hey Alice! Absolutely, database isolation is looking rock solid.",
+      "timestamp": "2026-10-09T18:01:09.141Z",
+      "status": "read"
+    },
+    {
+      "id": "msg_1791568872359_5h2x",
+      "conversationId": "conv_usr_1791568871424_be3841_usr_1791568872052_f26cb4_1791568872359",
+      "senderId": "usr_1791568871424_be3841",
+      "recipientId": "usr_1791568872052_f26cb4",
+      "content": "Hello Bob! The connection is accepted. Let us collaborate on distributed benchmarks.",
+      "timestamp": "2026-10-09T18:01:12.359Z",
+      "status": "delivered"
+    },
+    {
+      "id": "msg_1791568874631_pwq2",
+      "conversationId": "conv_usr_1791568873864_115579_usr_1791568874192_e06550_1791568874631",
+      "senderId": "usr_1791568873864_115579",
+      "recipientId": "usr_1791568874192_e06550",
+      "content": "Hi Karan! Excited to connect. Can you review our TensorRT inference kernel benchmark?",
+      "timestamp": "2026-10-09T18:01:14.631Z",
+      "status": "delivered"
+    },
+    {
+      "id": "msg_1791568874747_b023",
+      "conversationId": "conv_usr_1791568873864_115579_usr_1791568874192_e06550_1791568874631",
+      "senderId": "usr_1791568874192_e06550",
+      "recipientId": "usr_1791568873864_115579",
+      "content": "Absolutely Devika! I will benchmark the kernel latency across A100 and H100 clusters tonight.",
+      "timestamp": "2026-10-09T18:01:14.747Z",
+      "status": "read"
     }
   ],
   "verificationRequests": {
@@ -14349,6 +18497,176 @@
       "evidenceSummary": "Admin self test credential",
       "status": "pending",
       "createdAt": "2026-10-09T17:38:20.876Z"
+    },
+    "vreq_1791568294919_upxw": {
+      "id": "vreq_1791568294919_upxw",
+      "memberId": "usr_admin",
+      "memberName": "Tathastu Trust & Safety Admin",
+      "memberEmail": "admin@aitathastu.com",
+      "category": "organization",
+      "evidenceSummary": "Admin self test credential",
+      "status": "pending",
+      "createdAt": "2026-10-09T17:51:34.919Z"
+    },
+    "vreq_1791568296022_r7xp": {
+      "id": "vreq_1791568296022_r7xp",
+      "memberId": "usr_1791568295637_7a33b5",
+      "memberName": "Independent Builder",
+      "memberEmail": "builder_1791568295596@collaborate.local",
+      "category": "institution",
+      "evidenceSummary": "Faculty ID and Institutional Research Profile",
+      "status": "approved",
+      "createdAt": "2026-10-09T17:51:36.022Z",
+      "reviewerNotes": "Official credentials verified.",
+      "reviewedBy": "usr_admin",
+      "reviewedAt": "2026-10-09T17:51:36.033Z"
+    },
+    "vreq_1791568297204_j989": {
+      "id": "vreq_1791568297204_j989",
+      "memberId": "usr_1791568297036_a57d89",
+      "memberName": "Bob Chatterjee",
+      "memberEmail": "bob_1791568296932@staging.collaborate",
+      "category": "institution",
+      "evidenceSummary": "Official Department of CSE Credentials",
+      "status": "approved",
+      "createdAt": "2026-10-09T17:51:37.204Z",
+      "reviewerNotes": "Verified via campus registrar.",
+      "reviewedBy": "usr_admin",
+      "reviewedAt": "2026-10-09T17:51:37.214Z"
+    },
+    "vreq_1791568297396_w22i": {
+      "id": "vreq_1791568297396_w22i",
+      "memberId": "usr_1791568297345_6f5348",
+      "memberName": "Dr. Vikram",
+      "memberEmail": "mentor_1791568297345@lpu.in",
+      "category": "institution",
+      "evidenceSummary": "Faculty ID",
+      "status": "approved",
+      "createdAt": "2026-10-09T17:51:37.396Z",
+      "reviewerNotes": "Verified against institutional registry.",
+      "reviewedBy": "usr_admin",
+      "reviewedAt": "2026-10-09T17:51:37.403Z"
+    },
+    "vreq_1791568297971_vun3": {
+      "id": "vreq_1791568297971_vun3",
+      "memberId": "usr_admin",
+      "memberName": "Tathastu Trust & Safety Admin",
+      "memberEmail": "admin@aitathastu.com",
+      "category": "organization",
+      "evidenceSummary": "Admin self test credential",
+      "status": "pending",
+      "createdAt": "2026-10-09T17:51:37.971Z"
+    },
+    "vreq_1791568754312_bxjk": {
+      "id": "vreq_1791568754312_bxjk",
+      "memberId": "usr_1791568753934_a1cb08",
+      "memberName": "Karan Malhotra",
+      "memberEmail": "karan_1791568753743@beta.collaborate",
+      "category": "institution",
+      "evidenceSummary": "Faculty appointment letter at IIT Delhi valid 2026-2028",
+      "status": "approved",
+      "createdAt": "2026-10-09T17:59:14.312Z",
+      "reviewerNotes": "Verified via IIT Delhi institutional registry",
+      "reviewedBy": "usr_admin",
+      "reviewedAt": "2026-10-09T17:59:14.323Z"
+    },
+    "vreq_1791568798904_qbr5": {
+      "id": "vreq_1791568798904_qbr5",
+      "memberId": "usr_1791568798543_82cdb4",
+      "memberName": "Karan Malhotra",
+      "memberEmail": "karan_1791568798385@beta.collaborate",
+      "category": "institution",
+      "evidenceSummary": "Faculty appointment letter at IIT Delhi valid 2026-2028",
+      "status": "approved",
+      "createdAt": "2026-10-09T17:59:58.904Z",
+      "reviewerNotes": "Verified via IIT Delhi institutional registry",
+      "reviewedBy": "usr_admin",
+      "reviewedAt": "2026-10-09T17:59:58.914Z"
+    },
+    "vreq_1791568849391_owtq": {
+      "id": "vreq_1791568849391_owtq",
+      "memberId": "usr_1791568849019_a2b199",
+      "memberName": "Karan Malhotra",
+      "memberEmail": "karan_1791568848823@beta.collaborate",
+      "category": "institution",
+      "evidenceSummary": "Faculty appointment letter at IIT Delhi valid 2026-2028",
+      "status": "approved",
+      "createdAt": "2026-10-09T18:00:49.391Z",
+      "reviewerNotes": "Verified via IIT Delhi institutional registry",
+      "reviewedBy": "usr_admin",
+      "reviewedAt": "2026-10-09T18:00:49.400Z"
+    },
+    "vreq_1791568861228_10qy": {
+      "id": "vreq_1791568861228_10qy",
+      "memberId": "usr_admin",
+      "memberName": "Tathastu Trust & Safety Admin",
+      "memberEmail": "admin@aitathastu.com",
+      "category": "organization",
+      "evidenceSummary": "Admin self test credential",
+      "status": "pending",
+      "createdAt": "2026-10-09T18:01:01.228Z"
+    },
+    "vreq_1791568865122_hqs9": {
+      "id": "vreq_1791568865122_hqs9",
+      "memberId": "usr_1791568864121_f4a74d",
+      "memberName": "Independent Builder",
+      "memberEmail": "builder_1791568864019@collaborate.local",
+      "category": "institution",
+      "evidenceSummary": "Faculty ID and Institutional Research Profile",
+      "status": "approved",
+      "createdAt": "2026-10-09T18:01:05.122Z",
+      "reviewerNotes": "Official credentials verified.",
+      "reviewedBy": "usr_admin",
+      "reviewedAt": "2026-10-09T18:01:05.277Z"
+    },
+    "vreq_1791568869473_gugw": {
+      "id": "vreq_1791568869473_gugw",
+      "memberId": "usr_1791568868374_b6cdba",
+      "memberName": "Bob Chatterjee",
+      "memberEmail": "bob_1791568868077@staging.collaborate",
+      "category": "institution",
+      "evidenceSummary": "Official Department of CSE Credentials",
+      "status": "approved",
+      "createdAt": "2026-10-09T18:01:09.473Z",
+      "reviewerNotes": "Verified via campus registrar.",
+      "reviewedBy": "usr_admin",
+      "reviewedAt": "2026-10-09T18:01:09.606Z"
+    },
+    "vreq_1791568871016_wsoc": {
+      "id": "vreq_1791568871016_wsoc",
+      "memberId": "usr_1791568870522_f987f9",
+      "memberName": "Dr. Vikram",
+      "memberEmail": "mentor_1791568870522@lpu.in",
+      "category": "institution",
+      "evidenceSummary": "Faculty ID",
+      "status": "approved",
+      "createdAt": "2026-10-09T18:01:11.016Z",
+      "reviewerNotes": "Verified against institutional registry.",
+      "reviewedBy": "usr_admin",
+      "reviewedAt": "2026-10-09T18:01:11.031Z"
+    },
+    "vreq_1791568873022_v3tg": {
+      "id": "vreq_1791568873022_v3tg",
+      "memberId": "usr_admin",
+      "memberName": "Tathastu Trust & Safety Admin",
+      "memberEmail": "admin@aitathastu.com",
+      "category": "organization",
+      "evidenceSummary": "Admin self test credential",
+      "status": "pending",
+      "createdAt": "2026-10-09T18:01:13.022Z"
+    },
+    "vreq_1791568875657_0b05": {
+      "id": "vreq_1791568875657_0b05",
+      "memberId": "usr_1791568874192_e06550",
+      "memberName": "Karan Malhotra",
+      "memberEmail": "karan_1791568873754@beta.collaborate",
+      "category": "institution",
+      "evidenceSummary": "Faculty appointment letter at IIT Delhi valid 2026-2028",
+      "status": "approved",
+      "createdAt": "2026-10-09T18:01:15.657Z",
+      "reviewerNotes": "Verified via IIT Delhi institutional registry",
+      "reviewedBy": "usr_admin",
+      "reviewedAt": "2026-10-09T18:01:15.676Z"
     }
   },
   "verificationAuditLogs": [
@@ -14911,6 +19229,186 @@
       "category": "institution",
       "notes": "Verified against institutional registry.",
       "timestamp": "2026-10-09T17:38:20.351Z"
+    },
+    {
+      "id": "audit_1791568296033",
+      "requestId": "vreq_1791568296022_r7xp",
+      "memberId": "usr_1791568295637_7a33b5",
+      "action": "approved",
+      "reviewer": "usr_admin",
+      "category": "institution",
+      "notes": "Official credentials verified.",
+      "timestamp": "2026-10-09T17:51:36.033Z"
+    },
+    {
+      "id": "audit_revoke_1791568296046",
+      "requestId": "revocation",
+      "memberId": "usr_1791568295637_7a33b5",
+      "action": "revoked",
+      "reviewer": "usr_admin",
+      "category": "identity",
+      "notes": "Credential revoked by safety audit.",
+      "timestamp": "2026-10-09T17:51:36.046Z"
+    },
+    {
+      "id": "audit_1791568297214",
+      "requestId": "vreq_1791568297204_j989",
+      "memberId": "usr_1791568297036_a57d89",
+      "action": "approved",
+      "reviewer": "usr_admin",
+      "category": "institution",
+      "notes": "Verified via campus registrar.",
+      "timestamp": "2026-10-09T17:51:37.214Z"
+    },
+    {
+      "id": "audit_revoke_1791568297251",
+      "requestId": "revocation",
+      "memberId": "usr_1791568297036_a57d89",
+      "action": "revoked",
+      "reviewer": "usr_admin",
+      "category": "identity",
+      "notes": "Revoked following periodic institutional re-audit.",
+      "timestamp": "2026-10-09T17:51:37.251Z"
+    },
+    {
+      "id": "audit_1791568297403",
+      "requestId": "vreq_1791568297396_w22i",
+      "memberId": "usr_1791568297345_6f5348",
+      "action": "approved",
+      "reviewer": "usr_admin",
+      "category": "institution",
+      "notes": "Verified against institutional registry.",
+      "timestamp": "2026-10-09T17:51:37.403Z"
+    },
+    {
+      "id": "audit_1791568754323",
+      "requestId": "vreq_1791568754312_bxjk",
+      "memberId": "usr_1791568753934_a1cb08",
+      "action": "approved",
+      "reviewer": "usr_admin",
+      "category": "institution",
+      "notes": "Verified via IIT Delhi institutional registry",
+      "timestamp": "2026-10-09T17:59:14.323Z"
+    },
+    {
+      "id": "audit_revoke_1791568754334",
+      "requestId": "revocation",
+      "memberId": "usr_1791568753934_a1cb08",
+      "action": "revoked",
+      "reviewer": "usr_admin",
+      "category": "identity",
+      "notes": "Revoked for routine compliance recertification",
+      "timestamp": "2026-10-09T17:59:14.334Z"
+    },
+    {
+      "id": "audit_1791568798914",
+      "requestId": "vreq_1791568798904_qbr5",
+      "memberId": "usr_1791568798543_82cdb4",
+      "action": "approved",
+      "reviewer": "usr_admin",
+      "category": "institution",
+      "notes": "Verified via IIT Delhi institutional registry",
+      "timestamp": "2026-10-09T17:59:58.914Z"
+    },
+    {
+      "id": "audit_revoke_1791568798925",
+      "requestId": "revocation",
+      "memberId": "usr_1791568798543_82cdb4",
+      "action": "revoked",
+      "reviewer": "usr_admin",
+      "category": "identity",
+      "notes": "Revoked for routine compliance recertification",
+      "timestamp": "2026-10-09T17:59:58.925Z"
+    },
+    {
+      "id": "audit_1791568849400",
+      "requestId": "vreq_1791568849391_owtq",
+      "memberId": "usr_1791568849019_a2b199",
+      "action": "approved",
+      "reviewer": "usr_admin",
+      "category": "institution",
+      "notes": "Verified via IIT Delhi institutional registry",
+      "timestamp": "2026-10-09T18:00:49.400Z"
+    },
+    {
+      "id": "audit_revoke_1791568849411",
+      "requestId": "revocation",
+      "memberId": "usr_1791568849019_a2b199",
+      "action": "revoked",
+      "reviewer": "usr_admin",
+      "category": "identity",
+      "notes": "Revoked for routine compliance recertification",
+      "timestamp": "2026-10-09T18:00:49.411Z"
+    },
+    {
+      "id": "audit_1791568865277",
+      "requestId": "vreq_1791568865122_hqs9",
+      "memberId": "usr_1791568864121_f4a74d",
+      "action": "approved",
+      "reviewer": "usr_admin",
+      "category": "institution",
+      "notes": "Official credentials verified.",
+      "timestamp": "2026-10-09T18:01:05.277Z"
+    },
+    {
+      "id": "audit_revoke_1791568865408",
+      "requestId": "revocation",
+      "memberId": "usr_1791568864121_f4a74d",
+      "action": "revoked",
+      "reviewer": "usr_admin",
+      "category": "identity",
+      "notes": "Credential revoked by safety audit.",
+      "timestamp": "2026-10-09T18:01:05.408Z"
+    },
+    {
+      "id": "audit_1791568869606",
+      "requestId": "vreq_1791568869473_gugw",
+      "memberId": "usr_1791568868374_b6cdba",
+      "action": "approved",
+      "reviewer": "usr_admin",
+      "category": "institution",
+      "notes": "Verified via campus registrar.",
+      "timestamp": "2026-10-09T18:01:09.606Z"
+    },
+    {
+      "id": "audit_revoke_1791568869783",
+      "requestId": "revocation",
+      "memberId": "usr_1791568868374_b6cdba",
+      "action": "revoked",
+      "reviewer": "usr_admin",
+      "category": "identity",
+      "notes": "Revoked following periodic institutional re-audit.",
+      "timestamp": "2026-10-09T18:01:09.783Z"
+    },
+    {
+      "id": "audit_1791568871031",
+      "requestId": "vreq_1791568871016_wsoc",
+      "memberId": "usr_1791568870522_f987f9",
+      "action": "approved",
+      "reviewer": "usr_admin",
+      "category": "institution",
+      "notes": "Verified against institutional registry.",
+      "timestamp": "2026-10-09T18:01:11.031Z"
+    },
+    {
+      "id": "audit_1791568875676",
+      "requestId": "vreq_1791568875657_0b05",
+      "memberId": "usr_1791568874192_e06550",
+      "action": "approved",
+      "reviewer": "usr_admin",
+      "category": "institution",
+      "notes": "Verified via IIT Delhi institutional registry",
+      "timestamp": "2026-10-09T18:01:15.676Z"
+    },
+    {
+      "id": "audit_revoke_1791568875701",
+      "requestId": "revocation",
+      "memberId": "usr_1791568874192_e06550",
+      "action": "revoked",
+      "reviewer": "usr_admin",
+      "category": "identity",
+      "notes": "Revoked for routine compliance recertification",
+      "timestamp": "2026-10-09T18:01:15.701Z"
     }
   ],
   "abuseReports": {
@@ -14967,6 +19465,24 @@
       "details": "Test report",
       "status": "pending",
       "createdAt": "2026-10-09T17:38:19.044Z"
+    },
+    "rep_1791568295919_m5uj": {
+      "id": "rep_1791568295919_m5uj",
+      "reporterId": "usr_1791568295769_ff3769",
+      "reportedMemberId": "usr_1791568295637_7a33b5",
+      "reason": "spam_test",
+      "details": "Test report",
+      "status": "pending",
+      "createdAt": "2026-10-09T17:51:35.919Z"
+    },
+    "rep_1791568864881_sbko": {
+      "id": "rep_1791568864881_sbko",
+      "reporterId": "usr_1791568864614_4295c9",
+      "reportedMemberId": "usr_1791568864121_f4a74d",
+      "reason": "spam_test",
+      "details": "Test report",
+      "status": "pending",
+      "createdAt": "2026-10-09T18:01:04.881Z"
     }
   },
   "profileViewLedger": [
@@ -16320,6 +20836,300 @@
       "targetId": "usr_aman",
       "dateKey": "2026-10-09",
       "viewedAt": "2026-10-09T17:38:20.815Z"
+    },
+    {
+      "id": "view_1791568294534_k6z4f",
+      "viewerId": "usr_1791568294476_c1c7cf",
+      "targetId": "usr_rahul",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T17:51:34.534Z"
+    },
+    {
+      "id": "view_1791568294542_b4han",
+      "viewerId": "usr_1791568294476_c1c7cf",
+      "targetId": "usr_priya",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T17:51:34.542Z"
+    },
+    {
+      "id": "view_1791568294549_vs8gj",
+      "viewerId": "usr_1791568294476_c1c7cf",
+      "targetId": "usr_neha",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T17:51:34.549Z"
+    },
+    {
+      "id": "view_1791568294885_9qemp",
+      "viewerId": "usr_1791568294736_a57dfb",
+      "targetId": "usr_priya",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T17:51:34.885Z"
+    },
+    {
+      "id": "view_1791568294894_ztyb8",
+      "viewerId": "usr_1791568294736_a57dfb",
+      "targetId": "usr_aman",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T17:51:34.894Z"
+    },
+    {
+      "id": "view_1791568294902_4zf46",
+      "viewerId": "usr_1791568294736_a57dfb",
+      "targetId": "usr_neha",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T17:51:34.902Z"
+    },
+    {
+      "id": "view_1791568296105_0w2ws",
+      "viewerId": "usr_1791568296055_507b4e",
+      "targetId": "usr_rahul",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T17:51:36.105Z"
+    },
+    {
+      "id": "view_1791568296111_auvsu",
+      "viewerId": "usr_1791568296055_507b4e",
+      "targetId": "usr_priya",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T17:51:36.111Z"
+    },
+    {
+      "id": "view_1791568296118_yuoa4",
+      "viewerId": "usr_1791568296055_507b4e",
+      "targetId": "usr_neha",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T17:51:36.118Z"
+    },
+    {
+      "id": "view_1791568297179_qtgkq",
+      "viewerId": "usr_1791568296978_82a1f8",
+      "targetId": "usr_rahul",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T17:51:37.179Z"
+    },
+    {
+      "id": "view_1791568297187_nmymg",
+      "viewerId": "usr_1791568296978_82a1f8",
+      "targetId": "usr_priya",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T17:51:37.187Z"
+    },
+    {
+      "id": "view_1791568297194_m44lp",
+      "viewerId": "usr_1791568296978_82a1f8",
+      "targetId": "usr_aman",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T17:51:37.194Z"
+    },
+    {
+      "id": "view_1791568297886_rpk0o",
+      "viewerId": "usr_1791568297835_836a4a",
+      "targetId": "usr_rahul",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T17:51:37.886Z"
+    },
+    {
+      "id": "view_1791568297894_bo4at",
+      "viewerId": "usr_1791568297835_836a4a",
+      "targetId": "usr_priya",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T17:51:37.894Z"
+    },
+    {
+      "id": "view_1791568297901_k7mi6",
+      "viewerId": "usr_1791568297835_836a4a",
+      "targetId": "usr_aman",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T17:51:37.901Z"
+    },
+    {
+      "id": "view_1791568754152_haaic",
+      "viewerId": "usr_1791568753794_7fe602",
+      "targetId": "usr_rahul",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T17:59:14.152Z"
+    },
+    {
+      "id": "view_1791568754160_ci3xh",
+      "viewerId": "usr_1791568753794_7fe602",
+      "targetId": "usr_priya",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T17:59:14.160Z"
+    },
+    {
+      "id": "view_1791568754167_fla75",
+      "viewerId": "usr_1791568753794_7fe602",
+      "targetId": "usr_aman",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T17:59:14.167Z"
+    },
+    {
+      "id": "view_1791568798739_q6udm",
+      "viewerId": "usr_1791568798430_aad82f",
+      "targetId": "usr_rahul",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T17:59:58.739Z"
+    },
+    {
+      "id": "view_1791568798746_0nszp",
+      "viewerId": "usr_1791568798430_aad82f",
+      "targetId": "usr_priya",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T17:59:58.746Z"
+    },
+    {
+      "id": "view_1791568798754_6ulgg",
+      "viewerId": "usr_1791568798430_aad82f",
+      "targetId": "usr_aman",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T17:59:58.754Z"
+    },
+    {
+      "id": "view_1791568849234_5e1gn",
+      "viewerId": "usr_1791568848867_a86cd0",
+      "targetId": "usr_rahul",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T18:00:49.234Z"
+    },
+    {
+      "id": "view_1791568849241_otkeu",
+      "viewerId": "usr_1791568848867_a86cd0",
+      "targetId": "usr_priya",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T18:00:49.241Z"
+    },
+    {
+      "id": "view_1791568849247_pijcx",
+      "viewerId": "usr_1791568848867_a86cd0",
+      "targetId": "usr_aman",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T18:00:49.247Z"
+    },
+    {
+      "id": "view_1791568860224_khkw2",
+      "viewerId": "usr_1791568859995_e3340e",
+      "targetId": "usr_rahul",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T18:01:00.224Z"
+    },
+    {
+      "id": "view_1791568860237_yui3m",
+      "viewerId": "usr_1791568859995_e3340e",
+      "targetId": "usr_priya",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T18:01:00.237Z"
+    },
+    {
+      "id": "view_1791568860253_k2f5b",
+      "viewerId": "usr_1791568859995_e3340e",
+      "targetId": "usr_neha",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T18:01:00.253Z"
+    },
+    {
+      "id": "view_1791568861158_ku1ey",
+      "viewerId": "usr_1791568860584_085868",
+      "targetId": "usr_priya",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T18:01:01.158Z"
+    },
+    {
+      "id": "view_1791568861180_porgi",
+      "viewerId": "usr_1791568860584_085868",
+      "targetId": "usr_aman",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T18:01:01.180Z"
+    },
+    {
+      "id": "view_1791568861194_dzfkj",
+      "viewerId": "usr_1791568860584_085868",
+      "targetId": "usr_neha",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T18:01:01.194Z"
+    },
+    {
+      "id": "view_1791568865755_e13km",
+      "viewerId": "usr_1791568865525_b025e5",
+      "targetId": "usr_rahul",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T18:01:05.755Z"
+    },
+    {
+      "id": "view_1791568865879_ac5bn",
+      "viewerId": "usr_1791568865525_b025e5",
+      "targetId": "usr_priya",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T18:01:05.879Z"
+    },
+    {
+      "id": "view_1791568865896_qxjo4",
+      "viewerId": "usr_1791568865525_b025e5",
+      "targetId": "usr_neha",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T18:01:05.896Z"
+    },
+    {
+      "id": "view_1791568869315_6x59h",
+      "viewerId": "usr_1791568868129_ab3a77",
+      "targetId": "usr_rahul",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T18:01:09.315Z"
+    },
+    {
+      "id": "view_1791568869335_stsjq",
+      "viewerId": "usr_1791568868129_ab3a77",
+      "targetId": "usr_priya",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T18:01:09.335Z"
+    },
+    {
+      "id": "view_1791568869446_ydrtd",
+      "viewerId": "usr_1791568868129_ab3a77",
+      "targetId": "usr_aman",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T18:01:09.446Z"
+    },
+    {
+      "id": "view_1791568872613_w0n47",
+      "viewerId": "usr_1791568872393_19d269",
+      "targetId": "usr_rahul",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T18:01:12.613Z"
+    },
+    {
+      "id": "view_1791568872628_0a6lr",
+      "viewerId": "usr_1791568872393_19d269",
+      "targetId": "usr_priya",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T18:01:12.628Z"
+    },
+    {
+      "id": "view_1791568872643_2vua6",
+      "viewerId": "usr_1791568872393_19d269",
+      "targetId": "usr_aman",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T18:01:12.643Z"
+    },
+    {
+      "id": "view_1791568875187_ae7mx",
+      "viewerId": "usr_1791568873864_115579",
+      "targetId": "usr_rahul",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T18:01:15.187Z"
+    },
+    {
+      "id": "view_1791568875203_npuj9",
+      "viewerId": "usr_1791568873864_115579",
+      "targetId": "usr_priya",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T18:01:15.203Z"
+    },
+    {
+      "id": "view_1791568875218_8mhwl",
+      "viewerId": "usr_1791568873864_115579",
+      "targetId": "usr_aman",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T18:01:15.218Z"
     }
   ],
   "blockedUsers": [
@@ -16349,9 +21159,586 @@
     "usr_rahul:usr_1791567236242_6e2f82",
     "usr_rahul:usr_1791567498400_bf8d97",
     "usr_1791567498866_ac77e1:usr_1791567498928_105df1",
-    "usr_1791567500060_d5aeef:usr_1791567500010_152649"
+    "usr_1791567500060_d5aeef:usr_1791567500010_152649",
+    "usr_rahul:usr_1791568295101_1e1b2a",
+    "usr_1791568295637_7a33b5:usr_1791568295704_a13e45",
+    "usr_1791568297036_a57d89:usr_1791568296978_82a1f8",
+    "usr_1791568753794_7fe602:usr_1791568753934_a1cb08",
+    "usr_1791568798430_aad82f:usr_1791568798543_82cdb4",
+    "usr_1791568864121_f4a74d:usr_1791568864372_ba2552",
+    "usr_1791568868374_b6cdba:usr_1791568868129_ab3a77"
   ],
   "notifications": [
+    {
+      "id": "notif_1791568875686_km1q",
+      "recipientId": "usr_1791568874192_e06550",
+      "type": "verification_approved",
+      "title": "Verified Badge Approved!",
+      "body": "Your institution badge has been verified by the safety authority.",
+      "isRead": false,
+      "createdAt": "2026-10-09T18:01:15.686Z"
+    },
+    {
+      "id": "notif_1791568875536_2rqx",
+      "recipientId": "usr_1791568873864_115579",
+      "actorId": "usr_admin",
+      "type": "system",
+      "title": "Password Changed",
+      "body": "Your account password was updated successfully. If you did not make this change, contact support immediately.",
+      "isRead": false,
+      "createdAt": "2026-10-09T18:01:15.536Z"
+    },
+    {
+      "id": "notif_1791568874765_f6er",
+      "recipientId": "usr_1791568873864_115579",
+      "actorId": "usr_1791568874192_e06550",
+      "type": "message",
+      "title": "New message from Karan Malhotra",
+      "body": "Absolutely Devika! I will benchmark the kernel latency acros...",
+      "isRead": false,
+      "createdAt": "2026-10-09T18:01:14.765Z"
+    },
+    {
+      "id": "notif_1791568874643_iuu9",
+      "recipientId": "usr_1791568874192_e06550",
+      "actorId": "usr_1791568873864_115579",
+      "type": "message",
+      "title": "New message from Devika Patel",
+      "body": "Hi Karan! Excited to connect. Can you review our TensorRT in...",
+      "isRead": false,
+      "createdAt": "2026-10-09T18:01:14.643Z"
+    },
+    {
+      "id": "notif_1791568874594_5yxj",
+      "recipientId": "usr_1791568873864_115579",
+      "actorId": "usr_1791568874192_e06550",
+      "type": "connection_accepted",
+      "title": "Connection Accepted!",
+      "body": "Karan Malhotra accepted your connection request. You can now chat!",
+      "isRead": false,
+      "createdAt": "2026-10-09T18:01:14.594Z"
+    },
+    {
+      "id": "notif_1791568874533_k2d4",
+      "recipientId": "usr_1791568874192_e06550",
+      "actorId": "usr_1791568873864_115579",
+      "type": "connection_request",
+      "title": "New connection request from Devika Patel",
+      "body": "Hi Karan, I saw your high-throughput inference work and would love to collaborate on AlignEval.",
+      "isRead": false,
+      "createdAt": "2026-10-09T18:01:14.533Z"
+    },
+    {
+      "id": "notif_1791568872378_aj5t",
+      "recipientId": "usr_1791568872052_f26cb4",
+      "actorId": "usr_1791568871424_be3841",
+      "type": "message",
+      "title": "New message from Alice Beta",
+      "body": "Hello Bob! The connection is accepted. Let us collaborate on...",
+      "isRead": false,
+      "createdAt": "2026-10-09T18:01:12.378Z"
+    },
+    {
+      "id": "notif_1791568872339_oli7",
+      "recipientId": "usr_1791568871424_be3841",
+      "actorId": "usr_1791568872052_f26cb4",
+      "type": "connection_accepted",
+      "title": "Connection Accepted!",
+      "body": "Bob Beta accepted your connection request. You can now chat!",
+      "isRead": false,
+      "createdAt": "2026-10-09T18:01:12.339Z"
+    },
+    {
+      "id": "notif_1791568872210_81h8",
+      "recipientId": "usr_1791568872052_f26cb4",
+      "actorId": "usr_1791568871424_be3841",
+      "type": "connection_request",
+      "title": "New connection request from Alice Beta",
+      "body": "Hi Bob, excited to connect on distributed machine learning!",
+      "isRead": false,
+      "createdAt": "2026-10-09T18:01:12.210Z"
+    },
+    {
+      "id": "notif_1791568871106_lp3e",
+      "recipientId": "usr_1791568869986_b5c21b",
+      "actorId": "usr_1791568870522_f987f9",
+      "type": "connection_request",
+      "title": "New connection request from Dr. Vikram",
+      "body": "Official academic research mentorship pairing.",
+      "isRead": false,
+      "createdAt": "2026-10-09T18:01:11.106Z"
+    },
+    {
+      "id": "notif_1791568871041_drmv",
+      "recipientId": "usr_1791568870522_f987f9",
+      "type": "verification_approved",
+      "title": "Verified Badge Approved!",
+      "body": "Your institution badge has been verified by the safety authority.",
+      "isRead": false,
+      "createdAt": "2026-10-09T18:01:11.041Z"
+    },
+    {
+      "id": "notif_1791568869756_tzp1",
+      "recipientId": "usr_1791568868374_b6cdba",
+      "type": "verification_approved",
+      "title": "Verified Badge Approved!",
+      "body": "Your institution badge has been verified by the safety authority.",
+      "isRead": false,
+      "createdAt": "2026-10-09T18:01:09.757Z"
+    },
+    {
+      "id": "notif_1791568869158_fzd2",
+      "recipientId": "usr_1791568868129_ab3a77",
+      "actorId": "usr_1791568868374_b6cdba",
+      "type": "message",
+      "title": "New message from Bob Chatterjee",
+      "body": "Hey Alice! Absolutely, database isolation is looking rock so...",
+      "isRead": false,
+      "createdAt": "2026-10-09T18:01:09.158Z"
+    },
+    {
+      "id": "notif_1791568869105_55rc",
+      "recipientId": "usr_1791568868374_b6cdba",
+      "actorId": "usr_1791568868129_ab3a77",
+      "type": "message",
+      "title": "New message from Alice Verma",
+      "body": "Hello Bob! Ready to collaborate on our Next.js + Neon pipeli...",
+      "isRead": false,
+      "createdAt": "2026-10-09T18:01:09.105Z"
+    },
+    {
+      "id": "notif_1791568868987_pkb9",
+      "recipientId": "usr_1791568868129_ab3a77",
+      "actorId": "usr_1791568868374_b6cdba",
+      "type": "connection_accepted",
+      "title": "Connection Accepted!",
+      "body": "Bob Chatterjee accepted your connection request. You can now chat!",
+      "isRead": false,
+      "createdAt": "2026-10-09T18:01:08.987Z"
+    },
+    {
+      "id": "notif_1791568868959_a8ta",
+      "recipientId": "usr_1791568868374_b6cdba",
+      "actorId": "usr_1791568868129_ab3a77",
+      "type": "connection_request",
+      "title": "New connection request from Alice Verma",
+      "body": "Hi Bob, excited to connect on distributed AI systems!",
+      "isRead": false,
+      "createdAt": "2026-10-09T18:01:08.959Z"
+    },
+    {
+      "id": "notif_1791568865382_jrg7",
+      "recipientId": "usr_1791568864121_f4a74d",
+      "type": "verification_approved",
+      "title": "Verified Badge Approved!",
+      "body": "Your institution badge has been verified by the safety authority.",
+      "isRead": false,
+      "createdAt": "2026-10-09T18:01:05.382Z"
+    },
+    {
+      "id": "notif_1791568864947_38hl",
+      "recipientId": "usr_1791568864121_f4a74d",
+      "actorId": "usr_1791568864372_ba2552",
+      "type": "message",
+      "title": "New message from Rahul Sharma",
+      "body": "Thanks! Absolutely, let us sync up on the architecture.",
+      "isRead": false,
+      "createdAt": "2026-10-09T18:01:04.947Z"
+    },
+    {
+      "id": "notif_1791568864907_sby1",
+      "recipientId": "usr_1791568864372_ba2552",
+      "actorId": "usr_1791568864121_f4a74d",
+      "type": "message",
+      "title": "New message from Independent Builder",
+      "body": "Hey Rahul, congratulations on connecting! Let us build somet...",
+      "isRead": false,
+      "createdAt": "2026-10-09T18:01:04.907Z"
+    },
+    {
+      "id": "notif_1791568864847_q9uq",
+      "recipientId": "usr_1791568864121_f4a74d",
+      "actorId": "usr_1791568864614_4295c9",
+      "type": "connection_request",
+      "title": "New connection request from Charlie Davis",
+      "body": "Test withdraw",
+      "isRead": false,
+      "createdAt": "2026-10-09T18:01:04.847Z"
+    },
+    {
+      "id": "notif_1791568864600_00qz",
+      "recipientId": "usr_1791568864121_f4a74d",
+      "actorId": "usr_1791568864372_ba2552",
+      "type": "connection_accepted",
+      "title": "Connection Accepted!",
+      "body": "Rahul Sharma accepted your connection request. You can now chat!",
+      "isRead": false,
+      "createdAt": "2026-10-09T18:01:04.600Z"
+    },
+    {
+      "id": "notif_1791568864570_kw6r",
+      "recipientId": "usr_1791568864372_ba2552",
+      "actorId": "usr_1791568864121_f4a74d",
+      "type": "connection_request",
+      "title": "New connection request from Independent Builder",
+      "body": "Hi Rahul, would love to collaborate on distributed RAG architectures!",
+      "isRead": false,
+      "createdAt": "2026-10-09T18:01:04.570Z"
+    },
+    {
+      "id": "notif_1791568862818_in34",
+      "recipientId": "usr_1791568861697_2431e6",
+      "actorId": "usr_admin",
+      "type": "system",
+      "title": "Password Changed",
+      "body": "Your account password was updated successfully. If you did not make this change, contact support immediately.",
+      "isRead": false,
+      "createdAt": "2026-10-09T18:01:02.818Z"
+    },
+    {
+      "id": "notif_1791568849404_ypxq",
+      "recipientId": "usr_1791568849019_a2b199",
+      "type": "verification_approved",
+      "title": "Verified Badge Approved!",
+      "body": "Your institution badge has been verified by the safety authority.",
+      "isRead": false,
+      "createdAt": "2026-10-09T18:00:49.404Z"
+    },
+    {
+      "id": "notif_1791568849340_g9o5",
+      "recipientId": "usr_1791568848867_a86cd0",
+      "actorId": "usr_admin",
+      "type": "system",
+      "title": "Password Changed",
+      "body": "Your account password was updated successfully. If you did not make this change, contact support immediately.",
+      "isRead": false,
+      "createdAt": "2026-10-09T18:00:49.340Z"
+    },
+    {
+      "id": "notif_1791568849134_xpdw",
+      "recipientId": "usr_1791568848867_a86cd0",
+      "actorId": "usr_1791568849019_a2b199",
+      "type": "message",
+      "title": "New message from Karan Malhotra",
+      "body": "Absolutely Devika! I will benchmark the kernel latency acros...",
+      "isRead": false,
+      "createdAt": "2026-10-09T18:00:49.134Z"
+    },
+    {
+      "id": "notif_1791568849123_v2th",
+      "recipientId": "usr_1791568849019_a2b199",
+      "actorId": "usr_1791568848867_a86cd0",
+      "type": "message",
+      "title": "New message from Devika Patel",
+      "body": "Hi Karan! Excited to connect. Can you review our TensorRT in...",
+      "isRead": false,
+      "createdAt": "2026-10-09T18:00:49.123Z"
+    },
+    {
+      "id": "notif_1791568849109_lw3d",
+      "recipientId": "usr_1791568848867_a86cd0",
+      "actorId": "usr_1791568849019_a2b199",
+      "type": "connection_accepted",
+      "title": "Connection Accepted!",
+      "body": "Karan Malhotra accepted your connection request. You can now chat!",
+      "isRead": false,
+      "createdAt": "2026-10-09T18:00:49.109Z"
+    },
+    {
+      "id": "notif_1791568849090_gemh",
+      "recipientId": "usr_1791568849019_a2b199",
+      "actorId": "usr_1791568848867_a86cd0",
+      "type": "connection_request",
+      "title": "New connection request from Devika Patel",
+      "body": "Hi Karan, I saw your high-throughput inference work and would love to collaborate on AlignEval.",
+      "isRead": false,
+      "createdAt": "2026-10-09T18:00:49.090Z"
+    },
+    {
+      "id": "notif_1791568798918_wba8",
+      "recipientId": "usr_1791568798543_82cdb4",
+      "type": "verification_approved",
+      "title": "Verified Badge Approved!",
+      "body": "Your institution badge has been verified by the safety authority.",
+      "isRead": false,
+      "createdAt": "2026-10-09T17:59:58.918Z"
+    },
+    {
+      "id": "notif_1791568798850_yfuh",
+      "recipientId": "usr_1791568798430_aad82f",
+      "actorId": "usr_admin",
+      "type": "system",
+      "title": "Password Changed",
+      "body": "Your account password was updated successfully. If you did not make this change, contact support immediately.",
+      "isRead": false,
+      "createdAt": "2026-10-09T17:59:58.850Z"
+    },
+    {
+      "id": "notif_1791568798645_6ked",
+      "recipientId": "usr_1791568798430_aad82f",
+      "actorId": "usr_1791568798543_82cdb4",
+      "type": "message",
+      "title": "New message from Karan Malhotra",
+      "body": "Absolutely Devika! I will benchmark the kernel latency acros...",
+      "isRead": false,
+      "createdAt": "2026-10-09T17:59:58.645Z"
+    },
+    {
+      "id": "notif_1791568798633_o943",
+      "recipientId": "usr_1791568798543_82cdb4",
+      "actorId": "usr_1791568798430_aad82f",
+      "type": "message",
+      "title": "New message from Devika Patel",
+      "body": "Hi Karan! Excited to connect. Can you review our TensorRT in...",
+      "isRead": false,
+      "createdAt": "2026-10-09T17:59:58.633Z"
+    },
+    {
+      "id": "notif_1791568798621_0v35",
+      "recipientId": "usr_1791568798430_aad82f",
+      "actorId": "usr_1791568798543_82cdb4",
+      "type": "connection_accepted",
+      "title": "Connection Accepted!",
+      "body": "Karan Malhotra accepted your connection request. You can now chat!",
+      "isRead": false,
+      "createdAt": "2026-10-09T17:59:58.621Z"
+    },
+    {
+      "id": "notif_1791568798606_6p5k",
+      "recipientId": "usr_1791568798543_82cdb4",
+      "actorId": "usr_1791568798430_aad82f",
+      "type": "connection_request",
+      "title": "New connection request from Devika Patel",
+      "body": "Hi Karan, I saw your high-throughput inference work and would love to collaborate on AlignEval.",
+      "isRead": false,
+      "createdAt": "2026-10-09T17:59:58.606Z"
+    },
+    {
+      "id": "notif_1791568754327_7tth",
+      "recipientId": "usr_1791568753934_a1cb08",
+      "type": "verification_approved",
+      "title": "Verified Badge Approved!",
+      "body": "Your institution badge has been verified by the safety authority.",
+      "isRead": false,
+      "createdAt": "2026-10-09T17:59:14.327Z"
+    },
+    {
+      "id": "notif_1791568754260_bm29",
+      "recipientId": "usr_1791568753794_7fe602",
+      "actorId": "usr_admin",
+      "type": "system",
+      "title": "Password Changed",
+      "body": "Your account password was updated successfully. If you did not make this change, contact support immediately.",
+      "isRead": false,
+      "createdAt": "2026-10-09T17:59:14.260Z"
+    },
+    {
+      "id": "notif_1791568754047_uha6",
+      "recipientId": "usr_1791568753794_7fe602",
+      "actorId": "usr_1791568753934_a1cb08",
+      "type": "message",
+      "title": "New message from Karan Malhotra",
+      "body": "Absolutely Devika! I will benchmark the kernel latency acros...",
+      "isRead": false,
+      "createdAt": "2026-10-09T17:59:14.047Z"
+    },
+    {
+      "id": "notif_1791568754035_uwyo",
+      "recipientId": "usr_1791568753934_a1cb08",
+      "actorId": "usr_1791568753794_7fe602",
+      "type": "message",
+      "title": "New message from Devika Patel",
+      "body": "Hi Karan! Excited to connect. Can you review our TensorRT in...",
+      "isRead": false,
+      "createdAt": "2026-10-09T17:59:14.035Z"
+    },
+    {
+      "id": "notif_1791568754022_u1tc",
+      "recipientId": "usr_1791568753794_7fe602",
+      "actorId": "usr_1791568753934_a1cb08",
+      "type": "connection_accepted",
+      "title": "Connection Accepted!",
+      "body": "Karan Malhotra accepted your connection request. You can now chat!",
+      "isRead": false,
+      "createdAt": "2026-10-09T17:59:14.022Z"
+    },
+    {
+      "id": "notif_1791568754004_u65u",
+      "recipientId": "usr_1791568753934_a1cb08",
+      "actorId": "usr_1791568753794_7fe602",
+      "type": "connection_request",
+      "title": "New connection request from Devika Patel",
+      "body": "Hi Karan, I saw your high-throughput inference work and would love to collaborate on AlignEval.",
+      "isRead": false,
+      "createdAt": "2026-10-09T17:59:14.004Z"
+    },
+    {
+      "id": "notif_1791568297828_b2al",
+      "recipientId": "usr_1791568297737_057b64",
+      "actorId": "usr_1791568297593_b9d278",
+      "type": "message",
+      "title": "New message from Alice Beta",
+      "body": "Hello Bob! The connection is accepted. Let us collaborate on...",
+      "isRead": false,
+      "createdAt": "2026-10-09T17:51:37.828Z"
+    },
+    {
+      "id": "notif_1791568297817_8tux",
+      "recipientId": "usr_1791568297593_b9d278",
+      "actorId": "usr_1791568297737_057b64",
+      "type": "connection_accepted",
+      "title": "Connection Accepted!",
+      "body": "Bob Beta accepted your connection request. You can now chat!",
+      "isRead": false,
+      "createdAt": "2026-10-09T17:51:37.817Z"
+    },
+    {
+      "id": "notif_1791568297805_0881",
+      "recipientId": "usr_1791568297737_057b64",
+      "actorId": "usr_1791568297593_b9d278",
+      "type": "connection_request",
+      "title": "New connection request from Alice Beta",
+      "body": "Hi Bob, excited to connect on distributed machine learning!",
+      "isRead": false,
+      "createdAt": "2026-10-09T17:51:37.805Z"
+    },
+    {
+      "id": "notif_1791568297434_wefc",
+      "recipientId": "usr_1791568297283_261d54",
+      "actorId": "usr_1791568297345_6f5348",
+      "type": "connection_request",
+      "title": "New connection request from Dr. Vikram",
+      "body": "Official academic research mentorship pairing.",
+      "isRead": false,
+      "createdAt": "2026-10-09T17:51:37.434Z"
+    },
+    {
+      "id": "notif_1791568297407_9td9",
+      "recipientId": "usr_1791568297345_6f5348",
+      "type": "verification_approved",
+      "title": "Verified Badge Approved!",
+      "body": "Your institution badge has been verified by the safety authority.",
+      "isRead": false,
+      "createdAt": "2026-10-09T17:51:37.407Z"
+    },
+    {
+      "id": "notif_1791568297241_x35a",
+      "recipientId": "usr_1791568297036_a57d89",
+      "type": "verification_approved",
+      "title": "Verified Badge Approved!",
+      "body": "Your institution badge has been verified by the safety authority.",
+      "isRead": false,
+      "createdAt": "2026-10-09T17:51:37.241Z"
+    },
+    {
+      "id": "notif_1791568297160_ohik",
+      "recipientId": "usr_1791568296978_82a1f8",
+      "actorId": "usr_1791568297036_a57d89",
+      "type": "message",
+      "title": "New message from Bob Chatterjee",
+      "body": "Hey Alice! Absolutely, database isolation is looking rock so...",
+      "isRead": false,
+      "createdAt": "2026-10-09T17:51:37.160Z"
+    },
+    {
+      "id": "notif_1791568297148_pjv4",
+      "recipientId": "usr_1791568297036_a57d89",
+      "actorId": "usr_1791568296978_82a1f8",
+      "type": "message",
+      "title": "New message from Alice Verma",
+      "body": "Hello Bob! Ready to collaborate on our Next.js + Neon pipeli...",
+      "isRead": false,
+      "createdAt": "2026-10-09T17:51:37.148Z"
+    },
+    {
+      "id": "notif_1791568297137_bx5p",
+      "recipientId": "usr_1791568296978_82a1f8",
+      "actorId": "usr_1791568297036_a57d89",
+      "type": "connection_accepted",
+      "title": "Connection Accepted!",
+      "body": "Bob Chatterjee accepted your connection request. You can now chat!",
+      "isRead": false,
+      "createdAt": "2026-10-09T17:51:37.137Z"
+    },
+    {
+      "id": "notif_1791568297125_oy7l",
+      "recipientId": "usr_1791568297036_a57d89",
+      "actorId": "usr_1791568296978_82a1f8",
+      "type": "connection_request",
+      "title": "New connection request from Alice Verma",
+      "body": "Hi Bob, excited to connect on distributed AI systems!",
+      "isRead": false,
+      "createdAt": "2026-10-09T17:51:37.125Z"
+    },
+    {
+      "id": "notif_1791568296037_ahsa",
+      "recipientId": "usr_1791568295637_7a33b5",
+      "type": "verification_approved",
+      "title": "Verified Badge Approved!",
+      "body": "Your institution badge has been verified by the safety authority.",
+      "isRead": false,
+      "createdAt": "2026-10-09T17:51:36.037Z"
+    },
+    {
+      "id": "notif_1791568295947_21a3",
+      "recipientId": "usr_1791568295637_7a33b5",
+      "actorId": "usr_1791568295704_a13e45",
+      "type": "message",
+      "title": "New message from Rahul Sharma",
+      "body": "Thanks! Absolutely, let us sync up on the architecture.",
+      "isRead": false,
+      "createdAt": "2026-10-09T17:51:35.947Z"
+    },
+    {
+      "id": "notif_1791568295930_wxz8",
+      "recipientId": "usr_1791568295704_a13e45",
+      "actorId": "usr_1791568295637_7a33b5",
+      "type": "message",
+      "title": "New message from Independent Builder",
+      "body": "Hey Rahul, congratulations on connecting! Let us build somet...",
+      "isRead": false,
+      "createdAt": "2026-10-09T17:51:35.930Z"
+    },
+    {
+      "id": "notif_1791568295872_3met",
+      "recipientId": "usr_1791568295637_7a33b5",
+      "actorId": "usr_1791568295769_ff3769",
+      "type": "connection_request",
+      "title": "New connection request from Charlie Davis",
+      "body": "Test withdraw",
+      "isRead": false,
+      "createdAt": "2026-10-09T17:51:35.872Z"
+    },
+    {
+      "id": "notif_1791568295763_h71j",
+      "recipientId": "usr_1791568295637_7a33b5",
+      "actorId": "usr_1791568295704_a13e45",
+      "type": "connection_accepted",
+      "title": "Connection Accepted!",
+      "body": "Rahul Sharma accepted your connection request. You can now chat!",
+      "isRead": false,
+      "createdAt": "2026-10-09T17:51:35.763Z"
+    },
+    {
+      "id": "notif_1791568295750_vot1",
+      "recipientId": "usr_1791568295704_a13e45",
+      "actorId": "usr_1791568295637_7a33b5",
+      "type": "connection_request",
+      "title": "New connection request from Independent Builder",
+      "body": "Hi Rahul, would love to collaborate on distributed RAG architectures!",
+      "isRead": false,
+      "createdAt": "2026-10-09T17:51:35.750Z"
+    },
+    {
+      "id": "notif_1791568295305_ywqo",
+      "recipientId": "usr_1791568295101_1e1b2a",
+      "actorId": "usr_admin",
+      "type": "system",
+      "title": "Password Changed",
+      "body": "Your account password was updated successfully. If you did not make this change, contact support immediately.",
+      "isRead": false,
+      "createdAt": "2026-10-09T17:51:35.305Z"
+    },
     {
       "id": "notif_1791567500752_h95c",
       "recipientId": "usr_1791567500675_beb064",
@@ -18018,5 +23405,9 @@
       "isRead": false,
       "createdAt": "2026-10-09T14:15:00Z"
     }
-  ]
+  ],
+  "savedMembers": {
+    "usr_1791568848867_a86cd0": [],
+    "usr_1791568873864_115579": []
+  }
 }

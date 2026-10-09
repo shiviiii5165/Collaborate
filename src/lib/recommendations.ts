@@ -143,13 +143,12 @@ export function getRecommendationsForMember(
   // Sort descending by match score
   candidates.sort((a, b) => b.matchScore - a.matchScore);
 
-  // Deduplicate by name to prevent multiple test accounts with identical names from crowding the recommendation rail
-  const seenNames = new Set<string>();
+  // Deduplicate by stable member ID (per Phase P4.5 specification)
+  const seenIds = new Set<string>();
   const uniqueCandidates: RecommendationMatch[] = [];
   for (const c of candidates) {
-    const key = c.member.fullName.toLowerCase().trim();
-    if (!seenNames.has(key)) {
-      seenNames.add(key);
+    if (!seenIds.has(c.member.id)) {
+      seenIds.add(c.member.id);
       uniqueCandidates.push(c);
     }
   }

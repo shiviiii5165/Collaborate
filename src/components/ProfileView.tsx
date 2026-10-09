@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   CheckCircle2,
   MapPin,
@@ -23,6 +23,7 @@ import {
   ShieldCheck,
   Check,
   Plus,
+  Bookmark,
 } from 'lucide-react';
 
 const GithubIcon = ({ size = 16 }: { size?: number }) => (
@@ -78,6 +79,36 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   onOpenFederationSync,
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'skills' | 'experience' | 'education' | 'activity'>('overview');
+  const [isSaved, setIsSaved] = useState(false);
+
+  useEffect(() => {
+    if (!isSelf && member?.id) {
+      fetch('/api/saved')
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.savedMembers) {
+            setIsSaved(data.savedMembers.some((sm: any) => sm.id === member.id));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [member?.id, isSelf]);
+
+  const handleToggleSave = async () => {
+    try {
+      const res = await fetch('/api/saved', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'toggle', targetId: member.id }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setIsSaved(data.isSaved);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   return (
     <div className="profile-card">
@@ -147,6 +178,20 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 >
                   <MessageSquare size={16} />
                   <span>Message</span>
+                </button>
+
+                <button
+                  className="btn-secondary"
+                  onClick={handleToggleSave}
+                  style={{
+                    color: isSaved ? '#4F46E5' : '#475569',
+                    borderColor: isSaved ? '#C7D2FE' : '#E2E8F0',
+                    background: isSaved ? '#EEF2FF' : '#FFFFFF',
+                  }}
+                  title={isSaved ? 'Remove from saved' : 'Save profile bookmark'}
+                >
+                  <Bookmark size={16} fill={isSaved ? '#4F46E5' : 'none'} />
+                  <span>{isSaved ? 'Saved' : 'Save'}</span>
                 </button>
 
                 <button className="btn-icon-more" title="More options">

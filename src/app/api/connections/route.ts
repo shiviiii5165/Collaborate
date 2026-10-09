@@ -158,6 +158,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, blocked: true });
     }
 
+    if (action === 'unblock') {
+      if (!toId) return NextResponse.json({ error: 'Target user ID required' }, { status: 400 });
+      durableDb.unblockMember(currentUserId, toId);
+      return NextResponse.json({ success: true, unblocked: true });
+    }
+
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Action failed' }, { status: 400 });

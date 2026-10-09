@@ -29,6 +29,7 @@ export default function CollaborateApp() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [recommendations, setRecommendations] = useState<RecommendationMatch[]>([]);
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [savedMembersList, setSavedMembersList] = useState<MemberProfile[]>([]);
 
   // Modals state
   const [isFederationOpen, setIsFederationOpen] = useState(false);
@@ -38,6 +39,19 @@ export default function CollaborateApp() {
 
   // Active message recipient for direct link
   const [activeChatRecipientId, setActiveChatRecipientId] = useState<string | undefined>(undefined);
+
+  const fetchSavedMembers = async () => {
+    if (!currentUser) return;
+    try {
+      const res = await fetch(`/api/saved?userId=${currentUser.id}`);
+      const data = await res.json();
+      if (data.savedMembers) {
+        setSavedMembersList(data.savedMembers);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   // 1. Initial Load: Fetch current user profile & notifications
   const fetchCurrentUserData = async () => {
@@ -106,8 +120,15 @@ export default function CollaborateApp() {
       fetchDiscoverData();
       fetchUnreadCount();
       fetchNotifications();
+      fetchSavedMembers();
     }
   }, [currentUser?.id]);
+
+  useEffect(() => {
+    if (currentUser && currentTab === 'saved') {
+      fetchSavedMembers();
+    }
+  }, [currentTab, currentUser]);
 
   useEffect(() => {
     if (currentUser) {
@@ -462,14 +483,154 @@ export default function CollaborateApp() {
           {/* View Tab: Saved */}
           {currentTab === 'saved' && (
             <div className="info-card">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                <Bookmark size={20} color="#4F46E5" />
-                <h2 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Saved Profiles & Projects</h2>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      background: '#EEF2FF',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#4F46E5',
+                    }}
+                  >
+                    <Bookmark size={20} />
+                  </div>
+                  <div>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+                      Saved Profiles & Peers ({savedMembersList.length})
+                    </h2>
+                    <p style={{ color: '#64748B', fontSize: '0.82rem', margin: '3px 0 0' }}>
+                      Persistent bookmarks of verified builders, researchers, and potential collaborators.
+                    </p>
+                  </div>
+                </div>
               </div>
-              <p style={{ color: '#64748B', fontSize: '0.86rem' }}>
-                You have bookmarked 2 projects: <strong>MedVision-ViT</strong> (by Priya Mehta) and{' '}
-                <strong>TorchDist-Optimizer</strong> (by Aman Verma).
-              </p>
+
+              {savedMembersList.length === 0 ? (
+                <div
+                  style={{
+                    padding: '48px 24px',
+                    textAlign: 'center',
+                    background: '#F8FAFC',
+                    borderRadius: 14,
+                    border: '1px dashed #CBD5E1',
+                    color: '#64748B',
+                  }}
+                >
+                  <Bookmark size={36} color="#94A3B8" style={{ margin: '0 auto 12px', display: 'block' }} />
+                  <div style={{ fontWeight: 700, fontSize: '1rem', color: '#334155', marginBottom: 6 }}>
+                    No Saved Profiles Yet
+                  </div>
+                  <p style={{ maxWidth: 440, margin: '0 auto 18px', fontSize: '0.86rem', lineHeight: 1.5 }}>
+                    When you find peers with relevant skills or complementary research interests in Discover People, bookmark them to quickly revisit their profiles here.
+                  </p>
+                  <button className="btn-primary" onClick={() => setCurrentTab('discover')}>
+                    Browse People Directory
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {savedMembersList.map((m) => (
+                    <div
+                      key={m.id}
+                      style={{
+                        padding: '16px 20px',
+                        background: '#FFFFFF',
+                        borderRadius: 14,
+                        border: '1px solid #E2E8F0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 16,
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1, minWidth: 0 }}>
+                        <img
+                          src={m.avatarUrl}
+                          alt={m.fullName}
+                          style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }}
+                        />
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0F172A' }}>
+                              {m.fullName}
+                            </span>
+                            {m.isVerified && (
+                              <span style={{ fontSize: '0.72rem', color: '#0284C7', fontWeight: 700 }}>
+                                ✓ Verified
+                              </span>
+                            )}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: '0.8rem',
+                              color: '#64748B',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              marginTop: 2,
+                            }}
+                          >
+                            {m.headline}
+                          </div>
+                          {m.skills && m.skills.length > 0 && (
+                            <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+                              {m.skills.slice(0, 3).map((sk, idx) => (
+                                <span
+                                  key={idx}
+                                  style={{
+                                    fontSize: '0.7rem',
+                                    background: '#F1F5F9',
+                                    color: '#475569',
+                                    padding: '2px 8px',
+                                    borderRadius: 6,
+                                  }}
+                                >
+                                  {sk}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <button
+                          className="btn-secondary"
+                          style={{ fontSize: '0.78rem', padding: '6px 14px' }}
+                          onClick={() => handleViewProfile(m.id)}
+                        >
+                          View Profile
+                        </button>
+                        <button
+                          className="btn-secondary"
+                          style={{
+                            fontSize: '0.78rem',
+                            padding: '6px 12px',
+                            color: '#DC2626',
+                            borderColor: '#FECACA',
+                          }}
+                          onClick={async () => {
+                            await fetch('/api/saved', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ action: 'remove', targetId: m.id }),
+                            });
+                            fetchSavedMembers();
+                          }}
+                          title="Remove from saved"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
