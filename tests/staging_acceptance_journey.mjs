@@ -235,6 +235,12 @@ async function runStagingAcceptanceJourney() {
 
   // 11. Verify message history and reconnection via SSE stream
   await step(11, 'SSE stream connection and Last-Event-ID replay test', async () => {
+    // Unauthenticated attempt to stream without session cookie -> MUST BE 401!
+    const unauthStream = await fetch(`${BASE_URL}/api/messages/stream?userId=${bobId}`, {
+      headers: { Accept: 'text/event-stream' },
+    });
+    assert.strictEqual(unauthStream.status, 401);
+
     const res = await fetch(`${BASE_URL}/api/messages/stream?sinceId=msg_0`, {
       headers: {
         Cookie: bobCookie,
@@ -382,7 +388,7 @@ async function runStagingAcceptanceJourney() {
     });
     assert.strictEqual(idorRes.status, 403);
 
-    // Student Safety Check: Create under-18 member
+    // Student Safety Check: Create under-18 member with private-by-default profile
     const minorEmail = `student_minor_${Date.now()}@staging.collaborate`;
     const minorReg = await fetch(`${BASE_URL}/api/auth/register`, {
       method: 'POST',
@@ -391,28 +397,92 @@ async function runStagingAcceptanceJourney() {
         email: minorEmail,
         password: 'Password123!',
         fullName: 'Young Student',
+        isUnder18: true,
       }),
     });
     const minorData = await minorReg.json();
     const minorId = minorData.member.id;
     const minorCookie = minorReg.headers.get('set-cookie').split(';')[0];
 
-    // Mark minor as under 18
+    // Verify private-by-default and discovery restrictions for minors
+    assert.strictEqual(minorData.member.isUnder18, true);
+    assert.strictEqual(minorData.member.profileVisibility, 'private');
+    assert.strictEqual(minorData.member.discoverable, false);
+
+    // Set minor's institutional domain
     await fetch(`${BASE_URL}/api/profiles`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Cookie: minorCookie },
-      body: JSON.stringify({ id: minorId, updates: { isUnder18: true } }),
+      body: JSON.stringify({ id: minorId, updates: { institutionDomain: 'lpu.in' } }),
     });
 
-    // Alice (unverified adult) attempts unsolicited connection request to minor -> MUST BE 403!
+    // Test Case 1: Unverified adult attempts unsolicited connection request -> MUST BE 403!
     const unverifiedAdultConn = await fetch(`${BASE_URL}/api/connections`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Cookie: aliceCookie },
       body: JSON.stringify({ action: 'send_request', toId: minorId }),
     });
     assert.strictEqual(unverifiedAdultConn.status, 403);
-    const err = await unverifiedAdultConn.json();
-    assert.ok(err.error.includes('SAFETY_RESTRICTION'));
+    const err1 = await unverifiedAdultConn.json();
+    assert.ok(err1.error.includes('SAFETY_RESTRICTION'));
+
+    // Test Case 2: Adult with institutional credential but NO safeguarding approval -> MUST STILL BE 403!
+    // Setup adult mentor without safeguarding clearance
+    const mentorEmail = `mentor_${Date.now()}@lpu.in`;
+    const mentorReg = await fetch(`${BASE_URL}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: mentorEmail, password: 'Password123!', fullName: 'Dr. Vikram' }),
+    });
+    const mentorData = await mentorReg.json();
+    const mentorId = mentorData.member.id;
+    const mentorCookie = mentorReg.headers.get('set-cookie').split(';')[0];
+
+    // Grant institutional badge to mentor via admin (but NO safeguarding clearance yet)
+    const mentorSub = await fetch(`${BASE_URL}/api/verification`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: mentorCookie },
+      body: JSON.stringify({ action: 'submit_request', category: 'institution', evidenceSummary: 'Faculty ID' }),
+    });
+    const mReqId = (await mentorSub.json()).request.id;
+    await fetch(`${BASE_URL}/api/verification`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: adminCookie },
+      body: JSON.stringify({ action: 'review', requestId: mReqId, decision: 'approved' }),
+    });
+
+    // Set institution domain on mentor
+    await fetch(`${BASE_URL}/api/profiles`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Cookie: mentorCookie },
+      body: JSON.stringify({ id: mentorId, updates: { institutionDomain: 'lpu.in' } }),
+    });
+
+    // Unsolicited request from institutional adult WITHOUT safeguarding clearance -> MUST BE 403!
+    const noSafeguardConn = await fetch(`${BASE_URL}/api/connections`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: mentorCookie },
+      body: JSON.stringify({ action: 'send_request', toId: minorId }),
+    });
+    assert.strictEqual(noSafeguardConn.status, 403);
+    const err2 = await noSafeguardConn.json();
+    assert.ok(err2.error.includes('SAFETY_RESTRICTION'));
+
+    // Test Case 3: Admin grants explicit safeguarding approval to verified mentor with matching domain -> Now permitted!
+    await fetch(`${BASE_URL}/api/profiles`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Cookie: adminCookie },
+      body: JSON.stringify({ id: mentorId, updates: { safeguardingApproved: true } }),
+    });
+
+    const clearedConn = await fetch(`${BASE_URL}/api/connections`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: mentorCookie },
+      body: JSON.stringify({ action: 'send_request', toId: minorId, introMessage: 'Official academic research mentorship pairing.' }),
+    });
+    assert.strictEqual(clearedConn.status, 200);
+    const clearedData = await clearedConn.json();
+    assert.strictEqual(clearedData.connection.status, 'request_sent');
   });
 
   console.log('\n========================================================================');

@@ -61,9 +61,9 @@ export class IdentityService {
       recentActivity: [],
       aiSpecializations: [],
       collaborationInterests: [],
-      discoverable: true,
-      profileVisibility: 'public',
-      contactVisibility: 'connections_only',
+      discoverable: isUnder18 ? false : true,
+      profileVisibility: isUnder18 ? 'private' : 'public',
+      contactVisibility: isUnder18 ? 'hidden' : 'connections_only',
       isLinkedWithTathastu: false,
       tathastuSyncStatus: 'unlinked',
       tathastuSyncSettings: {
@@ -72,6 +72,7 @@ export class IdentityService {
         autoSyncAchievements: false,
       },
       isUnder18: Boolean(isUnder18),
+      safeguardingApproved: false,
       role: 'member',
     };
 
@@ -169,6 +170,17 @@ export class IdentityService {
       throw new Error('Missing authorization code or PKCE code verifier');
     }
 
+    // In production, require actual OIDC provider configuration unless local testing is explicitly enabled
+    if (
+      process.env.NODE_ENV === 'production' &&
+      !process.env.OIDC_ISSUER &&
+      process.env.COLLABORATE_ALLOW_LOCAL_STORAGE !== 'true'
+    ) {
+      throw new Error(
+        'FATAL: Central Identity Provider is not configured in production. OIDC_ISSUER, OIDC_CLIENT_ID, and OIDC_CLIENT_SECRET are required. Fail closed to prevent insecure simulated identity federation.'
+      );
+    }
+
     // If live Tathastu IdP is configured in environment, execute live token exchange
     if (process.env.OIDC_ISSUER && process.env.OIDC_CLIENT_ID && process.env.OIDC_CLIENT_SECRET) {
       try {
@@ -188,9 +200,7 @@ export class IdentityService {
           throw new Error(`Central Tathastu IdP token exchange failed: ${tokenResp.statusText}`);
         }
       } catch (err: any) {
-        if (process.env.NODE_ENV === 'production') {
-          throw new Error(`Central SSO authentication error: ${err.message}`);
-        }
+        throw new Error(`Central SSO authentication error: ${err.message}`);
       }
     }
 

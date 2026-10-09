@@ -8,12 +8,11 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   const session = await getSession(req);
-  const { searchParams } = new URL(req.url);
-  const userId = session ? session.userId : searchParams.get('userId');
-
-  if (!userId) {
-    return new Response('Unauthorized: Valid session required for real-time stream', { status: 401 });
+  if (!session) {
+    return new Response('Unauthorized: Valid session cookie required for real-time stream', { status: 401 });
   }
+  const userId = session.userId;
+  const { searchParams } = new URL(req.url);
 
   // Verify Origin if provided
   const origin = req.headers.get('origin');

@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS members (
     verified_category VARCHAR(64), -- 'identity', 'institution', 'organization'
     verified_at TIMESTAMPTZ,
     is_under_18 BOOLEAN DEFAULT FALSE NOT NULL,
+    safeguarding_approved BOOLEAN DEFAULT FALSE NOT NULL,
+    institution_domain VARCHAR(255),
     is_demo BOOLEAN DEFAULT FALSE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL

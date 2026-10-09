@@ -77,9 +77,21 @@ export async function POST(req: NextRequest) {
 
       // Student Safety: Restrict unsolicited adult-to-minor requests
       if (targetMember.isUnder18 && senderMember && !senderMember.isUnder18 && senderMember.role !== 'admin') {
-        if (!senderMember.isVerified || senderMember.verifiedCategory !== 'institution') {
+        // A verified institutional credential alone must NOT authorize unsolicited adult-minor contact.
+        // Direct contact requires an explicitly permitted institutional pairing and safeguarding clearance.
+        const hasSafeguardingClearance = Boolean(senderMember.safeguardingApproved);
+        const hasInstitutionalRelationship = Boolean(
+          senderMember.verifiedCategory === 'institution' &&
+          senderMember.institutionDomain &&
+          targetMember.institutionDomain &&
+          senderMember.institutionDomain.toLowerCase() === targetMember.institutionDomain.toLowerCase()
+        );
+
+        if (!hasSafeguardingClearance || !hasInstitutionalRelationship) {
           return NextResponse.json(
-            { error: 'SAFETY_RESTRICTION: Direct connection requests to student accounts under 18 require institutional affiliation or verified academic standing.' },
+            {
+              error: 'SAFETY_RESTRICTION: Unsolicited contact with student accounts under 18 is prohibited. Direct contact requires verified institutional pairing and explicit safeguarding authorization.',
+            },
             { status: 403 }
           );
         }

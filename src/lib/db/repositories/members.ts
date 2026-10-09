@@ -40,8 +40,8 @@ export class MembersRepository {
       await withNeonTransaction(async (client) => {
         // Upsert member
         await client.query(
-          `INSERT INTO members (id, email, full_name, role, plan, plan_expires_at, is_verified, verified_category, verified_at, is_under_18, is_demo, updated_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP)
+          `INSERT INTO members (id, email, full_name, role, plan, plan_expires_at, is_verified, verified_category, verified_at, is_under_18, safeguarding_approved, institution_domain, is_demo, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP)
            ON CONFLICT (id) DO UPDATE SET
              email = EXCLUDED.email,
              full_name = EXCLUDED.full_name,
@@ -52,6 +52,8 @@ export class MembersRepository {
              verified_category = EXCLUDED.verified_category,
              verified_at = EXCLUDED.verified_at,
              is_under_18 = EXCLUDED.is_under_18,
+             safeguarding_approved = EXCLUDED.safeguarding_approved,
+             institution_domain = EXCLUDED.institution_domain,
              is_demo = EXCLUDED.is_demo,
              updated_at = CURRENT_TIMESTAMP`,
           [
@@ -65,6 +67,8 @@ export class MembersRepository {
             member.verifiedCategory || null,
             member.verifiedAt || null,
             Boolean(member.isUnder18),
+            Boolean(member.safeguardingApproved),
+            member.institutionDomain || null,
             Boolean(member.isDemo),
           ]
         );
@@ -163,6 +167,8 @@ export class MembersRepository {
       tathastuSyncStatus: row.tathastu_sync_status || 'unlinked',
       tathastuSyncSettings: typeof row.tathastu_sync_settings === 'string' ? JSON.parse(row.tathastu_sync_settings) : (row.tathastu_sync_settings || {}),
       isUnder18: Boolean(row.is_under_18),
+      safeguardingApproved: Boolean(row.safeguarding_approved),
+      institutionDomain: row.institution_domain || undefined,
       isDemo: Boolean(row.is_demo),
       role: row.role || 'member',
     };

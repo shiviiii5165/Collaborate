@@ -48,3 +48,6 @@ jobs:
 
       - name: Run Staging Acceptance Journey
         run: node tests/staging_acceptance_journey.mjs
+
+      - name: Run Concurrent Quota Transaction Race Test
+        run: node tests/concurrent_quota_test.mjs

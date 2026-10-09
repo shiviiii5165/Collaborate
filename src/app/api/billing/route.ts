@@ -80,9 +80,10 @@ export async function POST(req: NextRequest) {
 
     // 2. Controlled Sandbox Simulator for Reviewers & Testing
     if (action === 'upgrade_premium') {
-      if (!isSandboxTest && process.env.NODE_ENV === 'production') {
+      const isSandboxPermitted = process.env.ENABLE_BILLING_SANDBOX === 'true' || process.env.NODE_ENV !== 'production';
+      if (!isSandboxPermitted) {
         return NextResponse.json(
-          { error: 'Direct client-side upgrades disabled in production. Webhook required.' },
+          { error: 'Direct client-side upgrades strictly disabled in production. Webhook signature from authorized payment gateway required.' },
           { status: 403 }
         );
       }
