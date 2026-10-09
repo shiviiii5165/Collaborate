@@ -6,7 +6,7 @@ import { RecommendationMatch, MemberProfile } from '@/lib/types';
 
 interface RightRailProps {
   recommendations: RecommendationMatch[];
-  currentUser: MemberProfile;
+  currentUser: MemberProfile | null;
   onConnect: (memberId: string) => void;
   onViewProfile: (memberId: string) => void;
   onViewAllPeople: () => void;
@@ -25,7 +25,7 @@ export const RightRail: React.FC<RightRailProps> = ({
   >([
     {
       text: `Hi ${
-        currentUser.fullName.split(' ')[0]
+        currentUser ? currentUser.fullName.split(' ')[0] : 'there'
       }! 👋 Want help improving your profile, finding collaborators, or exploring opportunities today?`,
       isUser: false,
       timestamp: 'just now',
@@ -48,7 +48,7 @@ export const RightRail: React.FC<RightRailProps> = ({
       const res = await fetch('/api/eora', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: userMsg, userId: currentUser.id }),
+        body: JSON.stringify({ prompt: userMsg, userId: currentUser ? currentUser.id : 'usr_guest' }),
       });
       const data = await res.json();
       if (data.reply) {

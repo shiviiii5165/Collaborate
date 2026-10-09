@@ -51,8 +51,11 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await getSession(req);
+    if (!session) {
+      return NextResponse.json({ error: 'Authentication required to send messages' }, { status: 401 });
+    }
     const body = await req.json();
-    const senderId = session ? session.userId : (body.senderId || 'usr_rahul');
+    const senderId = session.userId;
     const { recipientId, content } = body;
 
     if (!recipientId) {

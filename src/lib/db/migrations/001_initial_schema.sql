@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS members (
     verified_category VARCHAR(64), -- 'identity', 'institution', 'organization'
     verified_at TIMESTAMPTZ,
     is_under_18 BOOLEAN DEFAULT FALSE NOT NULL,
+    is_demo BOOLEAN DEFAULT FALSE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
@@ -54,6 +55,7 @@ CREATE TABLE IF NOT EXISTS professional_profiles (
     is_linked_with_tathastu BOOLEAN DEFAULT FALSE NOT NULL,
     tathastu_sync_status VARCHAR(32) DEFAULT 'unlinked' NOT NULL,
     tathastu_sync_settings JSONB DEFAULT '{"autoSyncProjects":true,"autoSyncSkills":true,"autoSyncAchievements":true}'::jsonb NOT NULL,
+    is_demo BOOLEAN DEFAULT FALSE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
@@ -211,3 +213,30 @@ CREATE TABLE IF NOT EXISTS notifications (
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON notifications(recipient_id, is_read);
+
+-- 12. Subscriptions (Premium Entitlement Ledger)
+CREATE TABLE IF NOT EXISTS subscriptions (
+    id VARCHAR(64) PRIMARY KEY,
+    member_id VARCHAR(64) NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+    tier VARCHAR(32) DEFAULT 'free' NOT NULL, -- 'free', 'premium'
+    status VARCHAR(32) DEFAULT 'active' NOT NULL, -- 'active', 'cancelled', 'past_due'
+    payment_provider VARCHAR(64), -- 'razorpay', 'stripe', 'sandbox'
+    provider_subscription_id VARCHAR(255),
+    current_period_end TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    UNIQUE(member_id)
+);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_member ON subscriptions(member_id, status);
+
+-- 13. Webhook Events (Idempotent Webhook Processing)
+CREATE TABLE IF NOT EXISTS webhook_events (
+    id VARCHAR(64) PRIMARY KEY,
+    provider VARCHAR(64) NOT NULL,
+    event_id VARCHAR(255) NOT NULL,
+    event_type VARCHAR(128) NOT NULL,
+    payload JSONB NOT NULL,
+    processed_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    UNIQUE(provider, event_id)
+);
+CREATE INDEX IF NOT EXISTS idx_webhook_events_lookup ON webhook_events(provider, event_id);

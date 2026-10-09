@@ -5,12 +5,13 @@ import { buildSessionCookie } from '@/lib/auth/session';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { code, codeVerifier, state } = body;
+    const { code, codeVerifier, state, linkConfirmationPassword } = body;
 
     const { member, token, isNewUser } = await IdentityService.processOidcCallback(
       code || 'mock_code_tathastu_99',
       codeVerifier || 'mock_verifier_tathastu',
-      state || 'mock_state'
+      state || 'mock_state',
+      linkConfirmationPassword
     );
 
     const res = NextResponse.json({

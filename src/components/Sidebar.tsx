@@ -23,7 +23,7 @@ import { MemberProfile } from '@/lib/types';
 interface SidebarProps {
   currentTab: string;
   onNavigate: (tab: string) => void;
-  currentUser: MemberProfile;
+  currentUser: MemberProfile | null;
   unreadMessagesCount: number;
   onOpenAdmin: () => void;
 }

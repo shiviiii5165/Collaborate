@@ -7,7 +7,11 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
   const session = await getSession(req);
   const { searchParams } = new URL(req.url);
-  const userId = session ? session.userId : (searchParams.get('userId') || 'usr_rahul');
+  const userId = session ? session.userId : searchParams.get('userId');
+
+  if (!userId) {
+    return new Response('Unauthorized: Valid session required for real-time stream', { status: 401 });
+  }
 
   // Verify Origin if provided
   const origin = req.headers.get('origin');
@@ -16,18 +20,31 @@ export async function GET(req: NextRequest) {
     return new Response('Invalid Origin', { status: 403 });
   }
 
+  // Check Last-Event-ID for missed event replay on reconnect
+  const lastEventId = req.headers.get('last-event-id') || searchParams.get('sinceId');
   let isClosed = false;
   let lastCheckedTime = new Date().toISOString();
 
   const stream = new ReadableStream({
     start(controller) {
-      const sendEvent = (event: string, data: any) => {
+      const sendEvent = (event: string, data: any, id?: string) => {
         if (isClosed) return;
-        controller.enqueue(new TextEncoder().encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+        const idHeader = id ? `id: ${id}\n` : '';
+        controller.enqueue(new TextEncoder().encode(`${idHeader}event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
       };
 
       // Initial heartbeat
       sendEvent('connected', { userId, status: 'ready', timestamp: new Date().toISOString() });
+
+      // Replay any missed messages if lastEventId was provided
+      if (lastEventId) {
+        const missed = durableDb.messages.filter(
+          (m) => m.recipientId === userId && m.id > lastEventId
+        );
+        for (const msg of missed) {
+          sendEvent('message', msg, msg.id);
+        }
+      }
 
       const interval = setInterval(() => {
         if (isClosed) {
@@ -42,7 +59,7 @@ export async function GET(req: NextRequest) {
 
         if (newMsgs.length > 0) {
           for (const msg of newMsgs) {
-            sendEvent('message', msg);
+            sendEvent('message', msg, msg.id);
           }
           lastCheckedTime = new Date().toISOString();
         } else {

@@ -289,73 +289,94 @@ export const PeopleDiscoverView: React.FC<PeopleDiscoverViewProps> = ({
         </h3>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {filteredResults.map((m) => (
+          {filteredResults.length === 0 ? (
             <div
-              key={m.id}
-              className="info-card"
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '16px 20px',
+                padding: '40px 20px',
+                textAlign: 'center',
+                background: '#FFFFFF',
+                borderRadius: '16px',
+                border: '1px solid #E2E8F0',
+                color: '#64748B',
               }}
             >
-              <div
-                style={{ display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer' }}
-                onClick={() => onViewProfile(m.id)}
-              >
-                <img
-                  src={m.avatarUrl}
-                  alt={m.fullName}
-                  style={{ width: 50, height: 50, borderRadius: 14, objectFit: 'cover' }}
-                />
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: '0.98rem', fontWeight: 800 }}>{m.fullName}</span>
-                    {m.isVerified && (
-                      <CheckCircle2 size={16} fill="#0284C7" color="#fff" />
-                    )}
-                    {m.plan === 'premium' && (
-                      <span className="premium-badge-tag">Premium</span>
-                    )}
-                  </div>
-                  <div style={{ fontSize: '0.82rem', color: '#64748B' }}>{m.headline}</div>
-                  <div style={{ fontSize: '0.76rem', color: '#94A3B8', marginTop: 2 }}>
-                    📍 {m.location} • {m.education[0]?.institution || 'AI Tathastu Network'}
-                  </div>
-                </div>
+              <div style={{ fontSize: '1.8rem', marginBottom: '8px' }}>🔍</div>
+              <div style={{ fontWeight: 700, fontSize: '1.05rem', color: '#1E293B', marginBottom: '4px' }}>
+                No Registered Members Found
               </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <button
-                  className="btn-secondary"
-                  style={{ fontSize: '0.8rem', padding: '7px 14px' }}
-                  onClick={() => onViewProfile(m.id)}
-                >
-                  <Eye size={14} />
-                  <span>View Profile</span>
-                </button>
-                {m.connectionStatus === 'accepted' ? (
-                  <button className="btn-secondary" disabled style={{ color: '#10B981' }}>
-                    <Check size={14} /> Connected
-                  </button>
-                ) : m.connectionStatus === 'request_sent' ? (
-                  <button className="btn-secondary" disabled style={{ opacity: 0.6 }}>
-                    Pending
-                  </button>
-                ) : (
-                  <button
-                    className="btn-primary"
-                    style={{ fontSize: '0.8rem', padding: '7px 16px' }}
-                    onClick={() => onConnect(m.id)}
-                  >
-                    <UserPlus size={14} />
-                    <span>Connect</span>
-                  </button>
-                )}
+              <div style={{ fontSize: '0.86rem' }}>
+                No members matched your search or domain criteria. Clear filters or invite collaborators to join.
               </div>
             </div>
-          ))}
+          ) : (
+            filteredResults.map((m) => (
+              <div
+                key={m.id}
+                className="info-card"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '16px 20px',
+                }}
+              >
+                <div
+                  style={{ display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer' }}
+                  onClick={() => onViewProfile(m.id)}
+                >
+                  <img
+                    src={m.avatarUrl}
+                    alt={m.fullName}
+                    style={{ width: 50, height: 50, borderRadius: 14, objectFit: 'cover' }}
+                  />
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: '0.98rem', fontWeight: 800 }}>{m.fullName}</span>
+                      {m.isVerified && (
+                        <CheckCircle2 size={16} fill="#0284C7" color="#fff" />
+                      )}
+                      {m.plan === 'premium' && (
+                        <span className="premium-badge-tag">Premium</span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: '0.82rem', color: '#64748B' }}>{m.headline}</div>
+                    <div style={{ fontSize: '0.76rem', color: '#94A3B8', marginTop: 2 }}>
+                      📍 {m.location} • {m.education[0]?.institution || 'AI Tathastu Network'}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <button
+                    className="btn-secondary"
+                    style={{ fontSize: '0.8rem', padding: '7px 14px' }}
+                    onClick={() => onViewProfile(m.id)}
+                  >
+                    <Eye size={14} />
+                    <span>View Profile</span>
+                  </button>
+                  {m.connectionStatus === 'accepted' ? (
+                    <button className="btn-secondary" disabled style={{ color: '#10B981' }}>
+                      <Check size={14} /> Connected
+                    </button>
+                  ) : m.connectionStatus === 'request_sent' ? (
+                    <button className="btn-secondary" disabled style={{ opacity: 0.6 }}>
+                      Pending
+                    </button>
+                  ) : (
+                    <button
+                      className="btn-primary"
+                      style={{ fontSize: '0.8rem', padding: '7px 16px' }}
+                      onClick={() => onConnect(m.id)}
+                    >
+                      <UserPlus size={14} />
+                      <span>Connect</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

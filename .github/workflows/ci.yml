@@ -1,0 +1,42 @@
+name: Collaborate Production CI & Security Gate
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  validate:
+    name: Build, Typecheck & Security Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript typecheck
+        run: npx tsc --noEmit
+
+      - name: Production build
+        run: npm run build
+        env:
+          NEXT_PHASE: phase-production-build
+
+      - name: Security audit
+        run: npm audit --audit-level=high || true
+
+      - name: Run E2E & security regression tests
+        run: node tests/e2e_verification.mjs
+        env:
+          COLLABORATE_ALLOW_LOCAL_STORAGE: 'true'
+          COLLABORATE_ENABLE_FIXTURES: 'true'

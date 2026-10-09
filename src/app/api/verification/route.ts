@@ -49,10 +49,7 @@ export async function POST(req: NextRequest) {
 
     // 2. Admin Review Decision — RBAC Required!
     if (action === 'review') {
-      const reviewerId = session?.userId || 'usr_admin';
-      const isAuthorizedAdmin = session?.role === 'admin' || reviewerId === 'usr_admin';
-
-      if (!isAuthorizedAdmin) {
+      if (!session || session.role !== 'admin') {
         return NextResponse.json(
           { error: 'FORBIDDEN: Administrative capabilities required to approve badges' },
           { status: 403 }
@@ -62,6 +59,16 @@ export async function POST(req: NextRequest) {
       if (!requestId || !decision) {
         return NextResponse.json({ error: 'Request ID and decision required' }, { status: 400 });
       }
+
+      const targetReq = durableDb.getAllVerificationRequests().find((r) => r.id === requestId);
+      if (targetReq && targetReq.memberId === session.userId) {
+        return NextResponse.json(
+          { error: 'Self-approval forbidden. Reviewers cannot approve their own verification requests.' },
+          { status: 403 }
+        );
+      }
+
+      const reviewerId = session.userId;
 
       const reviewed = durableDb.reviewVerification(
         requestId,

@@ -1,0 +1,939 @@
+{
+  "members": {
+    "usr_rahul": {
+      "id": "usr_rahul",
+      "email": "rahulsharma@gmail.com",
+      "fullName": "Rahul Sharma",
+      "headline": "AI/ML Builder | GenAI Enthusiast | Final Year CSE @ LPU",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": true,
+      "verifiedCategory": "institution",
+      "verifiedAt": "2026-08-15T10:00:00Z",
+      "plan": "free",
+      "statusBadges": [
+        "Student",
+        "GenAI Engineer (Goal)",
+        "Open to internships"
+      ],
+      "location": "Phagwara, Punjab, India",
+      "about": "Final year Computer Science student passionate about building real-world AI/ML applications. I love working on Generative AI, RAG systems, and practical ML solutions that create impact. Always eager to learn, collaborate, and contribute to meaningful projects.",
+      "contextTags": [
+        "LPU",
+        "rahulsharma.dev",
+        "rahulsharma@gmail.com"
+      ],
+      "socialLinks": {
+        "github": "https://github.com/rahulsharma-ai",
+        "linkedin": "https://linkedin.com/in/rahulsharma-ai",
+        "leetcode": "https://leetcode.com/rahulsharma_dev",
+        "portfolio": "https://rahulsharma.dev"
+      },
+      "metrics": {
+        "projects": 12,
+        "skills": 28,
+        "achievements": 4,
+        "githubContributions": "320+",
+        "leetcodeProblems": "850+",
+        "publications": 2
+      },
+      "skills": [
+        "Python",
+        "Machine Learning",
+        "Deep Learning",
+        "GenAI",
+        "RAG",
+        "LangChain",
+        "Pinecone",
+        "FastAPI",
+        "React",
+        "Docker",
+        "AWS",
+        "PostgreSQL",
+        "Git",
+        "PyTorch",
+        "Transformers",
+        "Vector DBs",
+        "Next.js",
+        "TypeScript"
+      ],
+      "projects": [
+        {
+          "id": "proj_1",
+          "title": "Tathastu AI Assistant",
+          "featured": true,
+          "description": "A RAG-based AI assistant for students with multi-source document understanding.",
+          "tags": [
+            "Python",
+            "RAG",
+            "OpenAI",
+            "FastAPI"
+          ],
+          "stars": 112,
+          "forks": 28,
+          "demoUrl": "https://tathastu-assistant.demo.aitathastu.com",
+          "imageUrl": "/images/tathastu_robot.jpg",
+          "sourceOrigin": "collaborate"
+        },
+        {
+          "id": "proj_2",
+          "title": "Autonomous Code Review Agent",
+          "featured": false,
+          "description": "Multi-agent review system using AST parsing and LLM feedback to detect security vulnerabilities.",
+          "tags": [
+            "TypeScript",
+            "LangChain",
+            "Next.js"
+          ],
+          "stars": 45,
+          "forks": 12,
+          "demoUrl": "https://codereview-agent.demo.app",
+          "sourceOrigin": "tathastu_core"
+        }
+      ],
+      "experience": [
+        {
+          "id": "exp_1",
+          "role": "AI/ML Research Intern",
+          "company": "Tathastu Labs (Remote)",
+          "period": "Jun 2024 – Aug 2024",
+          "bullets": [
+            "Worked on RAG-based academic assistant.",
+            "Built data pipeline and evaluation framework.",
+            "Deployed prototype using FastAPI and Docker."
+          ]
+        }
+      ],
+      "education": [
+        {
+          "id": "edu_1",
+          "institution": "Lovely Professional University (LPU)",
+          "period": "2021 – 2025 (Expected)",
+          "degree": "B.Tech in Computer Science and Engineering",
+          "score": "CGPA: 8.4 / 10"
+        }
+      ],
+      "recentActivity": [
+        {
+          "id": "act_1",
+          "type": "github",
+          "title": "Pushed new commit to tathastu-ai",
+          "timeAgo": "2 hours ago"
+        },
+        {
+          "id": "act_2",
+          "type": "leetcode",
+          "title": "Solved a LeetCode problem (Hard)",
+          "timeAgo": "5 hours ago"
+        },
+        {
+          "id": "act_3",
+          "type": "project",
+          "title": "Updated project: RAG Chatbot",
+          "timeAgo": "yesterday"
+        }
+      ],
+      "aiSpecializations": [
+        "Generative AI",
+        "Retrieval-Augmented Generation",
+        "LLM Agent Architectures"
+      ],
+      "collaborationInterests": [
+        "Open-source AI tooling",
+        "Model evaluation pipelines",
+        "Research paper implementations"
+      ],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": true,
+      "tathastuSyncStatus": "synced",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": true,
+        "autoSyncSkills": true,
+        "autoSyncAchievements": true
+      },
+      "role": "member"
+    },
+    "usr_priya": {
+      "id": "usr_priya",
+      "email": "priya.mehta@iiitd.ac.in",
+      "fullName": "Priya Mehta",
+      "headline": "AI Researcher @ IIITD | Computer Vision & Medical Diagnostics",
+      "avatarUrl": "/images/priya_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": true,
+      "verifiedCategory": "institution",
+      "verifiedAt": "2026-07-10T12:00:00Z",
+      "plan": "free",
+      "statusBadges": [
+        "Researcher",
+        "PhD Scholar",
+        "Vision Transformers"
+      ],
+      "location": "New Delhi, India",
+      "about": "Doctoral researcher at IIIT Delhi specializing in self-supervised computer vision models and federated medical diagnostics.",
+      "contextTags": [
+        "IIITD",
+        "priyamehta.ai",
+        "priya.mehta@iiitd.ac.in"
+      ],
+      "socialLinks": {
+        "github": "https://github.com/priyamehta-vision",
+        "linkedin": "https://linkedin.com/in/priyamehta-ai"
+      },
+      "metrics": {
+        "projects": 8,
+        "skills": 24,
+        "achievements": 6,
+        "githubContributions": "410+",
+        "leetcodeProblems": "340+",
+        "publications": 5
+      },
+      "skills": [
+        "PyTorch",
+        "Computer Vision",
+        "Vision Transformers",
+        "Medical Imaging",
+        "Python"
+      ],
+      "projects": [],
+      "experience": [],
+      "education": [
+        {
+          "id": "edu_p1",
+          "institution": "Indraprastha Institute of Information Technology Delhi (IIITD)",
+          "period": "2023 – 2027",
+          "degree": "Ph.D. in Computer Science",
+          "score": "CGPA: 9.2 / 10"
+        }
+      ],
+      "recentActivity": [],
+      "aiSpecializations": [
+        "Computer Vision",
+        "Medical Diagnostics"
+      ],
+      "collaborationInterests": [
+        "Model-evaluation collaborations",
+        "Clinical dataset curation"
+      ],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": true,
+      "tathastuSyncStatus": "synced",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": true,
+        "autoSyncSkills": true,
+        "autoSyncAchievements": true
+      },
+      "role": "member"
+    },
+    "usr_aman": {
+      "id": "usr_aman",
+      "email": "aman.verma@google.com",
+      "fullName": "Aman Verma",
+      "headline": "ML Engineer @ Google | Distributed Systems & Ray Architecture",
+      "avatarUrl": "/images/aman_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": true,
+      "verifiedCategory": "organization",
+      "verifiedAt": "2026-06-20T11:00:00Z",
+      "plan": "premium",
+      "statusBadges": [
+        "Google",
+        "ML Infrastructure",
+        "Distributed Training"
+      ],
+      "location": "Bengaluru, Karnataka, India",
+      "about": "Building high-scale distributed training orchestration and GPU cluster optimization pipelines.",
+      "contextTags": [
+        "Google",
+        "IIT Bombay"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 15,
+        "skills": 35,
+        "achievements": 9,
+        "githubContributions": "650+",
+        "leetcodeProblems": "920+",
+        "publications": 3
+      },
+      "skills": [
+        "Distributed Systems",
+        "Ray",
+        "CUDA",
+        "TensorRT",
+        "Kubernetes",
+        "Python"
+      ],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [
+        "Distributed ML Systems",
+        "Inference Acceleration"
+      ],
+      "collaborationInterests": [
+        "Open source distributed training",
+        "Mentoring young engineers"
+      ],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": true,
+      "tathastuSyncStatus": "synced",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": true,
+        "autoSyncSkills": true,
+        "autoSyncAchievements": true
+      },
+      "role": "member"
+    },
+    "usr_neha": {
+      "id": "usr_neha",
+      "email": "neha.kapoor@lpu.in",
+      "fullName": "Neha Kapoor",
+      "headline": "GenAI Builder | LPU | LangChain & Vector Systems Specialist",
+      "avatarUrl": "/images/neha_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "free",
+      "statusBadges": [
+        "Student",
+        "GenAI Builder",
+        "Open to collaborations"
+      ],
+      "location": "Phagwara, Punjab, India",
+      "about": "Building next-gen conversational workflows, agentic memory networks, and multi-tenant RAG systems.",
+      "contextTags": [
+        "LPU",
+        "neha.dev"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 9,
+        "skills": 22,
+        "achievements": 3,
+        "githubContributions": "280+",
+        "leetcodeProblems": "510+",
+        "publications": 1
+      },
+      "skills": [
+        "LangChain",
+        "FastAPI",
+        "Pinecone",
+        "Next.js",
+        "Python",
+        "Vector DBs",
+        "RAG"
+      ],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [
+        "Agentic RAG",
+        "Hybrid Search",
+        "Vector Embeddings"
+      ],
+      "collaborationInterests": [
+        "GenAI hackathons",
+        "RAG evaluation frameworks"
+      ],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": true,
+      "tathastuSyncStatus": "synced",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": true,
+        "autoSyncSkills": true,
+        "autoSyncAchievements": true
+      },
+      "role": "member"
+    },
+    "usr_admin": {
+      "id": "usr_admin",
+      "email": "admin@aitathastu.com",
+      "fullName": "Tathastu Trust & Safety Admin",
+      "headline": "Platform Verification & Moderation Authority @ Tathastu Collaborate",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": true,
+      "verifiedCategory": "organization",
+      "plan": "premium",
+      "statusBadges": [
+        "Platform Admin",
+        "Trust & Safety",
+        "Audit Reviewer"
+      ],
+      "location": "New Delhi, India",
+      "about": "Authorized safety and credential verification administrator for Tathastu Collaborate.",
+      "contextTags": [
+        "Tathastu Ops",
+        "Security Admin"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 10,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [
+        "Moderation",
+        "Audit Compliance",
+        "OIDC Federation"
+      ],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [
+        "Security",
+        "Identity"
+      ],
+      "collaborationInterests": [],
+      "discoverable": false,
+      "profileVisibility": "private",
+      "contactVisibility": "hidden",
+      "isLinkedWithTathastu": true,
+      "tathastuSyncStatus": "synced",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "role": "admin"
+    },
+    "usr_1791552461525_969867": {
+      "id": "usr_1791552461525_969867",
+      "email": "builder_1791552461017@aitathastu.test",
+      "fullName": "Arjun Sen",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "premium",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "builder_1791552461017@aitathastu.test"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "role": "member",
+      "planExpiresAt": "2026-11-08T13:27:45.467Z"
+    },
+    "usr_1791552616210_fa3d80": {
+      "id": "usr_1791552616210_fa3d80",
+      "email": "builder_1791552616141@aitathastu.test",
+      "fullName": "Arjun Sen",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "premium",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "builder_1791552616141@aitathastu.test"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "role": "member",
+      "planExpiresAt": "2026-11-08T13:30:16.438Z"
+    },
+    "usr_1791553119935_1325e1": {
+      "id": "usr_1791553119935_1325e1",
+      "email": "builder_1791553119891@aitathastu.test",
+      "fullName": "Arjun Sen",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "premium",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "builder_1791553119891@aitathastu.test"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "role": "member",
+      "planExpiresAt": "2026-11-08T13:38:40.101Z"
+    },
+    "usr_1791553191022_109177": {
+      "id": "usr_1791553191022_109177",
+      "email": "builder_1791553190974@aitathastu.test",
+      "fullName": "Arjun Sen",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "premium",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "builder_1791553190974@aitathastu.test"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "role": "member",
+      "planExpiresAt": "2026-11-08T13:39:51.222Z"
+    },
+    "usr_1791553289804_e1efb4": {
+      "id": "usr_1791553289804_e1efb4",
+      "email": "builder_1791553289749@aitathastu.test",
+      "fullName": "Arjun Sen",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "premium",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "builder_1791553289749@aitathastu.test"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "role": "member",
+      "planExpiresAt": "2026-11-08T13:41:29.964Z"
+    }
+  },
+  "credentials": {
+    "usr_1791552461525_969867": {
+      "passwordHash": "b7d3c4adb8b5a3e6ddbbb077240d0ad1501741da7b7354faa6b146946779e665544a2b6b99cd1c634bbba1a770a7fad7fdbb456be600ab2cec5469e60d2baaed",
+      "salt": "9301c2560665060c9a7fcb19302e6368"
+    },
+    "usr_1791552616210_fa3d80": {
+      "passwordHash": "40314e19b39165146e411f7c755fdfdc09fc2dfe1ef06896ac23e5f31361f698942802de04484a9052c3096912b8715ae1fdfcb9258ebe45aa401d53a20f6f4c",
+      "salt": "da7ebbd7a3bf2b3a73d75f99488a972d"
+    },
+    "usr_1791553119935_1325e1": {
+      "passwordHash": "58960cdbcb52e2c1a9d147943a260485e6a2572e37873e9b5cf9ce4b6d09c7a50025ab6da48e91fc8a5197132cb5c740531ce90db269bb873825db09d3263e09",
+      "salt": "b7f6410390d5b17a3b11edb064ab7875"
+    },
+    "usr_1791553191022_109177": {
+      "passwordHash": "1a63fa24802dd2e3ec08482b74f9030f79b2eb29d3bdfb592c738b14e47545e73db65ffb5e87e38874f61e3072ed368655a7368c45c888cc476e4369d6dee5de",
+      "salt": "09da1ff0dc6adf35d132165a34608adc"
+    },
+    "usr_1791553289804_e1efb4": {
+      "passwordHash": "e96341715fc73de9db9c4d7a137a5402a753b2f2941c8ed9076427d6f1ae37dd059ecfc960c67968ebbcee169012f22bbb6bba9cdc3be62a3c57d6efb0c2e72b",
+      "salt": "3449df4f6f42426780fbd70128b52f98"
+    }
+  },
+  "identityMappings": {
+    "map_1791552464959": {
+      "id": "map_1791552464959",
+      "memberId": "usr_rahul",
+      "provider": "aitathastu_oidc",
+      "externalSubjectId": "core_person_8921",
+      "externalEmail": "rahulsharma@gmail.com",
+      "createdAt": "2026-10-09T13:27:44.959Z"
+    }
+  },
+  "connections": {
+    "conn_rahul_priya": {
+      "id": "conn_rahul_priya",
+      "requesterId": "usr_priya",
+      "recipientId": "usr_rahul",
+      "status": "accepted",
+      "introMessage": "Hi Rahul, I noticed your RAG assistant project and would love to connect!",
+      "createdAt": "2026-09-15T10:00:00Z",
+      "updatedAt": "2026-09-15T12:30:00Z"
+    }
+  },
+  "conversations": {
+    "conv_rahul_priya": {
+      "id": "conv_rahul_priya",
+      "participantIds": [
+        "usr_rahul",
+        "usr_priya"
+      ],
+      "lastMessage": {
+        "content": "Sounds great! Let's touch base on Saturday morning.",
+        "timestamp": "2026-10-09T13:36:40.524Z",
+        "senderId": "usr_rahul"
+      },
+      "unreadCounts": {
+        "usr_rahul": 0,
+        "usr_priya": 1
+      },
+      "updatedAt": "2026-10-09T13:36:40.524Z"
+    }
+  },
+  "messages": [
+    {
+      "id": "msg_1",
+      "conversationId": "conv_rahul_priya",
+      "senderId": "usr_priya",
+      "recipientId": "usr_rahul",
+      "content": "Hi Rahul! Congratulations on the Tathastu AI Assistant project!",
+      "timestamp": "2026-10-09T14:00:00Z",
+      "status": "read"
+    },
+    {
+      "id": "msg_2",
+      "conversationId": "conv_rahul_priya",
+      "senderId": "usr_rahul",
+      "recipientId": "usr_priya",
+      "content": "Thanks Priya! Your recent CVPR workshop paper on MedVision looked super inspiring.",
+      "timestamp": "2026-10-09T14:05:00Z",
+      "status": "read"
+    },
+    {
+      "id": "msg_3",
+      "conversationId": "conv_rahul_priya",
+      "senderId": "usr_priya",
+      "recipientId": "usr_rahul",
+      "content": "I would love to run a test on your benchmark datasets this weekend!",
+      "timestamp": "2026-10-09T14:15:00Z",
+      "status": "read"
+    },
+    {
+      "id": "msg_1791553000524_im3z",
+      "conversationId": "conv_rahul_priya",
+      "senderId": "usr_rahul",
+      "recipientId": "usr_priya",
+      "content": "Sounds great! Let's touch base on Saturday morning.",
+      "timestamp": "2026-10-09T13:36:40.524Z",
+      "status": "delivered"
+    }
+  ],
+  "verificationRequests": {
+    "vreq_neha": {
+      "id": "vreq_neha",
+      "memberId": "usr_neha",
+      "memberName": "Neha Kapoor",
+      "memberEmail": "neha.kapoor@lpu.in",
+      "category": "institution",
+      "evidenceSummary": "Official LPU student registration card (Registration ID: 12108745) valid through June 2026.",
+      "status": "pending",
+      "createdAt": "2026-10-08T09:30:00Z"
+    }
+  },
+  "verificationAuditLogs": [],
+  "abuseReports": {},
+  "profileViewLedger": [
+    {
+      "id": "view_1791552463650_ihyx0",
+      "viewerId": "usr_1791552461525_969867",
+      "targetId": "usr_priya",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T13:27:43.650Z"
+    },
+    {
+      "id": "view_1791552463694_6zi8f",
+      "viewerId": "usr_1791552461525_969867",
+      "targetId": "usr_aman",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T13:27:43.694Z"
+    },
+    {
+      "id": "view_1791552463729_kxtxh",
+      "viewerId": "usr_1791552461525_969867",
+      "targetId": "usr_neha",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T13:27:43.729Z"
+    },
+    {
+      "id": "view_1791552616401_uxmew",
+      "viewerId": "usr_1791552616210_fa3d80",
+      "targetId": "usr_priya",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T13:30:16.401Z"
+    },
+    {
+      "id": "view_1791552616409_irblr",
+      "viewerId": "usr_1791552616210_fa3d80",
+      "targetId": "usr_aman",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T13:30:16.409Z"
+    },
+    {
+      "id": "view_1791552616413_xok0h",
+      "viewerId": "usr_1791552616210_fa3d80",
+      "targetId": "usr_neha",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T13:30:16.413Z"
+    },
+    {
+      "id": "view_1791553120076_qeoer",
+      "viewerId": "usr_1791553119935_1325e1",
+      "targetId": "usr_priya",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T13:38:40.076Z"
+    },
+    {
+      "id": "view_1791553120082_d0gde",
+      "viewerId": "usr_1791553119935_1325e1",
+      "targetId": "usr_aman",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T13:38:40.082Z"
+    },
+    {
+      "id": "view_1791553120087_bnr12",
+      "viewerId": "usr_1791553119935_1325e1",
+      "targetId": "usr_neha",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T13:38:40.087Z"
+    },
+    {
+      "id": "view_1791553191189_zzedq",
+      "viewerId": "usr_1791553191022_109177",
+      "targetId": "usr_priya",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T13:39:51.189Z"
+    },
+    {
+      "id": "view_1791553191196_y15ni",
+      "viewerId": "usr_1791553191022_109177",
+      "targetId": "usr_aman",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T13:39:51.196Z"
+    },
+    {
+      "id": "view_1791553191200_7csal",
+      "viewerId": "usr_1791553191022_109177",
+      "targetId": "usr_neha",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T13:39:51.200Z"
+    },
+    {
+      "id": "view_1791553289941_s8job",
+      "viewerId": "usr_1791553289804_e1efb4",
+      "targetId": "usr_priya",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T13:41:29.941Z"
+    },
+    {
+      "id": "view_1791553289947_o176n",
+      "viewerId": "usr_1791553289804_e1efb4",
+      "targetId": "usr_aman",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T13:41:29.947Z"
+    },
+    {
+      "id": "view_1791553289950_96wm6",
+      "viewerId": "usr_1791553289804_e1efb4",
+      "targetId": "usr_neha",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T13:41:29.950Z"
+    }
+  ],
+  "blockedUsers": [],
+  "notifications": [
+    {
+      "id": "notif_1791553289964_qotm",
+      "recipientId": "usr_1791553289804_e1efb4",
+      "actorId": "usr_admin",
+      "type": "system",
+      "title": "Collaborate Premium Activated",
+      "body": "You have unlocked unlimited full-profile views and advanced filters.",
+      "isRead": false,
+      "createdAt": "2026-10-09T13:41:29.964Z"
+    },
+    {
+      "id": "notif_1791553191222_wwkq",
+      "recipientId": "usr_1791553191022_109177",
+      "actorId": "usr_admin",
+      "type": "system",
+      "title": "Collaborate Premium Activated",
+      "body": "You have unlocked unlimited full-profile views and advanced filters.",
+      "isRead": false,
+      "createdAt": "2026-10-09T13:39:51.222Z"
+    },
+    {
+      "id": "notif_1791553120102_dmyt",
+      "recipientId": "usr_1791553119935_1325e1",
+      "actorId": "usr_admin",
+      "type": "system",
+      "title": "Collaborate Premium Activated",
+      "body": "You have unlocked unlimited full-profile views and advanced filters.",
+      "isRead": false,
+      "createdAt": "2026-10-09T13:38:40.102Z"
+    },
+    {
+      "id": "notif_1791553000527_mxmi",
+      "recipientId": "usr_priya",
+      "actorId": "usr_rahul",
+      "type": "message",
+      "title": "New message from Rahul Sharma",
+      "body": "Sounds great! Let's touch base on Saturday morning.",
+      "isRead": false,
+      "createdAt": "2026-10-09T13:36:40.527Z"
+    },
+    {
+      "id": "notif_1791552616438_65ay",
+      "recipientId": "usr_1791552616210_fa3d80",
+      "actorId": "usr_admin",
+      "type": "system",
+      "title": "Collaborate Premium Activated",
+      "body": "You have unlocked unlimited full-profile views and advanced filters.",
+      "isRead": false,
+      "createdAt": "2026-10-09T13:30:16.438Z"
+    },
+    {
+      "id": "notif_1791552465469_7auh",
+      "recipientId": "usr_1791552461525_969867",
+      "actorId": "usr_admin",
+      "type": "system",
+      "title": "Collaborate Premium Activated",
+      "body": "You have unlocked unlimited full-profile views and advanced filters.",
+      "isRead": false,
+      "createdAt": "2026-10-09T13:27:45.469Z"
+    },
+    {
+      "id": "notif_1",
+      "recipientId": "usr_rahul",
+      "actorId": "usr_priya",
+      "type": "message",
+      "title": "New message from Priya Mehta",
+      "body": "I would love to run a test on your benchmark datasets this weekend!",
+      "isRead": false,
+      "createdAt": "2026-10-09T14:15:00Z"
+    }
+  ]
+}

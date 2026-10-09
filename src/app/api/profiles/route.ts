@@ -15,11 +15,16 @@ const ProfileUpdateSchema = z.object({
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const targetId = searchParams.get('id') || 'usr_rahul';
-  
-  // Resolve viewer from verified session cookie
   const session = await getSession(req);
-  const viewerId = session ? session.userId : (searchParams.get('viewerId') || 'usr_rahul');
+  const isFixturesAllowed = process.env.COLLABORATE_ENABLE_FIXTURES === 'true';
+
+  const targetId = searchParams.get('id') || (session ? session.userId : (isFixturesAllowed ? 'usr_rahul' : ''));
+  if (!targetId) {
+    return NextResponse.json({ error: 'Profile ID required' }, { status: 400 });
+  }
+
+  // Resolve viewer from verified session cookie
+  const viewerId = session ? session.userId : (searchParams.get('viewerId') || '');
 
   const member = durableDb.getMemberById(targetId);
   if (!member) {
@@ -44,6 +49,16 @@ export async function GET(req: NextRequest) {
           { status: 403 }
         );
       }
+    }
+
+    // Guest viewer viewing public profile
+    if (!viewerId) {
+      return NextResponse.json({
+        member,
+        quota: { remaining: 3, alreadyViewedToday: false, dateKey: getKolkataDateKey() },
+        connectionStatus: 'not_connected',
+        connectionId: null,
+      });
     }
 
     // Atomic 3-profile daily quota enforcement
@@ -90,11 +105,14 @@ export async function GET(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const session = await getSession(req);
+    if (!session) {
+      return NextResponse.json({ error: 'Authentication required to update profile' }, { status: 401 });
+    }
     const body = await req.json();
-    const targetUserId = body.id || (session ? session.userId : 'usr_rahul');
+    const targetUserId = body.id || session.userId;
 
     // Strict Authorization: Users can ONLY edit their own profile unless admin
-    if (session && session.userId !== targetUserId && session.role !== 'admin') {
+    if (session.userId !== targetUserId && session.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized to edit this profile' }, { status: 403 });
     }
 

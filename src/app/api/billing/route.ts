@@ -39,12 +39,6 @@ export async function POST(req: NextRequest) {
     const session = await getSession(req);
     const body = await req.json();
     const { action, userId, webhookSignature, isSandboxTest } = body;
-    const currentUserId = session ? session.userId : (userId || 'usr_rahul');
-
-    const member = durableDb.getMemberById(currentUserId);
-    if (!member) {
-      return NextResponse.json({ error: 'Member not found' }, { status: 404 });
-    }
 
     // 1. Production Verified Webhook Handler
     if (webhookSignature) {
@@ -53,8 +47,17 @@ export async function POST(req: NextRequest) {
         .update(JSON.stringify(body.payload || {}))
         .digest('hex');
 
-      if (!crypto.timingSafeEqual(Buffer.from(computedSig), Buffer.from(webhookSignature))) {
+      const sigBuf = Buffer.from(String(webhookSignature));
+      const compBuf = Buffer.from(computedSig);
+
+      if (sigBuf.length !== compBuf.length || !crypto.timingSafeEqual(sigBuf, compBuf)) {
         return NextResponse.json({ error: 'Invalid cryptographic webhook signature' }, { status: 401 });
+      }
+
+      const targetMemberId = body.payload?.memberId || userId;
+      const member = durableDb.getMemberById(targetMemberId);
+      if (!member) {
+        return NextResponse.json({ error: 'Member not found' }, { status: 404 });
       }
 
       member.plan = 'premium';
@@ -62,6 +65,17 @@ export async function POST(req: NextRequest) {
       durableDb.saveMember(member);
 
       return NextResponse.json({ success: true, verified: true, plan: member.plan });
+    }
+
+    // For user-driven actions, session authentication is strictly required
+    if (!session) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const currentUserId = session.userId;
+    const member = durableDb.getMemberById(currentUserId);
+    if (!member) {
+      return NextResponse.json({ error: 'Member not found' }, { status: 404 });
     }
 
     // 2. Controlled Sandbox Simulator for Reviewers & Testing

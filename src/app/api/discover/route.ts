@@ -9,16 +9,21 @@ export async function GET(req: NextRequest) {
   const query = (searchParams.get('q') || '').toLowerCase().trim();
   const filterSkill = (searchParams.get('skill') || '').toLowerCase().trim();
   const filterSpecialization = (searchParams.get('specialization') || '').toLowerCase().trim();
-  const viewerId = session ? session.userId : (searchParams.get('viewerId') || 'usr_rahul');
+  const viewerId = session ? session.userId : (searchParams.get('viewerId') || '');
+  const isProduction = process.env.NODE_ENV === 'production';
+  const enableFixtures = process.env.COLLABORATE_ENABLE_FIXTURES === 'true';
 
-  const recommendations = getRecommendationsForMember(viewerId, 6);
+  const recommendations = viewerId ? getRecommendationsForMember(viewerId, 6) : [];
 
   // Filter members for directory search
   const results: any[] = [];
   for (const m of durableDb.getAllMembers()) {
     if (m.id === viewerId || m.role === 'admin') continue;
-    if (durableDb.isBlocked(viewerId, m.id)) continue;
+    if (viewerId && durableDb.isBlocked(viewerId, m.id)) continue;
     if (!m.discoverable || m.profileVisibility === 'private') continue;
+    
+    // Isolate demo accounts from production discovery
+    if (isProduction && !enableFixtures && m.isDemo) continue;
 
     let matches = true;
 

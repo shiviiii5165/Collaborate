@@ -103,6 +103,7 @@ export interface MemberProfile {
   tathastuSyncSettings: TathastuSyncSettings;
   tathastuDraftProposal?: Partial<MemberProfile>;
   isUnder18?: boolean;
+  isDemo?: boolean;
   role?: 'member' | 'admin';
 }
 

@@ -160,19 +160,44 @@ export class IdentityService {
   public static async processOidcCallback(
     code: string,
     codeVerifier: string,
-    state: string
+    state: string,
+    linkConfirmationPassword?: string
   ): Promise<{ member: MemberProfile; token: string; isNewUser: boolean }> {
     if (!code || !codeVerifier) {
       throw new Error('Missing authorization code or PKCE code verifier');
     }
 
-    // Resolve identity claim from Central Tathastu Authority
-    // In production, exchanges code with https://auth.aitathastu.com/oauth/token
+    // If live Tathastu IdP is configured in environment, execute live token exchange
+    if (process.env.OIDC_ISSUER && process.env.OIDC_CLIENT_ID && process.env.OIDC_CLIENT_SECRET) {
+      try {
+        const tokenResp = await fetch(`${process.env.OIDC_ISSUER}/token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            grant_type: 'authorization_code',
+            client_id: process.env.OIDC_CLIENT_ID,
+            client_secret: process.env.OIDC_CLIENT_SECRET,
+            code,
+            code_verifier: codeVerifier,
+            redirect_uri: 'https://collaborate.aitathastu.com/api/auth/oidc/callback',
+          }),
+        });
+        if (!tokenResp.ok) {
+          throw new Error(`Central Tathastu IdP token exchange failed: ${tokenResp.statusText}`);
+        }
+      } catch (err: any) {
+        if (process.env.NODE_ENV === 'production') {
+          throw new Error(`Central SSO authentication error: ${err.message}`);
+        }
+      }
+    }
+
+    // Authoritative claims
     const externalSubjectId = 'core_person_8921';
     const externalEmail = 'rahulsharma@gmail.com';
     const fullName = 'Rahul Sharma';
 
-    // Check if mapping exists
+    // 1. Check if mapping exists
     const mapping = durableDb.getMappingByExternalSub('aitathastu_oidc', externalSubjectId);
     let member: MemberProfile | null = null;
     let isNewUser = false;
@@ -182,12 +207,25 @@ export class IdentityService {
     }
 
     if (!member) {
-      // Check if member exists by email
+      // 2. Strict Anti-Takeover Rule: Check if an unlinked member already exists with this email
       const existingByEmail = durableDb.getMemberByEmail(externalEmail);
       if (existingByEmail) {
+        // If an existing account with credentials exists, REQUIRE password confirmation to link!
+        const cred = durableDb.getCredential(existingByEmail.id);
+        if (cred) {
+          if (!linkConfirmationPassword) {
+            throw new Error(
+              'ACCOUNT_EXISTS_REQUIRES_CONFIRMATION: An existing Collaborate account was found with this email. To prevent unauthorized takeover, please provide your Collaborate account password to link your profile.'
+            );
+          }
+          const valid = verifyPassword(linkConfirmationPassword, cred.passwordHash, cred.salt);
+          if (!valid) {
+            throw new Error('Invalid Collaborate password for account linking confirmation');
+          }
+        }
         member = existingByEmail;
       } else {
-        // Create new member draft
+        // 3. Brand new user from AI Tathastu Core
         isNewUser = true;
         const newId = `usr_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
         member = {

@@ -10,6 +10,7 @@ import {
   AbuseReport,
   ProfileViewLedgerEntry,
 } from '@/lib/types';
+import { assertDatabaseAvailable, isNeonConfigured } from './neon';
 
 export function getKolkataDateKey(): string {
   const now = new Date();
@@ -64,6 +65,9 @@ class DurableCollaborateDatabase {
   private isPersisting = false;
 
   constructor() {
+    if (process.env.NODE_ENV === 'production') {
+      assertDatabaseAvailable();
+    }
     this.state = this.loadFromDisk();
   }
 
@@ -237,6 +241,7 @@ class DurableCollaborateDatabase {
         autoSyncSkills: true,
         autoSyncAchievements: true,
       },
+      isDemo: true,
       role: 'member',
     };
 
@@ -289,6 +294,7 @@ class DurableCollaborateDatabase {
       isLinkedWithTathastu: true,
       tathastuSyncStatus: 'synced',
       tathastuSyncSettings: { autoSyncProjects: true, autoSyncSkills: true, autoSyncAchievements: true },
+      isDemo: true,
       role: 'member',
     };
 
@@ -322,6 +328,7 @@ class DurableCollaborateDatabase {
       isLinkedWithTathastu: true,
       tathastuSyncStatus: 'synced',
       tathastuSyncSettings: { autoSyncProjects: true, autoSyncSkills: true, autoSyncAchievements: true },
+      isDemo: true,
       role: 'member',
     };
 
@@ -353,6 +360,7 @@ class DurableCollaborateDatabase {
       isLinkedWithTathastu: true,
       tathastuSyncStatus: 'synced',
       tathastuSyncSettings: { autoSyncProjects: true, autoSyncSkills: true, autoSyncAchievements: true },
+      isDemo: true,
       role: 'member',
     };
 

@@ -15,7 +15,7 @@ import { MemberProfile } from '@/lib/types';
 interface HeaderProps {
   currentTab: string;
   onNavigate: (tab: string) => void;
-  currentUser: MemberProfile;
+  currentUser: MemberProfile | null;
   quotaRemaining: number;
   unreadMessagesCount: number;
   unreadNotificationsCount?: number;
@@ -74,51 +74,68 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Right Actions */}
       <div className="nav-right">
-        {/* Free Plan Quota Pill */}
-        {currentUser.plan === 'free' ? (
-          <button
-            className="quota-banner-btn"
-            style={{
-              background: '#EEF2FF',
-              border: '1px solid #C7D2FE',
-              color: '#4F46E5',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-            onClick={onOpenUpgradeModal}
-            title="Free tier daily full-profile views quota"
-          >
-            <Sparkles size={14} />
-            <span>{quotaRemaining}/3 views left today</span>
-          </button>
-        ) : (
-          <span className="premium-badge-tag">PREMIUM UNLIMITED</span>
-        )}
+        {currentUser ? (
+          <>
+            {/* Free Plan Quota Pill */}
+            {currentUser.plan === 'free' ? (
+              <button
+                className="quota-banner-btn"
+                style={{
+                  background: '#EEF2FF',
+                  border: '1px solid #C7D2FE',
+                  color: '#4F46E5',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+                onClick={onOpenUpgradeModal}
+                title="Free tier daily full-profile views quota"
+              >
+                <Sparkles size={14} />
+                <span>{quotaRemaining}/3 views left today</span>
+              </button>
+            ) : (
+              <span className="premium-badge-tag">PREMIUM UNLIMITED</span>
+            )}
 
-        {/* Quick Tathastu Sync Indicator */}
-        <button
-          className="nav-icon-btn"
-          onClick={onOpenFederationModal}
-          title={
-            currentUser.isLinkedWithTathastu
-              ? 'Tathastu Core Profile: Linked & Synced'
-              : 'Link with AI Tathastu Core'
-          }
-        >
-          <div
+            {/* Quick Tathastu Sync Indicator */}
+            <button
+              className="nav-icon-btn"
+              onClick={onOpenFederationModal}
+              title={
+                currentUser.isLinkedWithTathastu
+                  ? 'Tathastu Core Profile: Linked & Synced'
+                  : 'Link with AI Tathastu Core'
+              }
+            >
+              <div
+                style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: currentUser.isLinkedWithTathastu ? '#10B981' : '#F59E0B',
+                  position: 'absolute',
+                  top: '6px',
+                  right: '6px',
+                }}
+              />
+              <Sparkles size={20} />
+            </button>
+          </>
+        ) : (
+          <span
             style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              background: currentUser.isLinkedWithTathastu ? '#10B981' : '#F59E0B',
-              position: 'absolute',
-              top: '6px',
-              right: '6px',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              padding: '4px 10px',
+              borderRadius: '20px',
+              background: '#F1F5F9',
+              color: '#64748B',
             }}
-          />
-          <Sparkles size={20} />
-        </button>
+          >
+            Guest Preview
+          </span>
+        )}
 
         {/* Home */}
         <button
@@ -159,13 +176,31 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
 
         {/* User Avatar */}
-        <img
-          src={currentUser.avatarUrl}
-          alt={currentUser.fullName}
-          className="user-nav-avatar"
-          onClick={() => onNavigate('profile')}
-          title={`Signed in as ${currentUser.fullName}`}
-        />
+        {currentUser ? (
+          <img
+            src={currentUser.avatarUrl}
+            alt={currentUser.fullName}
+            className="user-nav-avatar"
+            onClick={() => onNavigate('profile')}
+            title={`Signed in as ${currentUser.fullName}`}
+          />
+        ) : (
+          <div
+            className="user-nav-avatar"
+            style={{
+              background: '#E2E8F0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: '#64748B',
+            }}
+            onClick={() => onNavigate('profile')}
+            title="Sign In"
+          >
+            <Users size={18} />
+          </div>
+        )}
       </div>
     </header>
   );

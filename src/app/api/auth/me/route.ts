@@ -5,9 +5,10 @@ import { durableDb } from '@/lib/db/index';
 export async function GET(req: NextRequest) {
   const session = await getSession(req);
 
-  // If no session cookie exists yet, default to Rahul Sharma for seamless initial exploration
+  // If no session cookie exists
   if (!session) {
-    const defaultMember = durableDb.getMemberById('usr_rahul');
+    const isFixturesAllowed = process.env.COLLABORATE_ENABLE_FIXTURES === 'true';
+    const defaultMember = isFixturesAllowed ? durableDb.getMemberById('usr_rahul') : null;
     return NextResponse.json({
       authenticated: false,
       member: defaultMember,

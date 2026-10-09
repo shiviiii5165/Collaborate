@@ -251,20 +251,29 @@ export default function CollaborateApp() {
               boxShadow: 'var(--shadow-sm)',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  background: currentUser.role === 'admin' ? '#F59E0B' : '#10B981',
-                }}
-              />
-              <span style={{ fontSize: '0.82rem', color: '#475569' }}>
-                Active Identity: <strong>{currentUser.fullName}</strong> ({currentUser.email})
-                {currentUser.role === 'admin' && ' • [ADMIN]'}
-              </span>
-            </div>
+            {currentUser ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: currentUser.role === 'admin' ? '#F59E0B' : '#10B981',
+                  }}
+                />
+                <span style={{ fontSize: '0.82rem', color: '#475569' }}>
+                  Active Identity: <strong>{currentUser.fullName}</strong> ({currentUser.email})
+                  {currentUser.role === 'admin' && ' • [ADMIN]'}
+                </span>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#94A3B8' }} />
+                <span style={{ fontSize: '0.82rem', color: '#64748B' }}>
+                  Guest Explorer • Please sign in or register to connect & collaborate
+                </span>
+              </div>
+            )}
 
             <button
               className="btn-secondary"
@@ -272,18 +281,60 @@ export default function CollaborateApp() {
               onClick={() => setIsAuthOpen(true)}
             >
               <LogIn size={13} />
-              <span>Switch Account / SSO</span>
+              <span>{currentUser ? 'Switch Account / SSO' : 'Sign In / Register'}</span>
             </button>
           </div>
 
           {/* View Tab: Home or My Profile */}
           {(currentTab === 'home' || currentTab === 'profile') && (
-            <ProfileView
-              member={currentUser}
-              isSelf={true}
-              onEditProfile={() => setIsEditProfileOpen(true)}
-              onOpenFederationSync={() => setIsFederationOpen(true)}
-            />
+            currentUser ? (
+              <ProfileView
+                member={currentUser}
+                isSelf={true}
+                onEditProfile={() => setIsEditProfileOpen(true)}
+                onOpenFederationSync={() => setIsFederationOpen(true)}
+              />
+            ) : (
+              <div
+                style={{
+                  background: '#FFFFFF',
+                  borderRadius: 16,
+                  padding: 40,
+                  textAlign: 'center',
+                  border: '1px solid #E2E8F0',
+                  boxShadow: 'var(--shadow-sm)',
+                }}
+              >
+                <div
+                  style={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: '50%',
+                    background: 'rgba(99, 102, 241, 0.1)',
+                    color: '#6366F1',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 16px',
+                  }}
+                >
+                  <Sparkles size={32} />
+                </div>
+                <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: 8, color: '#0F172A' }}>
+                  Welcome to Collaborate.
+                </h2>
+                <p style={{ color: '#64748B', maxWidth: 460, margin: '0 auto 24px', fontSize: '0.92rem' }}>
+                  Independent Professional Networking by AI Tathastu. Connect with verified builders, researchers, and engineers.
+                </p>
+                <button
+                  className="btn-primary"
+                  style={{ padding: '10px 24px', fontSize: '0.9rem' }}
+                  onClick={() => setIsAuthOpen(true)}
+                >
+                  Sign In with AI Tathastu Single Sign-On
+                </button>
+              </div>
+            )
           )}
 
           {/* View Tab: Another Member's Profile */}

@@ -57,8 +57,11 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await getSession(req);
+    if (!session) {
+      return NextResponse.json({ error: 'Authentication required to manage connections' }, { status: 401 });
+    }
     const body = await req.json();
-    const currentUserId = session ? session.userId : (body.fromId || 'usr_rahul');
+    const currentUserId = session.userId;
     const { action, toId, connectionId, introMessage } = body;
 
     if (action === 'send_request') {

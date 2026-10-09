@@ -594,6 +594,144 @@
       },
       "role": "member",
       "planExpiresAt": "2026-11-08T13:39:51.222Z"
+    },
+    "usr_1791553289804_e1efb4": {
+      "id": "usr_1791553289804_e1efb4",
+      "email": "builder_1791553289749@aitathastu.test",
+      "fullName": "Arjun Sen",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "premium",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "builder_1791553289749@aitathastu.test"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "role": "member",
+      "planExpiresAt": "2026-11-08T13:41:29.964Z"
+    },
+    "usr_1791554720641_996bc6": {
+      "id": "usr_1791554720641_996bc6",
+      "email": "builder_1791554720573@aitathastu.test",
+      "fullName": "Arjun Sen",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "premium",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "builder_1791554720573@aitathastu.test"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "role": "member",
+      "planExpiresAt": "2026-11-08T14:05:20.978Z"
+    },
+    "usr_1791554773690_f2b6a4": {
+      "id": "usr_1791554773690_f2b6a4",
+      "email": "builder_1791554773597@aitathastu.test",
+      "fullName": "Arjun Sen",
+      "headline": "New Member | Collaborate Professional",
+      "avatarUrl": "/images/rahul_avatar.jpg",
+      "bannerUrl": "/images/campus_banner.jpg",
+      "isVerified": false,
+      "plan": "premium",
+      "statusBadges": [
+        "New Member"
+      ],
+      "location": "India",
+      "about": "Professional profile on Collaborate.",
+      "contextTags": [
+        "builder_1791554773597@aitathastu.test"
+      ],
+      "socialLinks": {},
+      "metrics": {
+        "projects": 0,
+        "skills": 0,
+        "achievements": 0,
+        "githubContributions": "0",
+        "leetcodeProblems": "0",
+        "publications": 0
+      },
+      "skills": [],
+      "projects": [],
+      "experience": [],
+      "education": [],
+      "recentActivity": [],
+      "aiSpecializations": [],
+      "collaborationInterests": [],
+      "discoverable": true,
+      "profileVisibility": "public",
+      "contactVisibility": "connections_only",
+      "isLinkedWithTathastu": false,
+      "tathastuSyncStatus": "unlinked",
+      "tathastuSyncSettings": {
+        "autoSyncProjects": false,
+        "autoSyncSkills": false,
+        "autoSyncAchievements": false
+      },
+      "role": "member",
+      "planExpiresAt": "2026-11-08T14:06:14.337Z"
     }
   },
   "credentials": {
@@ -612,6 +750,18 @@
     "usr_1791553191022_109177": {
       "passwordHash": "1a63fa24802dd2e3ec08482b74f9030f79b2eb29d3bdfb592c738b14e47545e73db65ffb5e87e38874f61e3072ed368655a7368c45c888cc476e4369d6dee5de",
       "salt": "09da1ff0dc6adf35d132165a34608adc"
+    },
+    "usr_1791553289804_e1efb4": {
+      "passwordHash": "e96341715fc73de9db9c4d7a137a5402a753b2f2941c8ed9076427d6f1ae37dd059ecfc960c67968ebbcee169012f22bbb6bba9cdc3be62a3c57d6efb0c2e72b",
+      "salt": "3449df4f6f42426780fbd70128b52f98"
+    },
+    "usr_1791554720641_996bc6": {
+      "passwordHash": "bbb802a56e738faff2d7cf7c96933daf1a9052a0b5e20a91a4a86e50ccf9a5fb533a2e0325f1d28e927e31022254699aab48443fff4535059a1a89d127cc92a6",
+      "salt": "6b6e0c95da5a0fd37af215d9b84320f8"
+    },
+    "usr_1791554773690_f2b6a4": {
+      "passwordHash": "a0e84b503b4dd232e58084a42bb4a35d75a49afe3877bda0a8cb7c4cd4db675b3f64077c5f9d7f5858d7491078afb930f75a67cd3a541052986565449f639cd3",
+      "salt": "6eb5b77eef697139f4033de8949a9312"
     }
   },
   "identityMappings": {
@@ -702,6 +852,26 @@
       "evidenceSummary": "Official LPU student registration card (Registration ID: 12108745) valid through June 2026.",
       "status": "pending",
       "createdAt": "2026-10-08T09:30:00Z"
+    },
+    "vreq_1791554720952_g3si": {
+      "id": "vreq_1791554720952_g3si",
+      "memberId": "usr_admin",
+      "memberName": "Tathastu Trust & Safety Admin",
+      "memberEmail": "admin@aitathastu.com",
+      "category": "organization",
+      "evidenceSummary": "Admin self test credential",
+      "status": "pending",
+      "createdAt": "2026-10-09T14:05:20.952Z"
+    },
+    "vreq_1791554774312_7j6q": {
+      "id": "vreq_1791554774312_7j6q",
+      "memberId": "usr_admin",
+      "memberName": "Tathastu Trust & Safety Admin",
+      "memberEmail": "admin@aitathastu.com",
+      "category": "organization",
+      "evidenceSummary": "Admin self test credential",
+      "status": "pending",
+      "createdAt": "2026-10-09T14:06:14.312Z"
     }
   },
   "verificationAuditLogs": [],
@@ -790,10 +960,83 @@
       "targetId": "usr_neha",
       "dateKey": "2026-10-09",
       "viewedAt": "2026-10-09T13:39:51.200Z"
+    },
+    {
+      "id": "view_1791553289941_s8job",
+      "viewerId": "usr_1791553289804_e1efb4",
+      "targetId": "usr_priya",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T13:41:29.941Z"
+    },
+    {
+      "id": "view_1791553289947_o176n",
+      "viewerId": "usr_1791553289804_e1efb4",
+      "targetId": "usr_aman",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T13:41:29.947Z"
+    },
+    {
+      "id": "view_1791553289950_96wm6",
+      "viewerId": "usr_1791553289804_e1efb4",
+      "targetId": "usr_neha",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T13:41:29.950Z"
+    },
+    {
+      "id": "view_1791554720909_sdcjw",
+      "viewerId": "usr_1791554720641_996bc6",
+      "targetId": "usr_priya",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T14:05:20.909Z"
+    },
+    {
+      "id": "view_1791554720920_pu3yw",
+      "viewerId": "usr_1791554720641_996bc6",
+      "targetId": "usr_aman",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T14:05:20.920Z"
+    },
+    {
+      "id": "view_1791554720926_i5wgq",
+      "viewerId": "usr_1791554720641_996bc6",
+      "targetId": "usr_neha",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T14:05:20.926Z"
+    },
+    {
+      "id": "view_1791554774227_203nh",
+      "viewerId": "usr_1791554773690_f2b6a4",
+      "targetId": "usr_priya",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T14:06:14.228Z"
+    },
+    {
+      "id": "view_1791554774274_7a946",
+      "viewerId": "usr_1791554773690_f2b6a4",
+      "targetId": "usr_aman",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T14:06:14.274Z"
+    },
+    {
+      "id": "view_1791554774281_994ny",
+      "viewerId": "usr_1791554773690_f2b6a4",
+      "targetId": "usr_neha",
+      "dateKey": "2026-10-09",
+      "viewedAt": "2026-10-09T14:06:14.281Z"
     }
   ],
   "blockedUsers": [],
   "notifications": [
+    {
+      "id": "notif_1791553289964_qotm",
+      "recipientId": "usr_1791553289804_e1efb4",
+      "actorId": "usr_admin",
+      "type": "system",
+      "title": "Collaborate Premium Activated",
+      "body": "You have unlocked unlimited full-profile views and advanced filters.",
+      "isRead": false,
+      "createdAt": "2026-10-09T13:41:29.964Z"
+    },
     {
       "id": "notif_1791553191222_wwkq",
       "recipientId": "usr_1791553191022_109177",
