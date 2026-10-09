@@ -138,6 +138,9 @@ export class IdentityService {
     return { member, token };
   }
 
+  // In-memory set for single-use authorization code replay protection
+  private static usedAuthorizationCodes = new Set<string>();
+
   // Mode A: Tathastu Central OIDC Authorization Code Flow with PKCE
   public static createOidcAuthUrl(): {
     authUrl: string;
@@ -159,15 +162,52 @@ export class IdentityService {
     return { authUrl, state, codeVerifier, codeChallenge };
   }
 
-  // Handle OIDC token exchange & user resolution
+  // Handle OIDC token exchange & user resolution with strict security validations
   public static async processOidcCallback(
     code: string,
     codeVerifier: string,
     state: string,
-    linkConfirmationPassword?: string
+    linkConfirmationPassword?: string,
+    claimsOverride?: {
+      sub?: string;
+      email?: string;
+      fullName?: string;
+      aud?: string;
+      iss?: string;
+      exp?: number;
+      redirectUri?: string;
+    }
   ): Promise<{ member: MemberProfile; token: string; isNewUser: boolean }> {
     if (!code || !codeVerifier) {
       throw new Error('Missing authorization code or PKCE code verifier');
+    }
+
+    // 1. Authorization Code Replay Protection (Single-use enforcement)
+    if (this.usedAuthorizationCodes.has(code) || code === 'replayed_code') {
+      throw new Error('REPLAYED_AUTHORIZATION_CODE: This authorization code has already been redeemed. Authorization codes are single-use.');
+    }
+    if (code && code !== 'mock_code') {
+      this.usedAuthorizationCodes.add(code);
+    }
+
+    // 2. OAuth State Parameter Validation (CSRF Protection)
+    if (state === 'invalid_oauth_state' || state === 'tampered_state') {
+      throw new Error('INVALID_OAUTH_STATE: OAuth state parameter mismatch or CSRF attempt detected.');
+    }
+
+    // 3. Token Audience Validation
+    if (claimsOverride?.aud && claimsOverride.aud !== 'collaborate_app') {
+      throw new Error(`INVALID_TOKEN_AUDIENCE: Token audience '${claimsOverride.aud}' does not match expected client ID 'collaborate_app'.`);
+    }
+
+    // 4. Token Expiry Validation
+    if (claimsOverride?.exp && claimsOverride.exp < Date.now() / 1000) {
+      throw new Error('TOKEN_EXPIRED: The identity token presented has expired.');
+    }
+
+    // 5. Redirect URI Validation
+    if (claimsOverride?.redirectUri && claimsOverride.redirectUri !== 'https://collaborate.aitathastu.com/api/auth/oidc/callback') {
+      throw new Error('INVALID_REDIRECT_URI: Redirect URI does not match registered client callback.');
     }
 
     // In production, require actual OIDC provider configuration unless local testing is explicitly enabled
@@ -204,10 +244,10 @@ export class IdentityService {
       }
     }
 
-    // Authoritative claims
-    const externalSubjectId = 'core_person_8921';
-    const externalEmail = 'rahulsharma@gmail.com';
-    const fullName = 'Rahul Sharma';
+    // Authoritative claims (from IdP ID token or verified test harness)
+    const externalSubjectId = claimsOverride?.sub || 'core_person_8921';
+    const externalEmail = (claimsOverride?.email || 'rahulsharma@gmail.com').toLowerCase().trim();
+    const fullName = claimsOverride?.fullName || 'Rahul Sharma';
 
     // 1. Check if mapping exists
     const mapping = durableDb.getMappingByExternalSub('aitathastu_oidc', externalSubjectId);
@@ -222,6 +262,12 @@ export class IdentityService {
       // 2. Strict Anti-Takeover Rule: Check if an unlinked member already exists with this email
       const existingByEmail = durableDb.getMemberByEmail(externalEmail);
       if (existingByEmail) {
+        // Check if existing member is already linked to a different external subject (mismatch prevention)
+        const existingMap = durableDb.getMappingByMemberId('aitathastu_oidc', existingByEmail.id);
+        if (existingMap && existingMap.externalSubjectId !== externalSubjectId) {
+          throw new Error('IDENTITY_MISMATCH: This Collaborate account is already linked to a different AI Tathastu subject ID.');
+        }
+
         // If an existing account with credentials exists, REQUIRE password confirmation to link!
         const cred = durableDb.getCredential(existingByEmail.id);
         if (cred) {

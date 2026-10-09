@@ -23,21 +23,25 @@ async function runConcurrentQuotaTest() {
   // Targets to view
   const targetIds = ['usr_rahul', 'usr_priya', 'usr_neha', 'usr_aman'];
 
-  // 2. Fire 10 simultaneous concurrent view requests across the 4 distinct targets
-  // 3 targets are eligible, 1 is the 4th distinct target which MUST be denied
-  console.log('Dispatching 10 concurrent requests simultaneously...');
+  // 2. Establish the 3 distinct targets allowed by the free quota
+  await fetch(`${BASE_URL}/api/profiles?id=usr_rahul`, { headers: { Cookie: userCookie } });
+  await fetch(`${BASE_URL}/api/profiles?id=usr_priya`, { headers: { Cookie: userCookie } });
+  await fetch(`${BASE_URL}/api/profiles?id=usr_neha`, { headers: { Cookie: userCookie } });
+
+  // 3. Dispatch 10 simultaneous concurrent requests under load:
+  // 5 requests re-reading permitted targets (must all return 200)
+  // 5 requests attempting to access the 4th distinct target (must ALL return 402 QUOTA_EXCEEDED)
+  console.log('Dispatching 10 concurrent requests simultaneously (5 permitted re-reads, 5 blocked 4th-target)...');
   const requests = [
-    // Multiple requests to target 1 (same target today should NOT consume extra)
+    // Re-reads to permitted targets (must succeed without incrementing distinct count)
     fetch(`${BASE_URL}/api/profiles?id=usr_rahul`, { headers: { Cookie: userCookie } }),
     fetch(`${BASE_URL}/api/profiles?id=usr_rahul`, { headers: { Cookie: userCookie } }),
-    fetch(`${BASE_URL}/api/profiles?id=usr_rahul`, { headers: { Cookie: userCookie } }),
-    // Target 2
     fetch(`${BASE_URL}/api/profiles?id=usr_priya`, { headers: { Cookie: userCookie } }),
-    fetch(`${BASE_URL}/api/profiles?id=usr_priya`, { headers: { Cookie: userCookie } }),
-    // Target 3
     fetch(`${BASE_URL}/api/profiles?id=usr_neha`, { headers: { Cookie: userCookie } }),
     fetch(`${BASE_URL}/api/profiles?id=usr_neha`, { headers: { Cookie: userCookie } }),
-    // Target 4 (4th distinct target - MUST BE DENIED)
+    // Simultaneous race against 4th distinct target (MUST ALL BE 402)
+    fetch(`${BASE_URL}/api/profiles?id=usr_aman`, { headers: { Cookie: userCookie } }),
+    fetch(`${BASE_URL}/api/profiles?id=usr_aman`, { headers: { Cookie: userCookie } }),
     fetch(`${BASE_URL}/api/profiles?id=usr_aman`, { headers: { Cookie: userCookie } }),
     fetch(`${BASE_URL}/api/profiles?id=usr_aman`, { headers: { Cookie: userCookie } }),
     fetch(`${BASE_URL}/api/profiles?id=usr_aman`, { headers: { Cookie: userCookie } }),
@@ -51,10 +55,8 @@ async function runConcurrentQuotaTest() {
 
   console.log(`Concurrency Results: ${okCount} allowed (200), ${quotaBlockedCount} quota-blocked (402).`);
 
-  // Target 1, 2, 3 requests should all succeed (7 requests total across the 3 permitted targets)
-  // All 3 requests to Target 4 (usr_aman) MUST return 402 QUOTA_EXCEEDED!
-  assert.strictEqual(okCount, 7, 'Expected exactly 7 successful requests for the 3 distinct targets');
-  assert.strictEqual(quotaBlockedCount, 3, 'Expected exactly 3 blocked requests for the 4th distinct target');
+  assert.strictEqual(okCount, 5, 'Expected exactly 5 successful re-read requests for permitted targets');
+  assert.strictEqual(quotaBlockedCount, 5, 'Expected exactly 5 blocked requests for the 4th distinct target');
 
   // Verify that subsequent requests to the 4th distinct target continue to be blocked
   const retry4th = await fetch(`${BASE_URL}/api/profiles?id=usr_aman`, { headers: { Cookie: userCookie } });
