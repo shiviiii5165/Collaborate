@@ -4,6 +4,7 @@
  */
 
 import http from 'http';
+import { buildServer } from '../apps/api/src/server.ts';
 
 const API_BASE = 'http://localhost:4000';
 
@@ -34,7 +35,15 @@ async function runVerification() {
   console.log('   COLLABORATE — PHASE P5-A SPLIT ARCHITECTURE AUTOMATION SUITE        ');
   console.log('========================================================================\n');
 
-  // TEST 1: Fastify Health Check
+  let fastifyServer = null;
+  try {
+    await fetch('http://localhost:4000/health');
+  } catch (_) {
+    fastifyServer = buildServer();
+    await fastifyServer.listen({ port: 4000, host: '127.0.0.1' });
+  }
+
+  try {
   const health = await request('/health');
   assert(health.status === 200 && health.data.status === 'ok', '1. Fastify /health returns status ok');
   assert(health.data.service === 'collaborate-backend', '2. Service identifier matches collaborate-backend');
@@ -180,6 +189,11 @@ async function runVerification() {
   console.log('\n========================================================================');
   console.log('   SPLIT ARCHITECTURE AUTOMATION COMPLETE: 17/17 PASSED (100%)         ');
   console.log('========================================================================');
+  } finally {
+    if (fastifyServer) {
+      await fastifyServer.close();
+    }
+  }
 }
 
 runVerification().catch(err => {

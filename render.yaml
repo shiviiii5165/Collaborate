@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: collaborate-backend
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm install && npm run build:api
+    startCommand: npm run start:api
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        sync: false
+      - key: AUTH_SECRET
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: NEXT_PUBLIC_APP_URL
+        value: https://collaborate-umber.vercel.app
