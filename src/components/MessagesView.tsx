@@ -71,14 +71,41 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
 
   useEffect(() => {
     fetchConversations();
+
+    let eventSource: EventSource | null = null;
+    if (typeof window !== 'undefined') {
+      try {
+        eventSource = new EventSource(`/api/messages/stream?userId=${currentUser.id}`);
+        eventSource.addEventListener('message', (e) => {
+          try {
+            const msg = JSON.parse(e.data);
+            if (msg && msg.id) {
+              fetchConversations();
+              if (activeConv && msg.conversationId === activeConv.id) {
+                setMessages((prev) => {
+                  if (prev.some((m) => m.id === msg.id)) return prev;
+                  return [...prev, msg];
+                });
+              }
+            }
+          } catch {}
+        });
+      } catch (err) {
+        console.warn('SSE fallback to polling', err);
+      }
+    }
+
     const interval = setInterval(fetchConversations, 5000);
-    return () => clearInterval(interval);
-  }, [currentUser.id]);
+    return () => {
+      clearInterval(interval);
+      if (eventSource) eventSource.close();
+    };
+  }, [currentUser.id, activeConv?.id]);
 
   useEffect(() => {
     if (activeConv) {
       fetchMessages(activeConv.id);
-      const interval = setInterval(() => fetchMessages(activeConv.id), 3000);
+      const interval = setInterval(() => fetchMessages(activeConv.id), 4000);
       return () => clearInterval(interval);
     }
   }, [activeConv?.id]);

@@ -1,18 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { durableDb } from '@/lib/db/index';
+import { getSession } from '@/lib/auth/session';
 
 export async function GET(req: NextRequest) {
+  const session = await getSession(req);
   const { searchParams } = new URL(req.url);
-  const userId = searchParams.get('userId') || 'usr_rahul';
+  const userId = session ? session.userId : (searchParams.get('userId') || 'usr_rahul');
 
   const userConnections: any[] = [];
   const pendingReceived: any[] = [];
   const pendingSent: any[] = [];
 
-  for (const conn of db.connections.values()) {
+  for (const conn of durableDb.getAllConnections()) {
     if (conn.status === 'accepted') {
       const otherId = conn.requesterId === userId ? conn.recipientId : conn.requesterId;
-      const otherMember = db.members.get(otherId);
+      const otherMember = durableDb.getMemberById(otherId);
       if (otherMember) {
         userConnections.push({
           connectionId: conn.id,
@@ -22,7 +24,7 @@ export async function GET(req: NextRequest) {
       }
     } else if (conn.status === 'request_sent') {
       if (conn.recipientId === userId) {
-        const sender = db.members.get(conn.requesterId);
+        const sender = durableDb.getMemberById(conn.requesterId);
         if (sender) {
           pendingReceived.push({
             connectionId: conn.id,
@@ -32,7 +34,7 @@ export async function GET(req: NextRequest) {
           });
         }
       } else if (conn.requesterId === userId) {
-        const recipient = db.members.get(conn.recipientId);
+        const recipient = durableDb.getMemberById(conn.recipientId);
         if (recipient) {
           pendingSent.push({
             connectionId: conn.id,
@@ -54,30 +56,56 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getSession(req);
     const body = await req.json();
-    const { action, fromId, toId, connectionId, introMessage, reason } = body;
+    const currentUserId = session ? session.userId : (body.fromId || 'usr_rahul');
+    const { action, toId, connectionId, introMessage } = body;
 
     if (action === 'send_request') {
-      const conn = db.sendConnectionRequest(fromId || 'usr_rahul', toId, introMessage);
+      if (!toId) return NextResponse.json({ error: 'Target member ID required' }, { status: 400 });
+      if (toId === currentUserId) return NextResponse.json({ error: 'Cannot connect with self' }, { status: 400 });
+
+      const conn = durableDb.sendConnectionRequest(currentUserId, toId, introMessage);
+      
+      const sender = durableDb.getMemberById(currentUserId);
+      durableDb.addNotification(
+        toId,
+        'connection_request',
+        `New connection request from ${sender?.fullName || 'a member'}`,
+        introMessage || 'wants to connect on Collaborate.',
+        currentUserId
+      );
+
       return NextResponse.json({ success: true, connection: conn });
     }
 
     if (action === 'respond') {
-      const conn = db.respondToConnection(
-        connectionId,
-        fromId || 'usr_rahul',
-        body.decision // 'accept' | 'reject' | 'withdraw'
-      );
+      if (!connectionId) return NextResponse.json({ error: 'Connection ID required' }, { status: 400 });
+      const conn = durableDb.respondToConnection(connectionId, currentUserId, body.decision);
+
+      if (body.decision === 'accept') {
+        const accepter = durableDb.getMemberById(currentUserId);
+        durableDb.addNotification(
+          conn.requesterId,
+          'connection_accepted',
+          `Connection Accepted!`,
+          `${accepter?.fullName || 'A member'} accepted your connection request. You can now chat!`,
+          currentUserId
+        );
+      }
+
       return NextResponse.json({ success: true, connection: conn });
     }
 
     if (action === 'remove') {
-      const removed = db.removeConnection(fromId || 'usr_rahul', toId);
+      if (!toId) return NextResponse.json({ error: 'Target user ID required' }, { status: 400 });
+      const removed = durableDb.removeConnection(currentUserId, toId);
       return NextResponse.json({ success: true, removed });
     }
 
     if (action === 'block') {
-      db.blockMember(fromId || 'usr_rahul', toId);
+      if (!toId) return NextResponse.json({ error: 'Target user ID required' }, { status: 400 });
+      durableDb.blockMember(currentUserId, toId);
       return NextResponse.json({ success: true, blocked: true });
     }
 

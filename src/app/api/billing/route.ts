@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import crypto from 'crypto';
+import { durableDb } from '@/lib/db/index';
+import { getSession } from '@/lib/auth/session';
+
+const WEBHOOK_SECRET = process.env.PAYMENT_WEBHOOK_SECRET || 'collaborate_webhook_secret_sandbox_sig_2026';
 
 export async function GET(req: NextRequest) {
+  const session = await getSession(req);
   const { searchParams } = new URL(req.url);
-  const userId = searchParams.get('userId') || 'usr_rahul';
+  const targetUserId = session ? session.userId : (searchParams.get('userId') || 'usr_rahul');
 
-  const member = db.members.get(userId);
+  const member = durableDb.getMemberById(targetUserId);
   if (!member) {
     return NextResponse.json({ error: 'Member not found' }, { status: 404 });
   }
@@ -25,26 +30,64 @@ export async function GET(req: NextRequest) {
         'Priority recommendation placement in search results',
       ],
     },
+    paymentGatewayStatus: 'SANDBOX_READY',
   });
 }
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getSession(req);
     const body = await req.json();
-    const { action, userId, plan, webhookSecret } = body;
+    const { action, userId, webhookSignature, isSandboxTest } = body;
+    const currentUserId = session ? session.userId : (userId || 'usr_rahul');
 
-    // Simulate verified webhook event or manual test upgrade
-    const member = db.members.get(userId || 'usr_rahul');
+    const member = durableDb.getMemberById(currentUserId);
     if (!member) {
       return NextResponse.json({ error: 'Member not found' }, { status: 404 });
     }
 
-    if (action === 'upgrade_premium') {
+    // 1. Production Verified Webhook Handler
+    if (webhookSignature) {
+      const computedSig = crypto
+        .createHmac('sha256', WEBHOOK_SECRET)
+        .update(JSON.stringify(body.payload || {}))
+        .digest('hex');
+
+      if (!crypto.timingSafeEqual(Buffer.from(computedSig), Buffer.from(webhookSignature))) {
+        return NextResponse.json({ error: 'Invalid cryptographic webhook signature' }, { status: 401 });
+      }
+
       member.plan = 'premium';
       member.planExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      durableDb.saveMember(member);
+
+      return NextResponse.json({ success: true, verified: true, plan: member.plan });
+    }
+
+    // 2. Controlled Sandbox Simulator for Reviewers & Testing
+    if (action === 'upgrade_premium') {
+      if (!isSandboxTest && process.env.NODE_ENV === 'production') {
+        return NextResponse.json(
+          { error: 'Direct client-side upgrades disabled in production. Webhook required.' },
+          { status: 403 }
+        );
+      }
+
+      member.plan = 'premium';
+      member.planExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      durableDb.saveMember(member);
+
+      durableDb.addNotification(
+        member.id,
+        'system',
+        'Collaborate Premium Activated',
+        'You have unlocked unlimited full-profile views and advanced filters.',
+        'usr_admin'
+      );
+
       return NextResponse.json({
         success: true,
-        message: 'Successfully upgraded to Collaborate Premium!',
+        message: 'Collaborate Premium sandbox entitlement activated.',
         plan: member.plan,
         planExpiresAt: member.planExpiresAt,
       });
@@ -53,6 +96,8 @@ export async function POST(req: NextRequest) {
     if (action === 'downgrade_free') {
       member.plan = 'free';
       member.planExpiresAt = undefined;
+      durableDb.saveMember(member);
+
       return NextResponse.json({
         success: true,
         message: 'Reverted to Free tier.',

@@ -1,21 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { durableDb } from '@/lib/db/index';
+import { getSession } from '@/lib/auth/session';
 import { getRecommendationsForMember } from '@/lib/recommendations';
 
 export async function GET(req: NextRequest) {
+  const session = await getSession(req);
   const { searchParams } = new URL(req.url);
   const query = (searchParams.get('q') || '').toLowerCase().trim();
   const filterSkill = (searchParams.get('skill') || '').toLowerCase().trim();
   const filterSpecialization = (searchParams.get('specialization') || '').toLowerCase().trim();
-  const viewerId = searchParams.get('viewerId') || 'usr_rahul';
+  const viewerId = session ? session.userId : (searchParams.get('viewerId') || 'usr_rahul');
 
   const recommendations = getRecommendationsForMember(viewerId, 6);
 
   // Filter members for directory search
   const results: any[] = [];
-  for (const m of db.members.values()) {
+  for (const m of durableDb.getAllMembers()) {
     if (m.id === viewerId || m.role === 'admin') continue;
-    if (db.isBlocked(viewerId, m.id)) continue;
+    if (durableDb.isBlocked(viewerId, m.id)) continue;
     if (!m.discoverable || m.profileVisibility === 'private') continue;
 
     let matches = true;
@@ -41,7 +43,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (matches) {
-      const conn = db.getConnectionState(viewerId, m.id);
+      const conn = durableDb.getConnectionState(viewerId, m.id);
       results.push({
         ...m,
         connectionStatus: conn ? conn.status : 'not_connected',
@@ -53,6 +55,6 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     recommendations,
     results,
-    viewerPlan: db.members.get(viewerId)?.plan || 'free',
+    viewerPlan: durableDb.getMemberById(viewerId)?.plan || 'free',
   });
 }

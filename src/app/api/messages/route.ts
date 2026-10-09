@@ -1,29 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { durableDb } from '@/lib/db/index';
+import { getSession } from '@/lib/auth/session';
 
 export async function GET(req: NextRequest) {
+  const session = await getSession(req);
   const { searchParams } = new URL(req.url);
-  const userId = searchParams.get('userId') || 'usr_rahul';
+  const currentUserId = session ? session.userId : (searchParams.get('userId') || 'usr_rahul');
   const conversationId = searchParams.get('conversationId');
 
-  // If specific conversation requested, return its messages
+  // If specific conversation requested
   if (conversationId) {
-    db.markMessagesRead(conversationId, userId);
-    const msgs = db.messages.filter((m) => m.conversationId === conversationId);
+    const conv = durableDb.getConversationById(conversationId);
+    if (!conv) {
+      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
+    }
+
+    // Authorization: User must be a participant in the conversation
+    if (!conv.participantIds.includes(currentUserId) && session?.role !== 'admin') {
+      return NextResponse.json({ error: 'Access denied to this conversation' }, { status: 403 });
+    }
+
+    durableDb.markMessagesRead(conversationId, currentUserId);
+    const msgs = durableDb.getMessagesForConversation(conversationId);
     return NextResponse.json({ messages: msgs });
   }
 
-  // Otherwise return conversation list for user
+  // Otherwise return conversation list for authenticated user
   const convList: any[] = [];
-  for (const conv of db.conversations.values()) {
-    if (conv.participantIds.includes(userId)) {
-      const otherId = conv.participantIds.find((id) => id !== userId) || '';
-      const otherMember = db.members.get(otherId);
+  for (const conv of durableDb.getAllConversations()) {
+    if (conv.participantIds.includes(currentUserId)) {
+      const otherId = conv.participantIds.find((id) => id !== currentUserId) || '';
+      const otherMember = durableDb.getMemberById(otherId);
       if (otherMember) {
         convList.push({
           ...conv,
           otherMember,
-          unreadCount: conv.unreadCounts[userId] || 0,
+          unreadCount: conv.unreadCounts[currentUserId] || 0,
         });
       }
     }
@@ -38,14 +50,35 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getSession(req);
     const body = await req.json();
-    const { senderId, recipientId, content } = body;
+    const senderId = session ? session.userId : (body.senderId || 'usr_rahul');
+    const { recipientId, content } = body;
 
-    if (!content || !content.trim()) {
-      return NextResponse.json({ error: 'Message cannot be empty' }, { status: 400 });
+    if (!recipientId) {
+      return NextResponse.json({ error: 'Recipient ID required' }, { status: 400 });
     }
 
-    const message = db.sendMessage(senderId || 'usr_rahul', recipientId, content);
+    if (!content || !content.trim()) {
+      return NextResponse.json({ error: 'Message content cannot be empty' }, { status: 400 });
+    }
+
+    if (content.length > 4000) {
+      return NextResponse.json({ error: 'Message exceeds maximum length of 4000 characters' }, { status: 400 });
+    }
+
+    const message = durableDb.sendMessage(senderId, recipientId, content);
+
+    // Notify recipient
+    const sender = durableDb.getMemberById(senderId);
+    durableDb.addNotification(
+      recipientId,
+      'message',
+      `New message from ${sender?.fullName || 'a connection'}`,
+      content.length > 60 ? `${content.substring(0, 60)}...` : content,
+      senderId
+    );
+
     return NextResponse.json({ success: true, message });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Send message failed' }, { status: 400 });

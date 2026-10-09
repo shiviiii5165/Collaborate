@@ -18,6 +18,7 @@ interface HeaderProps {
   currentUser: MemberProfile;
   quotaRemaining: number;
   unreadMessagesCount: number;
+  unreadNotificationsCount?: number;
   onOpenUpgradeModal: () => void;
   onOpenFederationModal: () => void;
   searchQuery: string;
@@ -30,6 +31,7 @@ export const Header: React.FC<HeaderProps> = ({
   currentUser,
   quotaRemaining,
   unreadMessagesCount,
+  unreadNotificationsCount,
   onOpenUpgradeModal,
   onOpenFederationModal,
   searchQuery,
@@ -149,8 +151,10 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
 
         {/* Notifications */}
-        <button className="nav-icon-btn" title="Notifications">
-          <span className="nav-badge-pill">7</span>
+        <button className="nav-icon-btn" title="Notifications" onClick={() => onNavigate('notifications')}>
+          {unreadNotificationsCount !== undefined && unreadNotificationsCount > 0 && (
+            <span className="nav-badge-pill">{unreadNotificationsCount}</span>
+          )}
           <Bell size={20} />
         </button>
 

@@ -1,28 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, getKolkataDateKey } from '@/lib/db';
+import { durableDb, getKolkataDateKey } from '@/lib/db/index';
+import { getSession } from '@/lib/auth/session';
+import { z } from 'zod';
+
+const ProfileUpdateSchema = z.object({
+  headline: z.string().max(255).optional(),
+  about: z.string().max(3000).optional(),
+  location: z.string().max(128).optional(),
+  skills: z.array(z.string().max(64)).max(50).optional(),
+  statusBadges: z.array(z.string().max(64)).max(10).optional(),
+  profileVisibility: z.enum(['public', 'connections_only', 'private']).optional(),
+  contactVisibility: z.enum(['connections_only', 'hidden']).optional(),
+});
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const targetId = searchParams.get('id') || 'usr_rahul';
-  const viewerId = searchParams.get('viewerId') || 'usr_rahul';
+  
+  // Resolve viewer from verified session cookie
+  const session = await getSession(req);
+  const viewerId = session ? session.userId : (searchParams.get('viewerId') || 'usr_rahul');
 
-  const member = db.members.get(targetId);
+  const member = durableDb.getMemberById(targetId);
   if (!member) {
     return NextResponse.json({ error: 'Member not found' }, { status: 404 });
   }
 
   // Check if viewing someone else
   if (viewerId !== targetId) {
-    if (db.isBlocked(viewerId, targetId)) {
+    if (durableDb.isBlocked(viewerId, targetId)) {
       return NextResponse.json({ error: 'Profile not available' }, { status: 403 });
     }
 
-    if (member.profileVisibility === 'private') {
+    if (member.profileVisibility === 'private' && session?.role !== 'admin') {
       return NextResponse.json({ error: 'This profile is private' }, { status: 403 });
     }
 
-    if (member.profileVisibility === 'connections_only') {
-      const conn = db.getConnectionState(viewerId, targetId);
+    if (member.profileVisibility === 'connections_only' && session?.role !== 'admin') {
+      const conn = durableDb.getConnectionState(viewerId, targetId);
       if (!conn || conn.status !== 'accepted') {
         return NextResponse.json(
           { error: 'Profile visible to accepted connections only' },
@@ -32,7 +47,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Atomic 3-profile daily quota enforcement
-    const quotaResult = db.recordProfileView(viewerId, targetId);
+    const quotaResult = durableDb.recordProfileView(viewerId, targetId);
     if (!quotaResult.allowed) {
       return NextResponse.json(
         {
@@ -46,7 +61,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const conn = db.getConnectionState(viewerId, targetId);
+    const conn = durableDb.getConnectionState(viewerId, targetId);
 
     return NextResponse.json({
       member,
@@ -60,7 +75,7 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  // Viewing own profile
+  // Viewing own profile: unlimited
   return NextResponse.json({
     member,
     quota: {
@@ -74,24 +89,42 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
+    const session = await getSession(req);
     const body = await req.json();
-    const { id, updates } = body;
+    const targetUserId = body.id || (session ? session.userId : 'usr_rahul');
 
-    const member = db.members.get(id || 'usr_rahul');
+    // Strict Authorization: Users can ONLY edit their own profile unless admin
+    if (session && session.userId !== targetUserId && session.role !== 'admin') {
+      return NextResponse.json({ error: 'Unauthorized to edit this profile' }, { status: 403 });
+    }
+
+    const member = durableDb.getMemberById(targetUserId);
     if (!member) {
       return NextResponse.json({ error: 'Member not found' }, { status: 404 });
     }
 
-    // Apply permitted profile updates
-    Object.assign(member, updates);
+    // Validate updates
+    const validated = ProfileUpdateSchema.parse(body.updates || {});
 
-    // If headline or about was modified manually, record local override to prevent silent overwrite from Core
-    if (updates.headline || updates.about) {
-      member.tathastuSyncStatus = 'synced';
-    }
+    // Apply updates
+    if (validated.headline !== undefined) member.headline = validated.headline;
+    if (validated.about !== undefined) member.about = validated.about;
+    if (validated.location !== undefined) member.location = validated.location;
+    if (validated.skills !== undefined) member.skills = validated.skills;
+    if (validated.statusBadges !== undefined) member.statusBadges = validated.statusBadges;
+    if (validated.profileVisibility !== undefined) member.profileVisibility = validated.profileVisibility;
+    if (validated.contactVisibility !== undefined) member.contactVisibility = validated.contactVisibility;
+
+    // Preserve local override so Core sync does not overwrite custom headline/about
+    member.tathastuSyncStatus = 'synced';
+
+    durableDb.saveMember(member);
 
     return NextResponse.json({ success: true, member });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Update failed' }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || 'Profile update failed' },
+      { status: error.name === 'ZodError' ? 422 : 500 }
+    );
   }
 }
