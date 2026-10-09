@@ -12,6 +12,7 @@ import { AdminConsoleView } from '@/components/AdminConsoleView';
 import { TathastuFederationModal } from '@/components/TathastuFederationModal';
 import { QuotaPaywallModal } from '@/components/QuotaPaywallModal';
 import { ProfileEditModal } from '@/components/ProfileEditModal';
+import { SettingsView } from '@/components/SettingsView';
 import { AuthModal } from '@/components/AuthModal';
 import { MemberProfile, RecommendationMatch } from '@/lib/types';
 import { Sparkles, ShieldCheck, ArrowLeft, Bookmark, Bell, Check, LogIn } from 'lucide-react';
@@ -473,71 +474,15 @@ export default function CollaborateApp() {
           )}
 
           {/* View Tab: Settings */}
-          {currentTab === 'settings' && (
-            <div className="info-card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <h2 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Account & Privacy Settings</h2>
-              <div style={{ background: '#F8FAFC', padding: 16, borderRadius: 12 }}>
-                <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: 4 }}>
-                  Profile Discoverability
-                </div>
-                <div style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: 12 }}>
-                  Control whether your profile is discoverable in the Collaborate directory.
-                </div>
-                <button className="btn-secondary" onClick={() => setIsEditProfileOpen(true)}>
-                  Configure Privacy & Visibility
-                </button>
-              </div>
-
-              <div style={{ background: '#F8FAFC', padding: 16, borderRadius: 12 }}>
-                <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: 4 }}>
-                  AI Tathastu Federation
-                </div>
-                <div style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: 12 }}>
-                  Status: {currentUser.isLinkedWithTathastu ? 'Linked & Synced' : 'Unlinked'}
-                </div>
-                <button className="btn-primary" onClick={() => setIsFederationOpen(true)}>
-                  Manage Tathastu Federation Link
-                </button>
-              </div>
-
-              <div style={{ background: '#F8FAFC', padding: 16, borderRadius: 12 }}>
-                <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: 4 }}>
-                  Request Verified Badge
-                </div>
-                <div style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: 12 }}>
-                  Verified badges are non-paid and issued upon administrative review of credentials.
-                </div>
-                <button
-                  className="btn-secondary"
-                  onClick={async () => {
-                    const evidence = prompt(
-                      'Enter evidence summary for verification review (e.g. Student ID number or Institutional email):',
-                      'LPU Registration ID: 12109923'
-                    );
-                    if (evidence) {
-                      const res = await fetch('/api/verification', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          action: 'submit_request',
-                          memberId: currentUser.id,
-                          category: 'institution',
-                          evidenceSummary: evidence,
-                        }),
-                      });
-                      const d = await res.json();
-                      if (d.success) {
-                        alert('Verification request submitted for admin review!');
-                        fetchNotifications();
-                      }
-                    }
-                  }}
-                >
-                  <ShieldCheck size={16} />
-                  <span>Submit Verification Request</span>
-                </button>
-              </div>
-            </div>
+          {currentTab === 'settings' && currentUser && (
+            <SettingsView
+              currentUser={currentUser}
+              onProfileUpdated={(updated) => {
+                setCurrentUser(updated);
+              }}
+              onOpenUpgradeModal={() => setIsUpgradeOpen(true)}
+              onOpenFederationModal={() => setIsFederationOpen(true)}
+            />
           )}
         </main>
 

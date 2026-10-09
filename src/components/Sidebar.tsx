@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Home,
   User,
@@ -17,6 +17,7 @@ import {
   ExternalLink,
   ShieldCheck,
   Video,
+  X,
 } from 'lucide-react';
 import { MemberProfile } from '@/lib/types';
 
@@ -35,6 +36,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   unreadMessagesCount,
   onOpenAdmin,
 }) => {
+  const [infoModal, setInfoModal] = useState<{ title: string; desc: string; icon: any } | null>(null);
+
   return (
     <aside className="left-sidebar">
       {/* Primary Navigation Menu */}
@@ -94,7 +97,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <button
           className="nav-link-btn"
-          onClick={() => alert('Communities feature is curated by verified institutions.')}
+          onClick={() =>
+            setInfoModal({
+              title: 'Academic & Institutional Communities',
+              desc: 'Institutional Communities are curated and moderated directly by verified university and research partners. Once your institution link is active, your campus groups will appear here.',
+              icon: Users,
+            })
+          }
         >
           <div className="left-grp">
             <Users size={18} />
@@ -104,7 +113,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <button
           className="nav-link-btn"
-          onClick={() => alert('Project Teams: Collaborate with peers on approved repositories.')}
+          onClick={() =>
+            setInfoModal({
+              title: 'Project Teams & Collaboration Stacks',
+              desc: 'Project Teams allow you to assemble cross-functional teams with verified peers on approved AI Tathastu repositories and open research challenges.',
+              icon: FolderGit2,
+            })
+          }
         >
           <div className="left-grp">
             <FolderGit2 size={18} />
@@ -114,7 +129,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <button
           className="nav-link-btn"
-          onClick={() => alert('Opportunities: Academic and open research tracks.')}
+          onClick={() =>
+            setInfoModal({
+              title: 'Academic & Research Opportunities',
+              desc: 'Curated research fellowships, academic internships, and open-source lab calls. This directory is populated directly by verified faculty and partner organizations.',
+              icon: Briefcase,
+            })
+          }
         >
           <div className="left-grp">
             <Briefcase size={18} />
@@ -124,7 +145,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <button
           className="nav-link-btn"
-          onClick={() => alert('Upcoming Tathastu Tech Webinars and AI Hackathons.')}
+          onClick={() =>
+            setInfoModal({
+              title: 'Tathastu Tech Events & Hackathons',
+              desc: 'Upcoming technical symposiums, AI hackathons, and research webinars across the Tathastu ecosystem.',
+              icon: Calendar,
+            })
+          }
         >
           <div className="left-grp">
             <Calendar size={18} />
@@ -134,7 +161,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <button
           className="nav-link-btn"
-          onClick={() => alert('Mentors: Verified industry experts available for code review.')}
+          onClick={() =>
+            setInfoModal({
+              title: 'Verified Industry Mentors',
+              desc: 'Access verified engineering leads and research mentors for code reviews and career guidance within the Collaborate network.',
+              icon: GraduationCap,
+            })
+          }
         >
           <div className="left-grp">
             <GraduationCap size={18} />
@@ -154,7 +187,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <button
           className="nav-link-btn"
-          onClick={() => alert('Profile Analytics: 124 searches appeared in, 48 profile clicks.')}
+          onClick={() =>
+            setInfoModal({
+              title: 'Professional Profile Analytics',
+              desc: `Authentic Network Metrics: ${currentUser?.metrics?.projects || 0} projects published, ${currentUser?.metrics?.skills || 0} verified skills, ${currentUser?.statusBadges?.length || 0} status badges. Identity status: ${currentUser?.isVerified ? 'Admin Verified' : 'Standard Member'}.`,
+              icon: BarChart2,
+            })
+          }
         >
           <div className="left-grp">
             <BarChart2 size={18} />
@@ -239,6 +278,54 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <span>Settings</span>
         </button>
       </div>
+
+      {infoModal && (
+        <div className="modal-overlay" onClick={() => setInfoModal(null)}>
+          <div
+            className="modal-dialog"
+            style={{ maxWidth: 440, padding: 0 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {infoModal.icon && (
+                  <div
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
+                      background: '#EEF2FF',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#4F46E5',
+                    }}
+                  >
+                    <infoModal.icon size={18} />
+                  </div>
+                )}
+                <h3 className="modal-title" style={{ fontSize: '1rem', fontWeight: 800 }}>
+                  {infoModal.title}
+                </h3>
+              </div>
+              <button
+                onClick={() => setInfoModal(null)}
+                style={{ color: '#94A3B8', border: 'none', background: 'transparent', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="modal-body" style={{ padding: '16px 20px', color: '#475569', fontSize: '0.86rem', lineHeight: 1.5 }}>
+              {infoModal.desc}
+            </div>
+            <div className="modal-footer" style={{ padding: '12px 20px', display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="btn-primary" onClick={() => setInfoModal(null)}>
+                Understood
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 };

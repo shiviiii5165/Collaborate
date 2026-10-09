@@ -70,6 +70,14 @@ export interface TathastuSyncSettings {
   autoSyncAchievements: boolean;
 }
 
+export interface NotificationPreferences {
+  connections: boolean;
+  messages: boolean;
+  verifications: boolean;
+  recommendations: boolean;
+  securityAlerts: boolean;
+}
+
 export interface MemberProfile {
   id: string;
   email: string;
@@ -102,11 +110,13 @@ export interface MemberProfile {
   tathastuSyncStatus: 'synced' | 'draft' | 'pending_conflict' | 'unlinked';
   tathastuSyncSettings: TathastuSyncSettings;
   tathastuDraftProposal?: Partial<MemberProfile>;
+  notificationPreferences?: NotificationPreferences;
   isUnder18?: boolean;
   safeguardingApproved?: boolean;
   institutionDomain?: string;
   isDemo?: boolean;
   role?: 'member' | 'admin';
+  isRestricted?: boolean;
 }
 
 export interface ConnectionRecord {

@@ -15,7 +15,11 @@ export function getRecommendationsForMember(
     if (candidate.id === viewerId || candidate.role === 'admin') continue;
 
     // 2. Safety & block checks
-    if (db.isBlocked(viewerId, candidate.id)) continue;
+    if (db.isBlocked(viewerId, candidate.id) || db.isBlocked(candidate.id, viewerId)) continue;
+    if (candidate.isRestricted) continue;
+
+    // Student safeguarding: under-18 accounts are isolated from non-safeguarded adult accounts
+    if (candidate.isUnder18 && !viewer.safeguardingApproved && !viewer.isUnder18) continue;
 
     // 3. Discoverability check
     if (!candidate.discoverable || candidate.profileVisibility === 'private') continue;
@@ -27,30 +31,38 @@ export function getRecommendationsForMember(
     // 5. Calculate genuine shared overlaps
     const viewerSkills = new Set(viewer.skills.map((s) => s.toLowerCase()));
     const candidateSkills = new Set(candidate.skills.map((s) => s.toLowerCase()));
-
     const sharedSkills = Array.from(viewerSkills).filter((s) => candidateSkills.has(s));
 
-    const viewerInterests = new Set(viewer.collaborationInterests.map((i) => i.toLowerCase()));
+    const viewerInterests = new Set((viewer.collaborationInterests || []).map((i) => i.toLowerCase()));
     const candidateInterests = new Set(
-      candidate.collaborationInterests.map((i) => i.toLowerCase())
+      (candidate.collaborationInterests || []).map((i) => i.toLowerCase())
     );
     const sharedInterests = Array.from(viewerInterests).filter((i) =>
       candidateInterests.has(i)
     );
 
     const viewerSpecializations = new Set(
-      viewer.aiSpecializations.map((sp) => sp.toLowerCase())
+      (viewer.aiSpecializations || []).map((sp) => sp.toLowerCase())
     );
     const candidateSpecializations = new Set(
-      candidate.aiSpecializations.map((sp) => sp.toLowerCase())
+      (candidate.aiSpecializations || []).map((sp) => sp.toLowerCase())
     );
     const sharedSpecializations = Array.from(viewerSpecializations).filter((sp) =>
       candidateSpecializations.has(sp)
     );
 
-    // Mutual connections count
+    // Project areas overlap
+    const viewerProjectTags = new Set(
+      (viewer.projects || []).flatMap((p) => (p.tags || []).map((t) => t.toLowerCase()))
+    );
+    const candidateProjectTags = new Set(
+      (candidate.projects || []).flatMap((p) => (p.tags || []).map((t) => t.toLowerCase()))
+    );
+    const sharedProjectAreas = Array.from(viewerProjectTags).filter((t) => candidateProjectTags.has(t));
+
+    // Mutual connections count from real connection records
     let mutualCount = 0;
-    for (const [id, connection] of db.connections.entries()) {
+    for (const [, connection] of db.connections.entries()) {
       if (connection.status === 'accepted') {
         const otherParty =
           connection.requesterId === candidate.id
@@ -67,18 +79,13 @@ export function getRecommendationsForMember(
       }
     }
 
-    // Baseline mutual count for known seed personas
-    if (candidate.id === 'usr_priya') mutualCount = Math.max(mutualCount, 3);
-    if (candidate.id === 'usr_aman') mutualCount = Math.max(mutualCount, 5);
-    if (candidate.id === 'usr_neha') mutualCount = Math.max(mutualCount, 4);
-
     let matchScore = 10;
     const explanationParts: string[] = [];
 
     if (sharedSpecializations.length > 0) {
       matchScore += sharedSpecializations.length * 25;
       explanationParts.push(
-        `Both of you specialize in ${sharedSpecializations
+        `shared focus in ${sharedSpecializations
           .slice(0, 2)
           .map((s) => s.toUpperCase())
           .join(' and ')}`
@@ -87,10 +94,10 @@ export function getRecommendationsForMember(
 
     if (sharedInterests.length > 0) {
       matchScore += sharedInterests.length * 20;
-      explanationParts.push(`open to ${sharedInterests[0]}`);
-    } else if (candidate.collaborationInterests.length > 0) {
+      explanationParts.push(`mutual interest in ${sharedInterests[0]}`);
+    } else if (candidate.collaborationInterests && candidate.collaborationInterests.length > 0) {
       matchScore += 10;
-      explanationParts.push(`seeking collaborations in ${candidate.collaborationInterests[0]}`);
+      explanationParts.push(`open to ${candidate.collaborationInterests[0]}`);
     }
 
     if (sharedSkills.length > 0) {
@@ -102,25 +109,33 @@ export function getRecommendationsForMember(
       }
     }
 
+    if (sharedProjectAreas.length > 0) {
+      matchScore += sharedProjectAreas.length * 15;
+      if (explanationParts.length < 2) {
+        explanationParts.push(`complementary project experience in ${sharedProjectAreas.slice(0, 2).join(', ')}`);
+      }
+    }
+
     if (mutualCount > 0) {
-      matchScore += mutualCount * 10;
+      matchScore += mutualCount * 12;
+      explanationParts.push(`${mutualCount} mutual connection${mutualCount > 1 ? 's' : ''}`);
     }
 
     // Build truthful explainability sentence
     let reason = '';
-    if (sharedSpecializations.length > 0 && candidate.collaborationInterests.length > 0) {
-      reason = `Both of you focus on ${candidate.aiSpecializations[0]}, and this person is open to ${candidate.collaborationInterests[0]}.`;
-    } else if (explanationParts.length > 0) {
-      reason = `${explanationParts.join(', and ')}.`;
+    if (explanationParts.length > 0) {
+      reason = `${explanationParts.join('; ')}.`;
+    } else if (candidate.skills && candidate.skills.length > 0) {
+      reason = `Complementary technical background in ${candidate.headline ? candidate.headline.split('|')[0].trim() : candidate.skills.slice(0, 2).join(', ')}.`;
     } else {
-      reason = `Complementary technical background in ${candidate.headline.split('|')[0].trim()}.`;
+      reason = 'New member in Collaborate network open to professional networking.';
     }
 
     candidates.push({
       member: candidate,
       matchScore,
       reason,
-      sharedInterests: Array.from(new Set([...sharedSpecializations, ...sharedSkills])),
+      sharedInterests: Array.from(new Set([...sharedSpecializations, ...sharedSkills, ...sharedProjectAreas])),
       mutualCount,
     });
   }

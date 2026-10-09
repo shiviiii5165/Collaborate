@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   for (const m of durableDb.getAllMembers()) {
     if (m.id === viewerId || m.role === 'admin') continue;
     if (viewerId && durableDb.isBlocked(viewerId, m.id)) continue;
-    if (!m.discoverable || m.profileVisibility === 'private') continue;
+    if (!m.discoverable || m.profileVisibility === 'private' || m.isRestricted) continue;
     
     // Isolate demo accounts from production discovery
     if (isProduction && !enableFixtures && m.isDemo) continue;

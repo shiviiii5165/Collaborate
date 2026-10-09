@@ -22,6 +22,7 @@ import {
   Sparkles,
   ShieldCheck,
   Check,
+  Plus,
 } from 'lucide-react';
 
 const GithubIcon = ({ size = 16 }: { size?: number }) => (
@@ -646,111 +647,200 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         {/* Projects Tab */}
         {activeTab === 'projects' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 8 }}>
-              All Projects ({member.projects.length})
-            </h3>
-            {member.projects.map((proj) => (
-              <div key={proj.id} className="project-card-item">
-                {proj.imageUrl && (
-                  <img src={proj.imageUrl} alt={proj.title} className="project-thumb" />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>
+                All Projects ({member.projects.length})
+              </h3>
+              {isSelf && (
+                <button
+                  className="btn-secondary"
+                  style={{ fontSize: '0.8rem', padding: '6px 12px' }}
+                  onClick={onEditProfile}
+                >
+                  <Plus size={14} /> Add / Manage Projects
+                </button>
+              )}
+            </div>
+            {member.projects.length === 0 ? (
+              <div className="info-card" style={{ textAlign: 'center', padding: '32px 20px', color: '#64748B' }}>
+                <Folder size={32} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+                <div>No projects published yet.</div>
+                {isSelf && (
+                  <button className="btn-primary" style={{ marginTop: 12, padding: '8px 16px', fontSize: '0.84rem' }} onClick={onEditProfile}>
+                    <Plus size={14} /> Add Your First Project
+                  </button>
                 )}
-                <div className="project-details">
-                  <div>
-                    <div className="project-title-row">
-                      <span className="project-title">{proj.title}</span>
-                      {proj.featured && <span className="featured-badge">Featured</span>}
+              </div>
+            ) : (
+              member.projects.map((proj) => (
+                <div key={proj.id} className="project-card-item">
+                  {proj.imageUrl && (
+                    <img src={proj.imageUrl} alt={proj.title} className="project-thumb" />
+                  )}
+                  <div className="project-details">
+                    <div>
+                      <div className="project-title-row">
+                        <span className="project-title">{proj.title}</span>
+                        {proj.featured && <span className="featured-badge">Featured</span>}
+                      </div>
+                      <p className="project-desc">{proj.description}</p>
+                      <div className="project-tags-row">
+                        {proj.tags.map((t, idx) => (
+                          <span key={idx} className="project-tag">
+                            {t}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                    <p className="project-desc">{proj.description}</p>
-                    <div className="project-tags-row">
-                      {proj.tags.map((t, idx) => (
-                        <span key={idx} className="project-tag">
-                          {t}
-                        </span>
-                      ))}
+                    <div className="project-stats-row">
+                      <div className="project-meta-icons">
+                        <span>⭐ {proj.stars || 50}</span>
+                        <span>🔱 {proj.forks || 12}</span>
+                      </div>
+                      {proj.demoUrl && (
+                        <a
+                          href={proj.demoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="live-demo-btn"
+                        >
+                          <ExternalLink size={14} />
+                          <span>Live Demo</span>
+                        </a>
+                      )}
                     </div>
-                  </div>
-                  <div className="project-stats-row">
-                    <div className="project-meta-icons">
-                      <span>⭐ {proj.stars || 50}</span>
-                      <span>🔱 {proj.forks || 12}</span>
-                    </div>
-                    {proj.demoUrl && (
-                      <a
-                        href={proj.demoUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="live-demo-btn"
-                      >
-                        <ExternalLink size={14} />
-                        <span>Live Demo</span>
-                      </a>
-                    )}
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         )}
 
         {/* Skills Tab */}
         {activeTab === 'skills' && (
           <div className="info-card">
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 16 }}>
-              Verified Skills & Specializations ({member.skills.length})
-            </h3>
-            <div className="skills-tags-wrap">
-              {member.skills.map((skill, i) => (
-                <span key={i} className="skill-tag-pill special" style={{ padding: '8px 18px' }}>
-                  {skill}
-                </span>
-              ))}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>
+                Verified Skills & Specializations ({member.skills.length})
+              </h3>
+              {isSelf && (
+                <button
+                  className="btn-secondary"
+                  style={{ fontSize: '0.8rem', padding: '6px 12px' }}
+                  onClick={onEditProfile}
+                >
+                  <Plus size={14} /> Manage Skills
+                </button>
+              )}
             </div>
+            {member.skills.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '24px 20px', color: '#64748B' }}>
+                <div>No skills added yet.</div>
+                {isSelf && (
+                  <button className="btn-primary" style={{ marginTop: 12, padding: '8px 16px', fontSize: '0.84rem' }} onClick={onEditProfile}>
+                    <Plus size={14} /> Add Technical Skills
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="skills-tags-wrap">
+                {member.skills.map((skill, i) => (
+                  <span key={i} className="skill-tag-pill special" style={{ padding: '8px 18px' }}>
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
         {/* Experience Tab */}
         {activeTab === 'experience' && (
           <div className="info-card">
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 16 }}>
-              Professional Experience
-            </h3>
-            {member.experience.map((exp) => (
-              <div key={exp.id} className="timeline-item" style={{ marginBottom: 24 }}>
-                <div className="timeline-logo-box">EXP</div>
-                <div className="timeline-body">
-                  <div className="timeline-role">{exp.role}</div>
-                  <div className="timeline-company">{exp.company}</div>
-                  <div className="timeline-period">{exp.period}</div>
-                  <ul className="timeline-bullets">
-                    {exp.bullets.map((b, bi) => (
-                      <li key={bi}>{b}</li>
-                    ))}
-                  </ul>
-                </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>
+                Professional Experience ({member.experience.length})
+              </h3>
+              {isSelf && (
+                <button
+                  className="btn-secondary"
+                  style={{ fontSize: '0.8rem', padding: '6px 12px' }}
+                  onClick={onEditProfile}
+                >
+                  <Plus size={14} /> Manage Experience
+                </button>
+              )}
+            </div>
+            {member.experience.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '24px 20px', color: '#64748B' }}>
+                <div>No experience records listed yet.</div>
+                {isSelf && (
+                  <button className="btn-primary" style={{ marginTop: 12, padding: '8px 16px', fontSize: '0.84rem' }} onClick={onEditProfile}>
+                    <Plus size={14} /> Add Experience
+                  </button>
+                )}
               </div>
-            ))}
+            ) : (
+              member.experience.map((exp) => (
+                <div key={exp.id} className="timeline-item" style={{ marginBottom: 24 }}>
+                  <div className="timeline-logo-box">EXP</div>
+                  <div className="timeline-body">
+                    <div className="timeline-role">{exp.role}</div>
+                    <div className="timeline-company">{exp.company}</div>
+                    <div className="timeline-period">{exp.period}</div>
+                    <ul className="timeline-bullets">
+                      {exp.bullets.map((b, bi) => (
+                        <li key={bi}>{b}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         )}
 
         {/* Education Tab */}
         {activeTab === 'education' && (
           <div className="info-card">
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 16 }}>
-              Academic Background
-            </h3>
-            {member.education.map((edu) => (
-              <div key={edu.id} className="timeline-item">
-                <div className="timeline-logo-box">EDU</div>
-                <div className="timeline-body">
-                  <div className="timeline-role">{edu.institution}</div>
-                  <div className="timeline-period">{edu.period}</div>
-                  <div className="timeline-company">{edu.degree}</div>
-                  <div style={{ color: '#059669', fontWeight: 600, marginTop: 4 }}>
-                    {edu.score}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>
+                Academic Background ({member.education.length})
+              </h3>
+              {isSelf && (
+                <button
+                  className="btn-secondary"
+                  style={{ fontSize: '0.8rem', padding: '6px 12px' }}
+                  onClick={onEditProfile}
+                >
+                  <Plus size={14} /> Manage Education
+                </button>
+              )}
+            </div>
+            {member.education.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '24px 20px', color: '#64748B' }}>
+                <div>No academic records listed yet.</div>
+                {isSelf && (
+                  <button className="btn-primary" style={{ marginTop: 12, padding: '8px 16px', fontSize: '0.84rem' }} onClick={onEditProfile}>
+                    <Plus size={14} /> Add Education
+                  </button>
+                )}
+              </div>
+            ) : (
+              member.education.map((edu) => (
+                <div key={edu.id} className="timeline-item">
+                  <div className="timeline-logo-box">EDU</div>
+                  <div className="timeline-body">
+                    <div className="timeline-role">{edu.institution}</div>
+                    <div className="timeline-period">{edu.period}</div>
+                    <div className="timeline-company">{edu.degree}</div>
+                    <div style={{ color: '#059669', fontWeight: 600, marginTop: 4 }}>
+                      {edu.score}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         )}
 

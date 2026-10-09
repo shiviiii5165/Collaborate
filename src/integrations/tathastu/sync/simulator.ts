@@ -152,6 +152,64 @@ export class TathastuSyncSimulator {
         }
         break;
       }
+
+      case 'duplicate_event_delivery': {
+        const targetEventId = payload?.duplicateOfEventId || eventId;
+        message = `Idempotent delivery check: Event ${targetEventId} was previously processed; duplicate execution suppressed without state corruption.`;
+        return {
+          eventId,
+          eventType,
+          sourcePersonId,
+          success: true,
+          message,
+          preservedLocalOverrides: preservedOverrides,
+        };
+      }
+
+      case 'out_of_order_event_delivery': {
+        message = `Out-of-order event delivery rejected: Event timestamp ${payload?.eventTimestamp || 'stale'} is older than current member revision.`;
+        return {
+          eventId,
+          eventType,
+          sourcePersonId,
+          success: false,
+          message,
+          preservedLocalOverrides: preservedOverrides,
+        };
+      }
+
+      case 'invalid_source_identity': {
+        message = `Event rejected: Source person identity '${sourcePersonId}' does not conform to Tathastu Core URN format or is unauthorized.`;
+        return {
+          eventId,
+          eventType,
+          sourcePersonId,
+          success: false,
+          message,
+        };
+      }
+
+      case 'invalid_projection_schema': {
+        message = `Event rejected: Payload violates ProfessionalProjectionV1 schema contract (${payload?.errorDetails || 'missing required fields'}).`;
+        return {
+          eventId,
+          eventType,
+          sourcePersonId,
+          success: false,
+          message,
+        };
+      }
+
+      case 'temporary_source_outage': {
+        message = `Upstream Core unavailable (503 Service Unavailable / Timeout). Collaborate resilient circuit breaker activated; local operations continue unaffected.`;
+        return {
+          eventId,
+          eventType,
+          sourcePersonId,
+          success: false,
+          message,
+        };
+      }
     }
 
     return {

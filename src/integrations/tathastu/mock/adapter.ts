@@ -106,6 +106,38 @@ export class MockTathastuAdapter implements ITathastuIntegrationAdapter {
           preservedLocalOverrides: ['headline', 'about'],
         };
 
+      case 'duplicate_event_delivery':
+        return {
+          handled: true,
+          actionTaken: `Deduplicated event ${event.eventId} idempotently without state duplication`,
+          affectedMemberId: event.sourcePersonId,
+        };
+
+      case 'out_of_order_event_delivery':
+        return {
+          handled: false,
+          actionTaken: `Rejected stale out-of-order sync event for ${event.sourcePersonId}`,
+          affectedMemberId: event.sourcePersonId,
+        };
+
+      case 'invalid_source_identity':
+        return {
+          handled: false,
+          actionTaken: `Rejected event: source identity ${event.sourcePersonId} is invalid or unrecognized`,
+        };
+
+      case 'invalid_projection_schema':
+        return {
+          handled: false,
+          actionTaken: `Rejected event: payload violates ProfessionalProjectionV1 contract schema`,
+        };
+
+      case 'temporary_source_outage':
+        return {
+          handled: false,
+          actionTaken: `Core source outage detected; Collaborate continues in resilient standalone mode`,
+        };
+
       default:
         return {
           handled: false,

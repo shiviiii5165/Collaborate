@@ -96,7 +96,12 @@ export type TathastuSyncEventType =
   | 'user_unlinked'
   | 'source_record_deleted'
   | 'user_deactivated'
-  | 'conflicting_local_override';
+  | 'conflicting_local_override'
+  | 'duplicate_event_delivery'
+  | 'out_of_order_event_delivery'
+  | 'invalid_source_identity'
+  | 'invalid_projection_schema'
+  | 'temporary_source_outage';
 
 export interface TathastuSyncEvent {
   eventId: string;
