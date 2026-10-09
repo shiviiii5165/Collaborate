@@ -57,8 +57,9 @@ export function getNeonPool(): AnyPool | null {
         connectionTimeoutMillis: 5000,
       });
     } else {
+      const cleanUrl = url.replace(/[?&]sslmode=[^&]+/g, '').replace(/\?$/, '');
       poolInstance = new PgPool({
-        connectionString: url,
+        connectionString: cleanUrl,
         ssl: { rejectUnauthorized: false },
         max: 10,
         idleTimeoutMillis: 30000,

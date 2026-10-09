@@ -98,8 +98,17 @@ export function buildServer(): FastifyInstance {
   };
 
   // ============================================================================
-  // HEALTH CHECKS
+  // HEALTH & SERVICE ROOT
   // ============================================================================
+  fastify.get('/', async () => ({
+    status: 'ok',
+    service: 'collaborate-backend',
+    runtime: 'Render Node.js',
+    documentation: 'Collaborate by AI Tathastu Authoritative API Service',
+    database: isNeonConfigured() ? 'postgresql_configured' : 'local_storage',
+    timestamp: new Date().toISOString(),
+  }));
+
   fastify.get('/health', async () => ({
     status: 'ok',
     service: 'collaborate-backend',

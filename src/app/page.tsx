@@ -15,7 +15,24 @@ import { ProfileEditModal } from '@/components/ProfileEditModal';
 import { SettingsView } from '@/components/SettingsView';
 import { AuthModal } from '@/components/AuthModal';
 import { MemberProfile, RecommendationMatch } from '@/lib/types';
-import { Sparkles, ShieldCheck, ArrowLeft, Bookmark, Bell, Check, LogIn } from 'lucide-react';
+import {
+  Sparkles,
+  ShieldCheck,
+  ArrowLeft,
+  Bookmark,
+  Bell,
+  Check,
+  LogIn,
+  Lock,
+  Mail,
+  User,
+  AlertCircle,
+  RefreshCw,
+  ArrowRight,
+  ShieldAlert,
+} from 'lucide-react';
+
+export type AuthState = 'INITIALIZING' | 'AUTHENTICATED' | 'UNAUTHENTICATED' | 'TEMPORARY_ERROR';
 
 export default function CollaborateApp() {
   const [currentUser, setCurrentUser] = useState<MemberProfile | null>(null);
@@ -30,6 +47,18 @@ export default function CollaborateApp() {
   const [recommendations, setRecommendations] = useState<RecommendationMatch[]>([]);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [savedMembersList, setSavedMembersList] = useState<MemberProfile[]>([]);
+
+  // Authentication State Machine
+  const [authState, setAuthState] = useState<AuthState>('INITIALIZING');
+  const [authErrorMessage, setAuthErrorMessage] = useState<string>('');
+  const [authPortalMode, setAuthPortalMode] = useState<'login' | 'register'>('login');
+  const [portalEmail, setPortalEmail] = useState('');
+  const [portalPassword, setPortalPassword] = useState('');
+  const [portalFullName, setPortalFullName] = useState('');
+  const [portalHeadline, setPortalHeadline] = useState('');
+  const [portalIsUnder18, setPortalIsUnder18] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [portalError, setPortalError] = useState('');
 
   // Modals state
   const [isFederationOpen, setIsFederationOpen] = useState(false);
@@ -53,17 +82,120 @@ export default function CollaborateApp() {
     }
   };
 
-  // 1. Initial Load: Fetch current user profile & notifications
+  // 1. Initial Load: Fetch current user profile & notifications with Auth State Machine
   const fetchCurrentUserData = async () => {
+    setAuthState('INITIALIZING');
+    setAuthErrorMessage('');
+    setPortalError('');
+
     try {
-      const res = await fetch('/api/auth/me');
-      const data = await res.json();
-      if (data.member) {
-        setCurrentUser(data.member);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s network timeout
+
+      const res = await fetch('/api/auth/me', { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      // Explicit unauthenticated HTTP responses
+      if (res.status === 401 || res.status === 403) {
+        setCurrentUser(null);
+        setAuthState('UNAUTHENTICATED');
+        return;
       }
-    } catch (err) {
-      console.error('Failed to load current user', err);
+
+      // Transient server/database failure
+      if (!res.ok) {
+        setCurrentUser(null);
+        setAuthErrorMessage(`Authentication service temporarily unavailable (HTTP ${res.status}).`);
+        setAuthState('TEMPORARY_ERROR');
+        return;
+      }
+
+      const data = await res.json();
+      if (data.authenticated && data.member) {
+        setCurrentUser(data.member);
+        setAuthState('AUTHENTICATED');
+      } else {
+        setCurrentUser(null);
+        setAuthState('UNAUTHENTICATED');
+      }
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        setAuthErrorMessage('Authentication request timed out. Please check your connection.');
+      } else {
+        setAuthErrorMessage(err.message || 'Unable to connect to authentication service.');
+      }
+      setAuthState('TEMPORARY_ERROR');
     }
+  };
+
+  // Watchdog timer: ensure INITIALIZING never hangs indefinitely
+  useEffect(() => {
+    const watchdog = setTimeout(() => {
+      setAuthState((current) => (current === 'INITIALIZING' ? 'UNAUTHENTICATED' : current));
+    }, 7000);
+    return () => clearTimeout(watchdog);
+  }, []);
+
+  const handlePortalLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPortalLoading(true);
+    setPortalError('');
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: portalEmail.trim(), password: portalPassword }),
+      });
+      const data = await res.json();
+      if (res.ok && data.member) {
+        setCurrentUser(data.member);
+        setAuthState('AUTHENTICATED');
+        setPortalPassword('');
+      } else {
+        setPortalError(data.error || 'Invalid credentials. Please verify your email and password.');
+      }
+    } catch (err: any) {
+      setPortalError(err.message || 'Network error during login.');
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
+  const handlePortalRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPortalLoading(true);
+    setPortalError('');
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: portalEmail.trim(),
+          password: portalPassword,
+          fullName: portalFullName.trim(),
+          headline: portalHeadline.trim() || 'Collaborate Member',
+          isUnder18: portalIsUnder18,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.member) {
+        setCurrentUser(data.member);
+        setAuthState('AUTHENTICATED');
+        setPortalPassword('');
+      } else {
+        setPortalError(data.error || 'Registration failed. Please verify your details.');
+      }
+    } catch (err: any) {
+      setPortalError(err.message || 'Network error during registration.');
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
+  const handleQuickDemoFill = (email: string, pass: string) => {
+    setPortalEmail(email);
+    setPortalPassword(pass);
+    setPortalError('');
   };
 
   const fetchDiscoverData = async () => {
@@ -201,7 +333,10 @@ export default function CollaborateApp() {
     setCurrentTab('messages');
   };
 
-  if (!currentUser) {
+  // --------------------------------------------------------------------------
+  // STATE 1: INITIALIZING (Indicates active session bootstrap)
+  // --------------------------------------------------------------------------
+  if (authState === 'INITIALIZING') {
     return (
       <div
         style={{
@@ -210,15 +345,509 @@ export default function CollaborateApp() {
           alignItems: 'center',
           justifyContent: 'center',
           background: '#F8FAFC',
-          fontFamily: 'sans-serif',
+          fontFamily: 'var(--font-sans, sans-serif)',
+          padding: 20,
         }}
       >
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#4F46E5', marginBottom: 8 }}>
+        <div style={{ textAlign: 'center', maxWidth: 380 }}>
+          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#4F46E5', marginBottom: 6 }}>
             Collaborate<span style={{ color: '#0F172A' }}>.</span>
           </div>
-          <div style={{ color: '#64748B', fontSize: '0.88rem' }}>
+          <div style={{ color: '#64748B', fontSize: '0.9rem', marginBottom: 20 }}>
             Initializing secure identity session...
+          </div>
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              border: '3px solid #E2E8F0',
+              borderTopColor: '#4F46E5',
+              borderRadius: '50%',
+              animation: 'spin 0.8s linear infinite',
+              margin: '0 auto 20px',
+            }}
+          />
+          <button
+            onClick={() => setAuthState('UNAUTHENTICATED')}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#6366F1',
+              fontSize: '0.82rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              textDecoration: 'underline',
+            }}
+          >
+            Taking too long? Go to Sign In
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // --------------------------------------------------------------------------
+  // STATE 2: TEMPORARY_ERROR (Network timeout, 5xx server outage, or database issue)
+  // --------------------------------------------------------------------------
+  if (authState === 'TEMPORARY_ERROR') {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#F8FAFC',
+          fontFamily: 'var(--font-sans, sans-serif)',
+          padding: 24,
+        }}
+      >
+        <div
+          style={{
+            background: '#FFFFFF',
+            border: '1px solid #E2E8F0',
+            borderRadius: 16,
+            padding: 32,
+            maxWidth: 440,
+            width: '100%',
+            textAlign: 'center',
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05)',
+          }}
+        >
+          <div
+            style={{
+              width: 52,
+              height: 52,
+              borderRadius: '50%',
+              background: '#FEE2E2',
+              color: '#DC2626',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px',
+            }}
+          >
+            <AlertCircle size={26} />
+          </div>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0F172A', marginBottom: 8 }}>
+            Connection Notice
+          </h2>
+          <p style={{ color: '#64748B', fontSize: '0.88rem', lineHeight: 1.5, marginBottom: 24 }}>
+            {authErrorMessage || 'The backend service could not be reached. Please check server status.'}
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <button
+              onClick={() => fetchCurrentUserData()}
+              style={{
+                background: '#4F46E5',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: 8,
+                padding: '11px 18px',
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+              }}
+            >
+              <RefreshCw size={16} />
+              Retry Connection
+            </button>
+            <button
+              onClick={() => setAuthState('UNAUTHENTICATED')}
+              style={{
+                background: '#F1F5F9',
+                color: '#334155',
+                border: 'none',
+                borderRadius: 8,
+                padding: '11px 18px',
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Continue to Sign In
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --------------------------------------------------------------------------
+  // STATE 3: UNAUTHENTICATED (Dedicated Collaborate Login & Registration Portal)
+  // --------------------------------------------------------------------------
+  if (authState === 'UNAUTHENTICATED' || !currentUser) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'linear-gradient(135deg, #F8FAFC 0%, #EEF2F6 100%)',
+          fontFamily: 'var(--font-sans, sans-serif)',
+          padding: 24,
+        }}
+      >
+        <div
+          style={{
+            background: '#FFFFFF',
+            border: '1px solid #E2E8F0',
+            borderRadius: 20,
+            padding: 36,
+            maxWidth: 480,
+            width: '100%',
+            boxShadow: '0 20px 40px -15px rgba(15, 23, 42, 0.08)',
+          }}
+        >
+          {/* Brand Header */}
+          <div style={{ textAlign: 'center', marginBottom: 28 }}>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                background: 'rgba(99, 102, 241, 0.08)',
+                color: '#4F46E5',
+                padding: '4px 12px',
+                borderRadius: 999,
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                marginBottom: 12,
+              }}
+            >
+              <Sparkles size={13} />
+              AI Tathastu Network
+            </div>
+            <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#4F46E5', margin: '0 0 6px' }}>
+              Collaborate<span style={{ color: '#0F172A' }}>.</span>
+            </h1>
+            <p style={{ color: '#64748B', fontSize: '0.88rem', margin: 0 }}>
+              Great work begins with the right people. Independent professional networking for AI builders.
+            </p>
+          </div>
+
+          {/* Tab Selector: Sign In vs Create Account */}
+          <div
+            style={{
+              display: 'flex',
+              background: '#F1F5F9',
+              borderRadius: 10,
+              padding: 4,
+              marginBottom: 24,
+            }}
+          >
+            <button
+              onClick={() => {
+                setAuthPortalMode('login');
+                setPortalError('');
+              }}
+              style={{
+                flex: 1,
+                padding: '9px 0',
+                border: 'none',
+                borderRadius: 7,
+                fontSize: '0.88rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                background: authPortalMode === 'login' ? '#FFFFFF' : 'transparent',
+                color: authPortalMode === 'login' ? '#0F172A' : '#64748B',
+                boxShadow: authPortalMode === 'login' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => {
+                setAuthPortalMode('register');
+                setPortalError('');
+              }}
+              style={{
+                flex: 1,
+                padding: '9px 0',
+                border: 'none',
+                borderRadius: 7,
+                fontSize: '0.88rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                background: authPortalMode === 'register' ? '#FFFFFF' : 'transparent',
+                color: authPortalMode === 'register' ? '#0F172A' : '#64748B',
+                boxShadow: authPortalMode === 'register' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              Create Account
+            </button>
+          </div>
+
+          {/* Error Banner */}
+          {portalError && (
+            <div
+              style={{
+                background: '#FEF2F2',
+                border: '1px solid #FCA5A5',
+                color: '#B91C1C',
+                borderRadius: 8,
+                padding: '10px 14px',
+                fontSize: '0.84rem',
+                marginBottom: 20,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              <AlertCircle size={16} />
+              <span>{portalError}</span>
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={authPortalMode === 'login' ? handlePortalLogin : handlePortalRegister}>
+            {authPortalMode === 'register' && (
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: 6 }}>
+                  Full Name
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <User size={16} color="#94A3B8" style={{ position: 'absolute', left: 12, top: 12 }} />
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Priya Sharma"
+                    value={portalFullName}
+                    onChange={(e) => setPortalFullName(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px 10px 38px',
+                      borderRadius: 8,
+                      border: '1px solid #CBD5E1',
+                      fontSize: '0.9rem',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: 6 }}>
+                Email Address
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Mail size={16} color="#94A3B8" style={{ position: 'absolute', left: 12, top: 12 }} />
+                <input
+                  type="email"
+                  required
+                  placeholder="name@company.com"
+                  value={portalEmail}
+                  onChange={(e) => setPortalEmail(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px 10px 38px',
+                    borderRadius: 8,
+                    border: '1px solid #CBD5E1',
+                    fontSize: '0.9rem',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+            </div>
+
+            {authPortalMode === 'register' && (
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: 6 }}>
+                  Professional Headline (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. GenAI Systems Engineer | IIT Delhi"
+                  value={portalHeadline}
+                  onChange={(e) => setPortalHeadline(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: '1px solid #CBD5E1',
+                    fontSize: '0.9rem',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+            )}
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: 6 }}>
+                Password
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Lock size={16} color="#94A3B8" style={{ position: 'absolute', left: 12, top: 12 }} />
+                <input
+                  type="password"
+                  required
+                  placeholder="••••••••••••"
+                  value={portalPassword}
+                  onChange={(e) => setPortalPassword(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px 10px 38px',
+                    borderRadius: 8,
+                    border: '1px solid #CBD5E1',
+                    fontSize: '0.9rem',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+            </div>
+
+            {authPortalMode === 'register' && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 10,
+                  marginBottom: 20,
+                  background: '#F8FAFC',
+                  border: '1px solid #E2E8F0',
+                  borderRadius: 8,
+                  padding: 10,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  id="under18Check"
+                  checked={portalIsUnder18}
+                  onChange={(e) => setPortalIsUnder18(e.target.checked)}
+                  style={{ marginTop: 2, cursor: 'pointer' }}
+                />
+                <label htmlFor="under18Check" style={{ fontSize: '0.78rem', color: '#475569', cursor: 'pointer', lineHeight: 1.4 }}>
+                  <strong>Student Account (Under 18):</strong> Enables automatic privacy-by-default and safeguarding protection against unsolicited adult contact.
+                </label>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={portalLoading}
+              style={{
+                width: '100%',
+                background: portalLoading ? '#94A3B8' : '#4F46E5',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: 8,
+                padding: '12px',
+                fontSize: '0.94rem',
+                fontWeight: 600,
+                cursor: portalLoading ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                boxShadow: '0 4px 12px rgba(79, 70, 229, 0.25)',
+                transition: 'background 0.15s ease',
+              }}
+            >
+              {portalLoading ? (
+                <span>Authenticating...</span>
+              ) : authPortalMode === 'login' ? (
+                <>
+                  <span>Sign In to Collaborate</span>
+                  <ArrowRight size={16} />
+                </>
+              ) : (
+                <>
+                  <span>Create Account</span>
+                  <ArrowRight size={16} />
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Quick Demo Credentials Helper */}
+          <div
+            style={{
+              marginTop: 24,
+              paddingTop: 18,
+              borderTop: '1px dashed #E2E8F0',
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748B', marginBottom: 8 }}>
+              BETA REVIEW QUICK-LOGIN
+            </div>
+            <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => handleQuickDemoFill('rahulsharma@gmail.com', 'password123')}
+                style={{
+                  background: '#F1F5F9',
+                  border: '1px solid #E2E8F0',
+                  borderRadius: 6,
+                  padding: '4px 10px',
+                  fontSize: '0.76rem',
+                  color: '#334155',
+                  cursor: 'pointer',
+                }}
+              >
+                Rahul Sharma (LPU)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickDemoFill('devika@test.collaborate.internal', 'SecureBeta123!')}
+                style={{
+                  background: '#F1F5F9',
+                  border: '1px solid #E2E8F0',
+                  borderRadius: 6,
+                  padding: '4px 10px',
+                  fontSize: '0.76rem',
+                  color: '#334155',
+                  cursor: 'pointer',
+                }}
+              >
+                Devika Sen
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickDemoFill('amanverma@gmail.com', 'password123')}
+                style={{
+                  background: '#F1F5F9',
+                  border: '1px solid #E2E8F0',
+                  borderRadius: 6,
+                  padding: '4px 10px',
+                  fontSize: '0.76rem',
+                  color: '#334155',
+                  cursor: 'pointer',
+                }}
+              >
+                Aman Verma
+              </button>
+            </div>
+          </div>
+
+          {/* Footer Security Badges */}
+          <div
+            style={{
+              marginTop: 20,
+              fontSize: '0.72rem',
+              color: '#94A3B8',
+              textAlign: 'center',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+            }}
+          >
+            <ShieldCheck size={14} color="#10B981" />
+            <span>End-to-end encrypted session signing & scrypt credential hashing</span>
           </div>
         </div>
       </div>
