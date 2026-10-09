@@ -4,6 +4,8 @@ import { getSession } from '@/lib/auth/session';
 import { FederationService } from '@/modules/federation/client';
 import { IdentityService } from '@/modules/identity/service';
 
+import { TathastuSyncSimulator } from '@/integrations/tathastu/sync/simulator';
+
 export async function GET(req: NextRequest) {
   const session = await getSession(req);
   const { searchParams } = new URL(req.url);
@@ -11,7 +13,8 @@ export async function GET(req: NextRequest) {
   const userId = session ? session.userId : (searchParams.get('userId') || 'usr_rahul');
 
   if (action === 'get_projection') {
-    const projection = await FederationService.fetchApprovedProjection('core_person_8921');
+    const sourcePersonId = searchParams.get('sourcePersonId') || 'core_person_rahul';
+    const projection = await FederationService.fetchApprovedProjection(sourcePersonId);
     return NextResponse.json(projection);
   }
 
@@ -31,8 +34,17 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getSession(req);
     const body = await req.json();
-    const { action, syncSettings } = body;
+    const { action, syncSettings, sourcePersonId, eventType, payload } = body;
     const userId = session ? session.userId : (body.userId || 'usr_rahul');
+
+    if (action === 'simulate_sync_event') {
+      const report = await TathastuSyncSimulator.simulateEvent(
+        eventType || 'profile_updated',
+        sourcePersonId || 'core_person_rahul',
+        payload
+      );
+      return NextResponse.json({ success: true, report });
+    }
 
     const member = durableDb.getMemberById(userId);
     if (!member) {
@@ -40,7 +52,8 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'one_click_import') {
-      const projection = await FederationService.fetchApprovedProjection('core_person_8921');
+      const personId = sourcePersonId || 'core_person_rahul';
+      const projection = await FederationService.fetchApprovedProjection(personId);
       const updated = await FederationService.syncProjectionToMember(userId, projection, syncSettings);
       return NextResponse.json({
         success: true,

@@ -9,6 +9,8 @@ export async function GET(req: NextRequest) {
   const query = (searchParams.get('q') || '').toLowerCase().trim();
   const filterSkill = (searchParams.get('skill') || '').toLowerCase().trim();
   const filterSpecialization = (searchParams.get('specialization') || '').toLowerCase().trim();
+  const filterInstitution = (searchParams.get('institution') || '').toLowerCase().trim();
+  const filterInterest = (searchParams.get('interest') || '').toLowerCase().trim();
   const viewerId = session ? session.userId : (searchParams.get('viewerId') || '');
   const isProduction = process.env.NODE_ENV === 'production';
   const enableFixtures = process.env.COLLABORATE_ENABLE_FIXTURES === 'true';
@@ -43,6 +45,21 @@ export async function GET(req: NextRequest) {
     if (
       filterSpecialization &&
       !m.aiSpecializations.some((s) => s.toLowerCase().includes(filterSpecialization))
+    ) {
+      matches = false;
+    }
+
+    if (
+      filterInstitution &&
+      !m.education.some((e) => e.institution.toLowerCase().includes(filterInstitution)) &&
+      !(m.institutionDomain && m.institutionDomain.toLowerCase().includes(filterInstitution))
+    ) {
+      matches = false;
+    }
+
+    if (
+      filterInterest &&
+      !m.collaborationInterests.some((i) => i.toLowerCase().includes(filterInterest))
     ) {
       matches = false;
     }

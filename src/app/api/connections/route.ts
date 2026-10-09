@@ -129,6 +129,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, connection: conn });
     }
 
+    if (action === 'withdraw') {
+      if (!connectionId) return NextResponse.json({ error: 'Connection ID required' }, { status: 400 });
+      const conn = durableDb.respondToConnection(connectionId, currentUserId, 'withdraw');
+      return NextResponse.json({ success: true, connection: conn, withdrawn: true });
+    }
+
+    if (action === 'report') {
+      if (!toId) return NextResponse.json({ error: 'Target member ID required' }, { status: 400 });
+      const report = durableDb.submitAbuseReport(
+        currentUserId,
+        toId,
+        body.reason || 'inappropriate_conduct',
+        body.details || ''
+      );
+      return NextResponse.json({ success: true, report });
+    }
+
     if (action === 'remove') {
       if (!toId) return NextResponse.json({ error: 'Target user ID required' }, { status: 400 });
       const removed = durableDb.removeConnection(currentUserId, toId);

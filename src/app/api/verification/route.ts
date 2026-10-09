@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Admin Review Decision — RBAC Required!
-    if (action === 'review') {
+    if (action === 'review' || action === 'review_request') {
       if (!session || session.role !== 'admin') {
         return NextResponse.json(
           { error: 'FORBIDDEN: Administrative capabilities required to approve badges' },
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Admin Revocation — RBAC Required!
-    if (action === 'revoke') {
+    if (action === 'revoke' || action === 'revoke_badge') {
       if (!session || session.role !== 'admin') {
         return NextResponse.json(
           { error: 'FORBIDDEN: Administrative capabilities required to revoke badges' },

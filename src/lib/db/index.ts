@@ -980,6 +980,34 @@ class DurableCollaborateDatabase {
     return this.state.verificationAuditLogs;
   }
 
+  // --- Abuse Reports & Moderation ---
+  public submitAbuseReport(
+    reporterId: string,
+    reportedMemberId: string,
+    reason: string,
+    details?: string
+  ): AbuseReport {
+    const report: AbuseReport = {
+      id: `rep_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      reporterId,
+      reportedMemberId,
+      reason,
+      details: details || '',
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+    };
+    if (!this.state.abuseReports) {
+      this.state.abuseReports = {};
+    }
+    this.state.abuseReports[report.id] = report;
+    this.persistToDisk();
+    return report;
+  }
+
+  public getAbuseReports(): AbuseReport[] {
+    return Object.values(this.state.abuseReports || {});
+  }
+
   // --- Notifications ---
   public addNotification(
     recipientId: string,

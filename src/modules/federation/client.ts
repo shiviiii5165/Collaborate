@@ -1,5 +1,6 @@
 import { durableDb } from '@/lib/db/index';
 import { MemberProfile } from '@/lib/types';
+import { getTathastuAdapter } from '@/integrations/tathastu';
 
 export interface TathastuApprovedProjection {
   sourcePersonId: string;
@@ -38,85 +39,50 @@ export interface TathastuApprovedProjection {
 }
 
 export class FederationService {
-  // Fetch authorized projection from Core API
+  // Fetch authorized projection from Core API via the configured adapter
   public static async fetchApprovedProjection(
     corePersonId: string,
     scopes: string[] = ['person360.read']
   ): Promise<TathastuApprovedProjection> {
-    // In production, invokes Tathastu Core versioned projection endpoint:
-    // GET https://api.aitathastu.com/v1/federation/projections/{corePersonId}
-    // with scoped bearer token
+    const adapter = getTathastuAdapter();
+    const projectionV1 = await adapter.fetchProjection(corePersonId);
+
     return {
-      sourcePersonId: corePersonId,
-      sourceVersion: 'v2.4.1',
-      lastSyncedAt: new Date().toISOString(),
+      sourcePersonId: projectionV1.sourcePersonId,
+      sourceVersion: projectionV1.sourceVersion,
+      lastSyncedAt: projectionV1.updatedAt,
       approvedFields: {
-        fullName: 'Rahul Sharma',
-        avatarUrl: '/images/rahul_avatar.jpg',
-        headline: 'AI/ML Builder | GenAI Enthusiast | Final Year CSE @ LPU',
-        statusBadges: ['Student', 'GenAI Engineer (Goal)', 'Open to internships'],
-        location: 'Phagwara, Punjab, India',
-        education: [
-          {
-            id: 'edu_c1',
-            institution: 'Lovely Professional University (LPU)',
-            period: '2021 – 2025 (Expected)',
-            degree: 'B.Tech in Computer Science and Engineering',
-            score: 'CGPA: 8.4 / 10',
-          },
-        ],
-        projects: [
-          {
-            id: 'proj_c1',
-            title: 'Tathastu AI Assistant',
-            featured: true,
-            description:
-              'A RAG-based AI assistant for students with multi-source document understanding.',
-            tags: ['Python', 'RAG', 'OpenAI', 'FastAPI'],
-            stars: 112,
-            forks: 28,
-            demoUrl: 'https://tathastu-assistant.demo.aitathastu.com',
-            imageUrl: '/images/tathastu_robot.jpg',
-            sourceOrigin: 'tathastu_core',
-          },
-          {
-            id: 'proj_c2',
-            title: 'Autonomous Code Review Agent',
-            featured: false,
-            description:
-              'Multi-agent review system using AST parsing and LLM feedback to detect security vulnerabilities.',
-            tags: ['TypeScript', 'LangChain', 'Next.js'],
-            stars: 45,
-            forks: 12,
-            sourceOrigin: 'tathastu_core',
-          },
-        ],
-        skills: [
-          'Python',
-          'Machine Learning',
-          'Deep Learning',
-          'GenAI',
-          'RAG',
-          'LangChain',
-          'Pinecone',
-          'FastAPI',
-          'React',
-          'Docker',
-          'AWS',
-          'PostgreSQL',
-          'Git',
-        ],
-        aiSpecializations: ['Generative AI', 'Retrieval-Augmented Generation'],
-        collaborationInterests: ['Open-source AI tooling', 'Model evaluation pipelines'],
+        fullName: projectionV1.profile.displayName,
+        avatarUrl: projectionV1.profile.avatarUrl || '/images/rahul_avatar.jpg',
+        headline: projectionV1.profile.headline || 'Collaborate Member',
+        statusBadges: ['Tathastu Member', 'Verified Student'],
+        location: projectionV1.profile.location || 'India',
+        education: projectionV1.profile.education.map((e) => ({
+          id: e.id,
+          institution: e.institution,
+          period: e.period,
+          degree: e.degree,
+          score: e.score || '',
+        })),
+        projects: projectionV1.profile.projects.map((p) => ({
+          id: p.id,
+          title: p.title,
+          featured: Boolean(p.featured),
+          description: p.description,
+          tags: p.tags,
+          stars: p.stars || 0,
+          forks: p.forks || 0,
+          demoUrl: p.demoUrl,
+          imageUrl: p.imageUrl,
+          sourceOrigin: 'tathastu_core' as const,
+        })),
+        skills: projectionV1.profile.skills.map((s) => s.name),
+        aiSpecializations: projectionV1.profile.skills
+          .filter((s) => s.category === 'ml_ai' || s.category === 'theory')
+          .map((s) => s.name),
+        collaborationInterests: projectionV1.profile.interests,
       },
-      quarantinedPrivateData: [
-        'Resumes (PDF/DOCX)',
-        'Private Course Grades',
-        'Raw Authentication Passwords',
-        'EORA Private Chats',
-        'Institutional Readiness Score',
-        'Internal Mentor Notes',
-      ],
+      quarantinedPrivateData: projectionV1.quarantinedPrivateData,
     };
   }
 
