@@ -1,4 +1,6 @@
-import { Pool, neon } from '@neondatabase/serverless';
+import { Pool as NeonPool } from '@neondatabase/serverless';
+import { Pool as PgPool } from 'pg';
+import { getPostgresSslOptions } from './ssl';
 
 // Assert production database presence
 export function isNeonConfigured(): boolean {
@@ -22,7 +24,7 @@ export function assertDatabaseAvailable(): void {
 
   if (isCloudRuntime && !isNeonConfigured()) {
     throw new Error(
-      'FATAL: Production database unavailable. DATABASE_URL must be configured with a valid Neon PostgreSQL connection string. In public cloud deployments, local storage overrides are strictly forbidden. Collaborate fails closed to prevent silent data divergence or insecure ephemeral persistence.'
+      'FATAL: Production database unavailable. DATABASE_URL must be configured with a valid PostgreSQL connection string. In public cloud deployments, local storage overrides are strictly forbidden. Collaborate fails closed to prevent silent data divergence or insecure ephemeral persistence.'
     );
   }
 
@@ -33,25 +35,43 @@ export function assertDatabaseAvailable(): void {
 
   if (process.env.NODE_ENV === 'production' && !isNeonConfigured()) {
     throw new Error(
-      'FATAL: Production database unavailable. DATABASE_URL must be configured with a valid Neon PostgreSQL connection string. Collaborate fails closed to prevent silent data divergence or insecure mock persistence.'
+      'FATAL: Production database unavailable. DATABASE_URL must be configured with a valid PostgreSQL connection string. Collaborate fails closed to prevent silent data divergence or insecure mock persistence.'
     );
   }
 }
 
-let poolInstance: Pool | null = null;
+type AnyPool = any;
+let poolInstance: AnyPool | null = null;
 
-export function getNeonPool(): Pool | null {
+export function getNeonPool(): AnyPool | null {
   if (!isNeonConfigured()) {
     return null;
   }
 
   if (!poolInstance) {
-    poolInstance = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      max: 10,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 5000,
-    });
+    const url = process.env.DATABASE_URL || '';
+    if (url.includes('neon.tech')) {
+      poolInstance = new NeonPool({
+        connectionString: url,
+        max: 10,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 5000,
+      });
+    } else {
+      const cleanUrl = url.replace(/[?&]sslmode=[^&]+/g, '').replace(/\?$/, '');
+      const sslConfig = getPostgresSslOptions(cleanUrl);
+      poolInstance = new PgPool({
+        connectionString: cleanUrl,
+        ssl: sslConfig,
+        max: 10,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000,
+      });
+
+      poolInstance.on('error', (err: Error) => {
+        console.error('[DATABASE_TLS_ERROR] PostgreSQL client connection error:', err.message);
+      });
+    }
   }
 
   return poolInstance;

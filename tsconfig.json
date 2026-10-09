@@ -25,6 +25,18 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@collaborate/contracts": [
+        "./packages/contracts/src/index.ts"
+      ],
+      "@collaborate/contracts/*": [
+        "./packages/contracts/src/*"
+      ],
+      "@collaborate/domain": [
+        "./packages/domain/src/index.ts"
+      ],
+      "@collaborate/domain/*": [
+        "./packages/domain/src/*"
       ]
     }
   },

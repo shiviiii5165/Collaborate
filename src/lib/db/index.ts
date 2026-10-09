@@ -569,8 +569,16 @@ class DurableCollaborateDatabase {
     this.persistToDisk();
     if (isNeonConfigured()) {
       MembersRepository.saveMember(member).catch((err) => {
-        console.error('Failed to sync member to Neon:', err);
+        console.error('Failed to sync member to PostgreSQL:', err);
       });
+    }
+  }
+
+  public async saveMemberAsync(member: MemberProfile): Promise<void> {
+    this.state.members[member.id] = member;
+    this.persistToDisk();
+    if (isNeonConfigured()) {
+      await MembersRepository.saveMember(member);
     }
   }
 
@@ -746,8 +754,32 @@ class DurableCollaborateDatabase {
     this.persistToDisk();
     if (isNeonConfigured()) {
       ConnectionsRepository.setStatus(conn.requesterId, conn.recipientId, conn.status).catch((err) => {
-        console.error('Failed to sync connection response to Neon:', err);
+        console.error('Failed to sync connection response to PostgreSQL:', err);
       });
+    }
+    return conn;
+  }
+
+  public async sendConnectionRequestAsync(
+    fromId: string,
+    toId: string,
+    introMessage?: string
+  ): Promise<ConnectionRecord> {
+    const conn = this.sendConnectionRequest(fromId, toId, introMessage);
+    if (isNeonConfigured()) {
+      await ConnectionsRepository.setStatus(fromId, toId, 'request_sent', introMessage);
+    }
+    return conn;
+  }
+
+  public async respondToConnectionAsync(
+    connectionId: string,
+    responderId: string,
+    action: 'accept' | 'reject' | 'withdraw'
+  ): Promise<ConnectionRecord> {
+    const conn = this.respondToConnection(connectionId, responderId, action);
+    if (isNeonConfigured()) {
+      await ConnectionsRepository.setStatus(conn.requesterId, conn.recipientId, conn.status);
     }
     return conn;
   }
@@ -862,8 +894,23 @@ class DurableCollaborateDatabase {
     this.persistToDisk();
     if (isNeonConfigured()) {
       MessagesRepository.sendMessage(senderId, recipientId, content).catch((err) => {
-        console.error('Failed to sync message to Neon:', err);
+        console.error('Failed to sync message to PostgreSQL:', err);
       });
+    }
+    return msg;
+  }
+
+  public async blockMemberAsync(blockerId: string, blockedId: string): Promise<void> {
+    this.blockMember(blockerId, blockedId);
+    if (isNeonConfigured()) {
+      await ConnectionsRepository.blockUser(blockerId, blockedId);
+    }
+  }
+
+  public async sendMessageAsync(senderId: string, recipientId: string, content: string): Promise<DirectMessage> {
+    const msg = this.sendMessage(senderId, recipientId, content);
+    if (isNeonConfigured()) {
+      await MessagesRepository.sendMessage(senderId, recipientId, content);
     }
     return msg;
   }

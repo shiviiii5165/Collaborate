@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "paths": {
+      "@/*": ["../../src/*"],
+      "@collaborate/contracts": ["../../packages/contracts/src/index.ts"],
+      "@collaborate/contracts/*": ["../../packages/contracts/src/*"],
+      "@collaborate/domain": ["../../packages/domain/src/index.ts"],
+      "@collaborate/domain/*": ["../../packages/domain/src/*"]
+    }
+  },
+  "include": ["src/**/*"]
+}

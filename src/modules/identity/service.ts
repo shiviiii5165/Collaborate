@@ -76,7 +76,7 @@ export class IdentityService {
       role: 'member',
     };
 
-    durableDb.saveMember(newMember);
+    await durableDb.saveMemberAsync(newMember);
 
     const token = await signSessionToken({
       userId: newMember.id,
