@@ -14,12 +14,51 @@ import { NextRequest, NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-function getBackendBaseUrl(): string {
-  const envUrl = process.env.COLLABORATE_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL;
-  if (envUrl && envUrl.trim().length > 0) {
-    return envUrl.trim().replace(/\/$/, '');
+class GatewayConfigError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'GatewayConfigError';
   }
-  return 'https://collaborate-sggk.onrender.com';
+}
+
+function getValidatedBackendBaseUrl(): string {
+  const envUrl = process.env.COLLABORATE_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL;
+  if (!envUrl || envUrl.trim().length === 0) {
+    throw new GatewayConfigError(
+      'Missing required environment variable: COLLABORATE_BACKEND_URL must be configured.'
+    );
+  }
+
+  const trimmed = envUrl.trim().replace(/^['"]|['"]$/g, '');
+
+  if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+    throw new GatewayConfigError(
+      'Malformed environment variable: COLLABORATE_BACKEND_URL must start with http:// or https:// (e.g. https://backend-host.onrender.com)'
+    );
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    throw new GatewayConfigError(
+      'Malformed environment variable: COLLABORATE_BACKEND_URL is not a valid absolute URL.'
+    );
+  }
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new GatewayConfigError(
+      'Malformed environment variable: COLLABORATE_BACKEND_URL must use http: or https: protocol.'
+    );
+  }
+
+  if (parsed.username || parsed.password) {
+    throw new GatewayConfigError(
+      'Malformed environment variable: COLLABORATE_BACKEND_URL must not contain embedded user credentials.'
+    );
+  }
+
+  return trimmed.replace(/\/+$/, '');
 }
 
 function sanitizeHostOnlyCookie(cookieStr: string): string {
@@ -28,7 +67,21 @@ function sanitizeHostOnlyCookie(cookieStr: string): string {
 }
 
 async function gatewayHandler(req: NextRequest): Promise<Response> {
-  const backendBase = getBackendBaseUrl();
+  let backendBase: string;
+  try {
+    backendBase = getValidatedBackendBaseUrl();
+  } catch (err: any) {
+    console.error('[Vercel Gateway] Configuration error:', err.message);
+    return NextResponse.json(
+      {
+        error: 'GATEWAY_CONFIGURATION_ERROR',
+        message: err.message,
+        timestamp: new Date().toISOString(),
+      },
+      { status: 500 }
+    );
+  }
+
   const url = new URL(req.url);
   const targetUrl = `${backendBase}${url.pathname}${url.search}`;
 
@@ -122,13 +175,13 @@ async function gatewayHandler(req: NextRequest): Promise<Response> {
       headers: responseHeaders,
     });
   } catch (err: any) {
-    console.error(`[Vercel Gateway] Upstream error contacting ${targetUrl}:`, err.message);
+    console.error(`[Vercel Gateway] Upstream error contacting ${url.pathname}:`, err.message);
 
     return NextResponse.json(
       {
         error: 'BACKEND_SERVICE_UNAVAILABLE',
         message: 'Collaborate backend service is warming up or temporarily unreachable. Please retry.',
-        target: targetUrl,
+        path: url.pathname,
         timestamp: new Date().toISOString(),
       },
       { status: 503 }

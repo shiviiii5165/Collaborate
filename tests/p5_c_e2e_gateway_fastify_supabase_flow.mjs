@@ -29,7 +29,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import assert from 'assert';
 import pg from 'pg';
-import { spawn } from 'child_process';
+import { spawn, spawnSync } from 'child_process';
 import { buildServer } from '../apps/api/src/server.ts';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -403,7 +403,13 @@ async function runTest() {
     } catch (_) {}
     try {
       if (nextServer.pid) {
-        try { process.kill(nextServer.pid); } catch (_) {}
+        try {
+          if (process.platform === 'win32') {
+            spawnSync('taskkill', ['/pid', String(nextServer.pid), '/f', '/t'], { stdio: 'ignore' });
+          } else {
+            process.kill(nextServer.pid);
+          }
+        } catch (_) {}
       }
     } catch (_) {}
     try {
