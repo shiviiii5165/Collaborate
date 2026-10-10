@@ -61,9 +61,45 @@ function getValidatedBackendBaseUrl(): string {
   return trimmed.replace(/\/+$/, '');
 }
 
+const HOP_BY_HOP_HEADERS = new Set([
+  'connection',
+  'keep-alive',
+  'proxy-authenticate',
+  'proxy-authorization',
+  'te',
+  'trailer',
+  'transfer-encoding',
+  'upgrade',
+  'host',
+]);
+
+const STRIP_RESPONSE_HEADERS = new Set([
+  'content-encoding',
+  'content-length',
+  'set-cookie',
+  ...HOP_BY_HOP_HEADERS,
+]);
+
 function sanitizeHostOnlyCookie(cookieStr: string): string {
-  // Strip any Domain=... attribute to enforce strict host-only cookie on the Vercel frontend origin
-  return cookieStr.replace(/;\s*Domain=[^;]+/gi, '').trim();
+  // 1. Strip any Domain=... attribute to enforce strict host-only cookie on the Vercel frontend origin
+  let sanitized = cookieStr.replace(/;\s*Domain=[^;]+/gi, '').trim();
+
+  // 2. Ensure Secure attribute is present
+  if (!/;\s*Secure/i.test(sanitized)) {
+    sanitized += '; Secure';
+  }
+
+  // 3. Ensure HttpOnly attribute is present for session cookies
+  if (/collaborate_session/i.test(sanitized) && !/;\s*HttpOnly/i.test(sanitized)) {
+    sanitized += '; HttpOnly';
+  }
+
+  // 4. Ensure SameSite=Lax if not specified
+  if (!/;\s*SameSite=/i.test(sanitized)) {
+    sanitized += '; SameSite=Lax';
+  }
+
+  return sanitized;
 }
 
 async function gatewayHandler(req: NextRequest): Promise<Response> {
@@ -87,23 +123,18 @@ async function gatewayHandler(req: NextRequest): Promise<Response> {
 
   // Forward incoming headers, excluding hop-by-hop headers
   const forwardHeaders = new Headers();
-  const hopByHop = new Set([
-    'host',
-    'connection',
-    'keep-alive',
-    'transfer-encoding',
-    'upgrade',
-    'content-length',
-  ]);
-
   req.headers.forEach((value, key) => {
-    if (!hopByHop.has(key.toLowerCase())) {
+    const lower = key.toLowerCase();
+    if (!HOP_BY_HOP_HEADERS.has(lower) && lower !== 'content-length') {
       forwardHeaders.set(key, value);
     }
   });
 
+  // Request identity (uncompressed) stream from upstream to avoid double-compression latency
+  forwardHeaders.set('accept-encoding', 'identity');
+
   // Attach gateway routing and tracking headers
-  forwardHeaders.set('x-forwarded-host', req.headers.get('host') || 'collaborate-umber.vercel.app');
+  forwardHeaders.set('x-forwarded-host', req.headers.get('host') || 'collaborate-nine.vercel.app');
   forwardHeaders.set('x-forwarded-proto', 'https');
   const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '127.0.0.1';
   forwardHeaders.set('x-forwarded-for', clientIp);
@@ -151,12 +182,19 @@ async function gatewayHandler(req: NextRequest): Promise<Response> {
     const responseHeaders = new Headers();
     upstreamRes.headers.forEach((value, key) => {
       const lower = key.toLowerCase();
-      if (!hopByHop.has(lower) && lower !== 'set-cookie') {
+      if (!STRIP_RESPONSE_HEADERS.has(lower)) {
         responseHeaders.set(key, value);
       }
     });
 
-    // Propagate Set-Cookie as host-only cookies
+    // Enforce Cache-Control: no-store for all authentication endpoints
+    if (url.pathname.startsWith('/api/auth')) {
+      responseHeaders.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      responseHeaders.set('Pragma', 'no-cache');
+      responseHeaders.set('Expires', '0');
+    }
+
+    // Propagate Set-Cookie as host-only, Secure, HttpOnly cookies
     if (typeof upstreamRes.headers.getSetCookie === 'function') {
       const cookies = upstreamRes.headers.getSetCookie();
       cookies.forEach((c) => {

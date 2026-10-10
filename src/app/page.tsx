@@ -778,66 +778,68 @@ export default function CollaborateApp() {
             </button>
           </form>
 
-          {/* Quick Demo Credentials Helper */}
-          <div
-            style={{
-              marginTop: 24,
-              paddingTop: 18,
-              borderTop: '1px dashed #E2E8F0',
-              textAlign: 'center',
-            }}
-          >
-            <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748B', marginBottom: 8 }}>
-              BETA REVIEW QUICK-LOGIN
+          {/* Quick Demo Credentials Helper (Only visible if fixtures enabled) */}
+          {process.env.NEXT_PUBLIC_ENABLE_FIXTURES === 'true' && (
+            <div
+              style={{
+                marginTop: 24,
+                paddingTop: 18,
+                borderTop: '1px dashed #E2E8F0',
+                textAlign: 'center',
+              }}
+            >
+              <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748B', marginBottom: 8 }}>
+                BETA REVIEW QUICK-LOGIN
+              </div>
+              <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoFill('rahulsharma@gmail.com', 'password123')}
+                  style={{
+                    background: '#F1F5F9',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: 6,
+                    padding: '4px 10px',
+                    fontSize: '0.76rem',
+                    color: '#334155',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Rahul Sharma (LPU)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoFill('devika@test.collaborate.internal', 'SecureBeta123!')}
+                  style={{
+                    background: '#F1F5F9',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: 6,
+                    padding: '4px 10px',
+                    fontSize: '0.76rem',
+                    color: '#334155',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Devika Sen
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoFill('amanverma@gmail.com', 'password123')}
+                  style={{
+                    background: '#F1F5F9',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: 6,
+                    padding: '4px 10px',
+                    fontSize: '0.76rem',
+                    color: '#334155',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Aman Verma
+                </button>
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                onClick={() => handleQuickDemoFill('rahulsharma@gmail.com', 'password123')}
-                style={{
-                  background: '#F1F5F9',
-                  border: '1px solid #E2E8F0',
-                  borderRadius: 6,
-                  padding: '4px 10px',
-                  fontSize: '0.76rem',
-                  color: '#334155',
-                  cursor: 'pointer',
-                }}
-              >
-                Rahul Sharma (LPU)
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDemoFill('devika@test.collaborate.internal', 'SecureBeta123!')}
-                style={{
-                  background: '#F1F5F9',
-                  border: '1px solid #E2E8F0',
-                  borderRadius: 6,
-                  padding: '4px 10px',
-                  fontSize: '0.76rem',
-                  color: '#334155',
-                  cursor: 'pointer',
-                }}
-              >
-                Devika Sen
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDemoFill('amanverma@gmail.com', 'password123')}
-                style={{
-                  background: '#F1F5F9',
-                  border: '1px solid #E2E8F0',
-                  borderRadius: 6,
-                  padding: '4px 10px',
-                  fontSize: '0.76rem',
-                  color: '#334155',
-                  cursor: 'pointer',
-                }}
-              >
-                Aman Verma
-              </button>
-            </div>
-          </div>
+          )}
 
           {/* Footer Security Badges */}
           <div

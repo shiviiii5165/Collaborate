@@ -11,7 +11,9 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuccess }) => {
-  const [mode, setMode] = useState<'login' | 'register' | 'switch'>('switch');
+  const [mode, setMode] = useState<'login' | 'register' | 'switch'>(
+    process.env.NEXT_PUBLIC_ENABLE_FIXTURES === 'true' ? 'switch' : 'login'
+  );
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -169,56 +171,60 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
                 <span>One-Click Sign In with AI Tathastu (OIDC)</span>
               </button>
 
-              <div style={{ textAlign: 'center', color: '#94A3B8', fontSize: '0.78rem' }}>
-                — OR SWITCH TEST PERSONAS —
-              </div>
+              {process.env.NEXT_PUBLIC_ENABLE_FIXTURES === 'true' && (
+                <>
+                  <div style={{ textAlign: 'center', color: '#94A3B8', fontSize: '0.78rem' }}>
+                    — OR SWITCH TEST PERSONAS —
+                  </div>
 
-              {/* Persona Cards */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '10px 14px',
-                  background: '#F8FAFC',
-                  borderRadius: 10,
-                  cursor: 'pointer',
-                  border: '1px solid #E2E8F0',
-                }}
-                onClick={() => handleQuickSwitch('rahulsharma@gmail.com', 'rahul1234')}
-              >
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.88rem' }}>Rahul Sharma (Student / Free)</div>
-                  <div style={{ fontSize: '0.74rem', color: '#64748B' }}>
-                    rahulsharma@gmail.com • 3 daily profile views quota
+                  {/* Persona Cards */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '10px 14px',
+                      background: '#F8FAFC',
+                      borderRadius: 10,
+                      cursor: 'pointer',
+                      border: '1px solid #E2E8F0',
+                    }}
+                    onClick={() => handleQuickSwitch('rahulsharma@gmail.com', 'rahul1234')}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '0.88rem' }}>Rahul Sharma (Student / Free)</div>
+                      <div style={{ fontSize: '0.74rem', color: '#64748B' }}>
+                        rahulsharma@gmail.com • 3 daily profile views quota
+                      </div>
+                    </div>
+                    <ArrowRight size={16} color="#4F46E5" />
                   </div>
-                </div>
-                <ArrowRight size={16} color="#4F46E5" />
-              </div>
 
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '10px 14px',
-                  background: '#F8FAFC',
-                  borderRadius: 10,
-                  cursor: 'pointer',
-                  border: '1px solid #E2E8F0',
-                }}
-                onClick={() => handleQuickSwitch('admin@aitathastu.com', 'admin1234')}
-              >
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#B45309' }}>
-                    Tathastu Safety Admin (Authority)
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '10px 14px',
+                      background: '#F8FAFC',
+                      borderRadius: 10,
+                      cursor: 'pointer',
+                      border: '1px solid #E2E8F0',
+                    }}
+                    onClick={() => handleQuickSwitch('admin@aitathastu.com', 'admin1234')}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#B45309' }}>
+                        Tathastu Safety Admin (Authority)
+                      </div>
+                      <div style={{ fontSize: '0.74rem', color: '#64748B' }}>
+                        admin@aitathastu.com • Verification review & audit rights
+                      </div>
+                    </div>
+                    <ShieldCheck size={18} color="#B45309" />
                   </div>
-                  <div style={{ fontSize: '0.74rem', color: '#64748B' }}>
-                    admin@aitathastu.com • Verification review & audit rights
-                  </div>
-                </div>
-                <ShieldCheck size={18} color="#B45309" />
-              </div>
+                </>
+              )}
 
               <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
                 <button
