@@ -55,13 +55,18 @@
   padding: 0;
 }
 
+html, body {
+  height: 100dvh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Desktop viewport scrolling managed inside workspace */
+}
+
 body {
   font-family: var(--font-main);
   background-color: var(--bg-app);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
-  min-height: 100vh;
-  overflow-x: hidden;
 }
 
 a {
@@ -98,11 +103,35 @@ input, textarea, select {
   background: #94a3b8;
 }
 
-/* Container App Shell */
-.app-container {
+/* Container App Shell (Desktop Full-Viewport Frame) */
+.app-shell {
+  display: flex;
+  width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+  background-color: var(--bg-app);
+}
+
+/* Right Application Workspace */
+.app-workspace {
+  flex: 1;
+  min-width: 0;
+  height: 100dvh;
+  max-height: 100dvh;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* Independent Workspace Scroll Container */
+.workspace-scroll-area {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  width: 100%;
 }
 
 /* Top Navigation Bar */
@@ -247,18 +276,18 @@ input, textarea, select {
   transform: scale(1.05);
 }
 
-/* App Main Layout Grid */
+/* App Main Layout Grid (Rendered inside .workspace-scroll-area) */
 .main-layout {
   display: flex;
   width: 100%;
-  max-width: 1540px;
+  max-width: 1440px;
   margin: 0 auto;
-  padding: 20px 24px;
+  padding: 24px;
   gap: 24px;
 }
 
 /* ==========================================================================
-   Left Sidebar - Dark Teal Brand Navigation (Collapsible & Fixed)
+   Left Sidebar - Dark Teal Brand Navigation (Collapsible & Fixed Full-Height)
    Brand Palette:
      Deepest: #032A2E
      Deep:    #053A3E
@@ -268,21 +297,22 @@ input, textarea, select {
   width: 240px;
   min-width: 240px;
   max-width: 240px;
+  height: 100dvh;
+  max-height: 100dvh;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   background: linear-gradient(180deg, #032A2E 0%, #053A3E 52%, #094C4D 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  height: calc(100vh - var(--header-height) - 40px);
-  max-height: calc(100vh - var(--header-height) - 40px);
-  position: sticky;
-  top: calc(var(--header-height) + 20px);
-  box-shadow: 0 4px 20px -2px rgba(3, 42, 46, 0.25);
+  border: none;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  margin: 0;
+  box-shadow: none;
   padding: 12px 8px;
-  transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.22s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1), padding 0.22s ease;
+  position: relative;
   z-index: 40;
   overflow: hidden;
+  transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.22s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1), padding 0.22s ease;
 }
 
 .left-sidebar.collapsed {
@@ -290,6 +320,17 @@ input, textarea, select {
   min-width: 72px;
   max-width: 72px;
   padding: 12px 6px;
+}
+
+/* 3 Sidebar Vertical Regions */
+.sidebar-top-region {
+  flex-shrink: 0;
+}
+
+.sidebar-footer-region {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Brand Header */
@@ -1789,6 +1830,28 @@ input, textarea, select {
 }
 
 @media (max-width: 860px) {
+  html, body {
+    height: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .app-shell {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .app-workspace {
+    height: auto;
+    overflow: visible;
+  }
+
+  .workspace-scroll-area {
+    height: auto;
+    overflow: visible;
+  }
+
   .sidebar-mobile-trigger {
     display: flex;
   }
@@ -1798,7 +1861,7 @@ input, textarea, select {
     top: 0;
     left: 0;
     bottom: 0;
-    height: 100vh;
+    height: 100dvh;
     z-index: 999;
     border-radius: 0;
     transform: translateX(-105%);
@@ -1822,6 +1885,7 @@ input, textarea, select {
   }
   .main-layout {
     padding: 14px 16px;
+    gap: 16px;
   }
   .tab-content-grid {
     grid-template-columns: 1fr;

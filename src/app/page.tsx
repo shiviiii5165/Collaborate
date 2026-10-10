@@ -863,37 +863,41 @@ export default function CollaborateApp() {
   }
 
   return (
-    <div className="app-container">
-      {/* Top Navigation */}
-      <Header
+    <div className="app-shell">
+      {/* Full-Viewport Left Sidebar: Starts at x=0, y=0, height 100dvh */}
+      <Sidebar
         currentTab={currentTab}
         onNavigate={(tab) => {
           setViewingTargetUser(null);
           setCurrentTab(tab);
         }}
         currentUser={currentUser}
-        quotaRemaining={quotaRemaining}
         unreadMessagesCount={unreadMessagesCount}
-        unreadNotificationsCount={unreadNotificationsCount}
-        onOpenUpgradeModal={() => setIsUpgradeOpen(true)}
-        onOpenFederationModal={() => setIsFederationOpen(true)}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
+        onOpenAdmin={() => setCurrentTab('admin')}
       />
 
-      {/* Main 3-Column Layout Grid */}
-      <div className="main-layout">
-        {/* Left Sidebar */}
-        <Sidebar
+      {/* Right Application Workspace: Fixed Top Header + Independently Scrollable Workspace */}
+      <div className="app-workspace">
+        {/* Top Header: Sticky at top of workspace */}
+        <Header
           currentTab={currentTab}
           onNavigate={(tab) => {
             setViewingTargetUser(null);
             setCurrentTab(tab);
           }}
           currentUser={currentUser}
+          quotaRemaining={quotaRemaining}
           unreadMessagesCount={unreadMessagesCount}
-          onOpenAdmin={() => setCurrentTab('admin')}
+          unreadNotificationsCount={unreadNotificationsCount}
+          onOpenUpgradeModal={() => setIsUpgradeOpen(true)}
+          onOpenFederationModal={() => setIsFederationOpen(true)}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
         />
+
+        {/* Workspace Scroll Container: Independent vertical scrolling */}
+        <div className="workspace-scroll-area">
+          <div className="main-layout">
 
         {/* Center Content Area */}
         <main className="center-content">
@@ -1295,6 +1299,8 @@ export default function CollaborateApp() {
             setCurrentTab('discover');
           }}
         />
+          </div>
+        </div>
       </div>
 
       {/* Modals */}

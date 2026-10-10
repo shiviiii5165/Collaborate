@@ -89,3 +89,44 @@ The left sidebar strictly adheres to the non-negotiable brand color palette:
 - **Visual Artifacts Captured:**
   - `sidebar_expanded.png`
   - `sidebar_collapsed.png`
+
+---
+
+## 6. Full-Viewport Height & Independent Workspace Scrolling Architecture
+
+### Problem Solved
+Previously, the sidebar was contained inside `.main-layout` beneath `.top-nav`, giving it a floating card appearance with outer margins, border-radius, and causing the entire document body to scroll together. On smaller viewports, lower navigation items (such as `Analytics`) and footer controls were partially clipped.
+
+### Architecture
+1. **Desktop Root Shell (`.app-shell`):**
+   - Height: `100dvh`, Width: `100vw`, `overflow: hidden`.
+   - Directly parents `<Sidebar>` (Left Region) and `<div className="app-workspace">` (Right Region).
+2. **Full-Height Stationary Sidebar (`.left-sidebar`):**
+   - Attached at `x = 0, y = 0`, extending to `y = 100dvh`.
+   - `margin: 0`, `border-radius: 0`, `box-shadow: none`, `border: none; border-right: 1px solid rgba(255, 255, 255, 0.08)`.
+   - Gradient: `linear-gradient(180deg, #032A2E 0%, #053A3E 52%, #094C4D 100%)`.
+   - Vertical Flex Regions:
+     - Top Region: Brand logo and header divider.
+     - Middle Region (`.sidebar-nav-list`): `flex: 1; min-height: 0; overflow-y: auto;` containing all 12 navigation items without clipping. Compact density fits all 12 items + ecosystem + settings + collapse comfortably within standard viewports (~558px total height).
+     - Bottom Region (`.sidebar-footer-region`): `flex-shrink: 0;` containing ecosystem links ("Switch to"), Settings, Admin Console (if authorized), and Collapse toggle.
+3. **Application Workspace (`.app-workspace`):**
+   - `flex: 1; min-width: 0; height: 100dvh; display: flex; flex-direction: column; overflow: hidden;`.
+   - Parents sticky top `<Header>` and `.workspace-scroll-area`.
+4. **Independent Scroll Container (`.workspace-scroll-area`):**
+   - `flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;`.
+   - Contains `.main-layout` with center feed and right rail.
+   - Body scroll is locked on desktop (`html, body { overflow: hidden; height: 100dvh }`), eliminating competing desktop scrollbars.
+5. **Mobile Responsiveness (`max-width: 860px`):**
+   - `html, body` and `.workspace-scroll-area` switch to `overflow: visible; height: auto` for native mobile scrolling.
+   - Sidebar functions as a full-height slide-over drawer with backdrop blur.
+
+### Automated QA Verification (`tests/test_full_height_sidebar_qa.mjs`)
+- **Tested Viewports:** 1920×1080, 1440×900, 1366×768, 1280×720, and 390px mobile drawer.
+- **Stationary Bounding Box:** Confirmed sidebar stays at `x = 0, y = 0` while workspace scrolls by 1,200px.
+- **Unclipped Items:** Confirmed item 12 (`Analytics`), ecosystem links, settings, and collapse toggle remain 100% visible and accessible.
+- **Screenshots:**
+  - `full_height_sidebar_expanded.png`
+  - `full_height_sidebar_scrolled.png`
+  - `full_height_sidebar_collapsed.png`
+  - `sidebar_mobile_drawer.png`
+

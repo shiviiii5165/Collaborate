@@ -202,59 +202,61 @@ Privacy Safeguard: In accordance with student & member privacy protections, indi
         aria-label="Sidebar Navigation"
         aria-expanded={!isCollapsed}
       >
-        {/* Brand Header */}
-        <div className="sidebar-brand-header">
-          <div
-            className="sidebar-brand-interactive"
-            onClick={() => onNavigate('home')}
-            role="button"
-            tabIndex={0}
-            aria-label="Collaborate Home"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onNavigate('home');
-              }
-            }}
-          >
-            {/* Outline diamond logo with inner diamond hole as in reference */}
-            <div className="sidebar-brand-icon-wrap" aria-hidden="true">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#FFFFFF"
-                strokeWidth="2.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 2.5 L21.5 12 L12 21.5 L2.5 12 Z" />
-                <path d="M12 7.5 L16.5 12 L12 16.5 L7.5 12 Z" />
-              </svg>
-            </div>
-            {!isCollapsed && (
-              <div className="sidebar-brand-text">
-                <span className="sidebar-brand-title">Collaborate.</span>
-                <span className="sidebar-brand-sub">by AI Tathastu</span>
+        {/* TOP REGION: Brand Header */}
+        <div className="sidebar-top-region">
+          <div className="sidebar-brand-header">
+            <div
+              className="sidebar-brand-interactive"
+              onClick={() => onNavigate('home')}
+              role="button"
+              tabIndex={0}
+              aria-label="Collaborate Home"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onNavigate('home');
+                }
+              }}
+            >
+              {/* Outline diamond logo with inner diamond hole as in reference */}
+              <div className="sidebar-brand-icon-wrap" aria-hidden="true">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#FFFFFF"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 2.5 L21.5 12 L12 21.5 L2.5 12 Z" />
+                  <path d="M12 7.5 L16.5 12 L12 16.5 L7.5 12 Z" />
+                </svg>
               </div>
+              {!isCollapsed && (
+                <div className="sidebar-brand-text">
+                  <span className="sidebar-brand-title">Collaborate.</span>
+                  <span className="sidebar-brand-sub">by AI Tathastu</span>
+                </div>
+              )}
+            </div>
+            {isMobileOpen && (
+              <button
+                className="sidebar-mobile-close"
+                onClick={() => setIsMobileOpen(false)}
+                aria-label="Close navigation"
+              >
+                <X size={18} />
+              </button>
             )}
           </div>
-          {isMobileOpen && (
-            <button
-              className="sidebar-mobile-close"
-              onClick={() => setIsMobileOpen(false)}
-              aria-label="Close navigation"
-            >
-              <X size={18} />
-            </button>
-          )}
+
+          {/* Divider below brand */}
+          <div className="sidebar-divider" />
         </div>
 
-        {/* Divider below brand */}
-        <div className="sidebar-divider" />
-
-        {/* Main 12-Item Navigation List */}
+        {/* MIDDLE REGION: Main 12-Item Navigation List */}
         <nav className="sidebar-nav-list" aria-label="Main Navigation">
           {NAV_ITEMS.map((item) => {
             const IconComponent = item.icon;
@@ -296,113 +298,116 @@ Privacy Safeguard: In accordance with student & member privacy protections, indi
           })}
         </nav>
 
-        {/* Divider above Switch To */}
-        <div className="sidebar-divider" />
+        {/* BOTTOM REGION: Ecosystem Links, Settings & Collapse Controls */}
+        <div className="sidebar-footer-region">
+          {/* Divider above Switch To */}
+          <div className="sidebar-divider" />
 
-        {/* Ecosystem "Switch to" Section */}
-        <div className="sidebar-ecosystem-section">
-          {!isCollapsed && (
-            <div className="sidebar-switch-label">Switch to</div>
-          )}
-          <a
-            href="https://www.aitathastu.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="sidebar-eco-link"
-            onMouseEnter={(e) => handleTooltipShow(e, 'Switch to AI Tathastu')}
-            onMouseLeave={handleTooltipHide}
-            onFocus={(e) => handleTooltipShow(e, 'Switch to AI Tathastu')}
-            onBlur={handleTooltipHide}
-            aria-label="Switch to AI Tathastu"
-          >
-            {isCollapsed ? (
-              <span className="sidebar-eco-compact-initial">AT</span>
-            ) : (
-              <span className="sidebar-eco-text">AI Tathastu</span>
+          {/* Ecosystem "Switch to" Section */}
+          <div className="sidebar-ecosystem-section">
+            {!isCollapsed && (
+              <div className="sidebar-switch-label">Switch to</div>
             )}
-          </a>
+            <a
+              href="https://www.aitathastu.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="sidebar-eco-link"
+              onMouseEnter={(e) => handleTooltipShow(e, 'Switch to AI Tathastu')}
+              onMouseLeave={handleTooltipHide}
+              onFocus={(e) => handleTooltipShow(e, 'Switch to AI Tathastu')}
+              onBlur={handleTooltipHide}
+              aria-label="Switch to AI Tathastu"
+            >
+              {isCollapsed ? (
+                <span className="sidebar-eco-compact-initial">AT</span>
+              ) : (
+                <span className="sidebar-eco-text">AI Tathastu</span>
+              )}
+            </a>
 
-          <a
-            href="https://connect.aitathastu.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="sidebar-eco-link"
-            onMouseEnter={(e) => handleTooltipShow(e, 'Switch to Tathastu Connect')}
-            onMouseLeave={handleTooltipHide}
-            onFocus={(e) => handleTooltipShow(e, 'Switch to Tathastu Connect')}
-            onBlur={handleTooltipHide}
-            aria-label="Switch to Tathastu Connect"
-          >
-            {isCollapsed ? (
-              <span className="sidebar-eco-compact-initial">TC</span>
-            ) : (
-              <span className="sidebar-eco-text">Tathastu Connect</span>
-            )}
-          </a>
-        </div>
+            <a
+              href="https://connect.aitathastu.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="sidebar-eco-link"
+              onMouseEnter={(e) => handleTooltipShow(e, 'Switch to Tathastu Connect')}
+              onMouseLeave={handleTooltipHide}
+              onFocus={(e) => handleTooltipShow(e, 'Switch to Tathastu Connect')}
+              onBlur={handleTooltipHide}
+              aria-label="Switch to Tathastu Connect"
+            >
+              {isCollapsed ? (
+                <span className="sidebar-eco-compact-initial">TC</span>
+              ) : (
+                <span className="sidebar-eco-text">Tathastu Connect</span>
+              )}
+            </a>
+          </div>
 
-        {/* Divider above Settings */}
-        <div className="sidebar-divider" />
+          {/* Divider above Settings */}
+          <div className="sidebar-divider" />
 
-        {/* Bottom Section: Settings & Protected Admin Console */}
-        <div className="sidebar-bottom-section">
-          <button
-            className={`sidebar-nav-btn ${currentTab === 'settings' ? 'active' : ''}`}
-            onClick={() => {
-              onNavigate('settings');
-              if (isMobileOpen) setIsMobileOpen(false);
-            }}
-            onMouseEnter={(e) => handleTooltipShow(e, 'Settings')}
-            onMouseLeave={handleTooltipHide}
-            onFocus={(e) => handleTooltipShow(e, 'Settings')}
-            onBlur={handleTooltipHide}
-            aria-label="Settings"
-          >
-            <div className="sidebar-nav-icon-box">
-              <Settings size={18} />
-            </div>
-            {!isCollapsed && <span className="sidebar-nav-label">Settings</span>}
-          </button>
-
-          {/* Admin Console: Rendered exclusively for authorized administrators */}
-          {currentUser?.role === 'admin' && (
+          {/* Bottom Section: Settings & Protected Admin Console */}
+          <div className="sidebar-bottom-section">
             <button
-              className={`sidebar-nav-btn admin-btn ${currentTab === 'admin' ? 'active' : ''}`}
+              className={`sidebar-nav-btn ${currentTab === 'settings' ? 'active' : ''}`}
               onClick={() => {
-                onOpenAdmin();
+                onNavigate('settings');
                 if (isMobileOpen) setIsMobileOpen(false);
               }}
-              onMouseEnter={(e) => handleTooltipShow(e, 'Admin Console')}
+              onMouseEnter={(e) => handleTooltipShow(e, 'Settings')}
               onMouseLeave={handleTooltipHide}
-              onFocus={(e) => handleTooltipShow(e, 'Admin Console')}
+              onFocus={(e) => handleTooltipShow(e, 'Settings')}
               onBlur={handleTooltipHide}
-              aria-label="Admin Console"
+              aria-label="Settings"
             >
               <div className="sidebar-nav-icon-box">
-                <ShieldCheck size={18} />
+                <Settings size={18} />
               </div>
-              {!isCollapsed && (
-                <span className="sidebar-nav-label">Admin Console</span>
-              )}
+              {!isCollapsed && <span className="sidebar-nav-label">Settings</span>}
             </button>
-          )}
 
-          {/* Expand/Collapse Toggle Button */}
-          <button
-            className="sidebar-toggle-btn"
-            onClick={toggleCollapse}
-            onMouseEnter={(e) => handleTooltipShow(e, isCollapsed ? 'Expand sidebar' : 'Collapse sidebar')}
-            onMouseLeave={handleTooltipHide}
-            onFocus={(e) => handleTooltipShow(e, isCollapsed ? 'Expand sidebar' : 'Collapse sidebar')}
-            onBlur={handleTooltipHide}
-            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            <div className="sidebar-nav-icon-box">
-              {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-            </div>
-            {!isCollapsed && <span className="sidebar-toggle-text">Collapse</span>}
-          </button>
+            {/* Admin Console: Rendered exclusively for authorized administrators */}
+            {currentUser?.role === 'admin' && (
+              <button
+                className={`sidebar-nav-btn admin-btn ${currentTab === 'admin' ? 'active' : ''}`}
+                onClick={() => {
+                  onOpenAdmin();
+                  if (isMobileOpen) setIsMobileOpen(false);
+                }}
+                onMouseEnter={(e) => handleTooltipShow(e, 'Admin Console')}
+                onMouseLeave={handleTooltipHide}
+                onFocus={(e) => handleTooltipShow(e, 'Admin Console')}
+                onBlur={handleTooltipHide}
+                aria-label="Admin Console"
+              >
+                <div className="sidebar-nav-icon-box">
+                  <ShieldCheck size={18} />
+                </div>
+                {!isCollapsed && (
+                  <span className="sidebar-nav-label">Admin Console</span>
+                )}
+              </button>
+            )}
+
+            {/* Expand/Collapse Toggle Button */}
+            <button
+              className="sidebar-toggle-btn"
+              onClick={toggleCollapse}
+              onMouseEnter={(e) => handleTooltipShow(e, isCollapsed ? 'Expand sidebar' : 'Collapse sidebar')}
+              onMouseLeave={handleTooltipHide}
+              onFocus={(e) => handleTooltipShow(e, isCollapsed ? 'Expand sidebar' : 'Collapse sidebar')}
+              onBlur={handleTooltipHide}
+              aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              <div className="sidebar-nav-icon-box">
+                {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+              </div>
+              {!isCollapsed && <span className="sidebar-toggle-text">Collapse</span>}
+            </button>
+          </div>
         </div>
       </aside>
 
