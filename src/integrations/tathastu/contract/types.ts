@@ -112,6 +112,39 @@ export interface TathastuSyncEvent {
   details?: Record<string, any>;
 }
 
+export type TathastuScope =
+  | 'skills'
+  | 'projects'
+  | 'eris'
+  | 'experience'
+  | 'education'
+  | 'achievements'
+  | 'activity';
+
+export type TathastuWebhookEventType = 'profile.updated' | 'integration.revoked';
+
+export interface TathastuWebhookEvent {
+  eventId: string;
+  eventType: TathastuWebhookEventType | TathastuSyncEventType;
+  sourcePersonId: string;
+  timestamp: string;
+  payload?: any;
+  details?: Record<string, any>;
+}
+
+export interface TathastuTokenResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  scope?: string;
+  id_token?: string;
+  user?: {
+    id: string;
+    email?: string;
+    name?: string;
+  };
+}
+
 export interface ITathastuIntegrationAdapter {
   readonly mode: 'mock' | 'live';
   fetchProjection(sourcePersonId: string): Promise<ProfessionalProjectionV1>;
@@ -123,3 +156,4 @@ export interface ITathastuIntegrationAdapter {
     preservedLocalOverrides?: string[];
   }>;
 }
+

@@ -44,18 +44,27 @@ export function validateProfessionalProjection(data: any): ProfessionalProjectio
     if (!p.displayName || typeof p.displayName !== 'string') {
       errors.push('profile.displayName is required');
     }
-    if (!Array.isArray(p.education)) {
-      errors.push('profile.education must be an array');
+    if (p.education !== undefined && !Array.isArray(p.education)) {
+      errors.push('profile.education must be an array when provided');
     }
-    if (!Array.isArray(p.skills)) {
-      errors.push('profile.skills must be an array');
+    if (p.skills !== undefined && !Array.isArray(p.skills)) {
+      errors.push('profile.skills must be an array when provided');
     }
-    if (!Array.isArray(p.projects)) {
-      errors.push('profile.projects must be an array');
+    if (p.projects !== undefined && !Array.isArray(p.projects)) {
+      errors.push('profile.projects must be an array when provided');
     }
-    if (!Array.isArray(p.achievements)) {
-      errors.push('profile.achievements must be an array');
+    if (p.achievements !== undefined && !Array.isArray(p.achievements)) {
+      errors.push('profile.achievements must be an array when provided');
     }
+
+    // Default missing arrays to empty arrays to prevent downstream undefined access
+    p.education = Array.isArray(p.education) ? p.education : [];
+    p.skills = Array.isArray(p.skills) ? p.skills : [];
+    p.projects = Array.isArray(p.projects) ? p.projects : [];
+    p.achievements = Array.isArray(p.achievements) ? p.achievements : [];
+    p.interests = Array.isArray(p.interests) ? p.interests : [];
+    p.portfolioLinks = Array.isArray(p.portfolioLinks) ? p.portfolioLinks : [];
+
   }
 
   if (!data.permissions || typeof data.permissions !== 'object') {

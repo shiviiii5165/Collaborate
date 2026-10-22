@@ -93,31 +93,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
     }
   };
 
-  const handleTathastuSso = async () => {
+  const handleTathastuSso = () => {
     setLoading(true);
-    try {
-      // Exchange OIDC code
-      const res = await fetch('/api/auth/oidc/callback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          code: 'oidc_auth_code_tathastu',
-          codeVerifier: 'pkce_verifier_string',
-          state: 'oidc_state_param',
-        }),
-      });
-      const data = await res.json();
-      if (data.success && data.member) {
-        alert(data.message);
-        onAuthSuccess(data.member);
-        onClose();
-      }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'SSO failed');
-    } finally {
-      setLoading(false);
-    }
+    setErrorMsg('');
+    // Direct browser to server-side Tathastu OAuth authorization start endpoint
+    window.location.href = '/api/auth/tathastu/start';
   };
+
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -246,109 +228,162 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
           )}
 
           {mode === 'register' && (
-            <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div>
-                <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'block', marginBottom: 4 }}>
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Siddharth Rao"
-                  style={{ width: '100%', border: '1px solid #CBD5E1', borderRadius: 8, padding: '9px 12px' }}
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'block', marginBottom: 4 }}>
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  required
-                  placeholder="name@example.com"
-                  style={{ width: '100%', border: '1px solid #CBD5E1', borderRadius: 8, padding: '9px 12px' }}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'block', marginBottom: 4 }}>
-                  Password (min 8 characters)
-                </label>
-                <input
-                  type="password"
-                  required
-                  minLength={8}
-                  placeholder="••••••••"
-                  style={{ width: '100%', border: '1px solid #CBD5E1', borderRadius: 8, padding: '9px 12px' }}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-
-              <button type="submit" className="btn-primary" style={{ marginTop: 10, justifyContent: 'center' }} disabled={loading}>
-                {loading ? 'Creating...' : 'Create Standalone Account'}
-              </button>
-
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <button
                 type="button"
-                className="btn-secondary"
-                style={{ justifyContent: 'center' }}
-                onClick={() => setMode('switch')}
+                className="btn-primary"
+                style={{
+                  background: 'linear-gradient(135deg, #0d9488, #0f766e)',
+                  justifyContent: 'center',
+                  padding: '12px 20px',
+                  fontSize: '0.92rem',
+                  fontWeight: 700,
+                  boxShadow: '0 2px 8px rgba(13, 148, 136, 0.25)',
+                }}
+                onClick={handleTathastuSso}
+                disabled={loading}
               >
-                Back to Switcher
+                <Sparkles size={18} />
+                <span>Sign up with AI Tathastu (Recommended)</span>
               </button>
-            </form>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0', color: '#94A3B8', fontSize: '0.76rem' }}>
+                <div style={{ flex: 1, height: 1, background: '#E2E8F0' }} />
+                <span>OR CREATE STANDALONE ACCOUNT</span>
+                <div style={{ flex: 1, height: 1, background: '#E2E8F0' }} />
+              </div>
+
+              <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'block', marginBottom: 4 }}>
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Siddharth Rao"
+                    style={{ width: '100%', border: '1px solid #CBD5E1', borderRadius: 8, padding: '9px 12px' }}
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'block', marginBottom: 4 }}>
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="name@example.com"
+                    style={{ width: '100%', border: '1px solid #CBD5E1', borderRadius: 8, padding: '9px 12px' }}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'block', marginBottom: 4 }}>
+                    Password (min 8 characters)
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    minLength={8}
+                    placeholder="••••••••"
+                    style={{ width: '100%', border: '1px solid #CBD5E1', borderRadius: 8, padding: '9px 12px' }}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+
+                <button type="submit" className="btn-primary" style={{ marginTop: 10, justifyContent: 'center' }} disabled={loading}>
+                  {loading ? 'Creating...' : 'Create Standalone Account'}
+                </button>
+
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  style={{ justifyContent: 'center' }}
+                  onClick={() => setMode('switch')}
+                >
+                  Back to Switcher
+                </button>
+              </form>
+            </div>
           )}
 
           {mode === 'login' && (
-            <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div>
-                <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'block', marginBottom: 4 }}>
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  required
-                  placeholder="name@example.com"
-                  style={{ width: '100%', border: '1px solid #CBD5E1', borderRadius: 8, padding: '9px 12px' }}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'block', marginBottom: 4 }}>
-                  Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  style={{ width: '100%', border: '1px solid #CBD5E1', borderRadius: 8, padding: '9px 12px' }}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-
-              <button type="submit" className="btn-primary" style={{ marginTop: 10, justifyContent: 'center' }} disabled={loading}>
-                {loading ? 'Signing in...' : 'Sign In'}
-              </button>
-
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <button
                 type="button"
-                className="btn-secondary"
-                style={{ justifyContent: 'center' }}
-                onClick={() => setMode('switch')}
+                className="btn-primary"
+                style={{
+                  background: 'linear-gradient(135deg, #0d9488, #0f766e)',
+                  justifyContent: 'center',
+                  padding: '12px 20px',
+                  fontSize: '0.92rem',
+                  fontWeight: 700,
+                  boxShadow: '0 2px 8px rgba(13, 148, 136, 0.25)',
+                }}
+                onClick={handleTathastuSso}
+                disabled={loading}
               >
-                Back to Switcher
+                <Sparkles size={18} />
+                <span>Sign in with AI Tathastu</span>
               </button>
-            </form>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0', color: '#94A3B8', fontSize: '0.76rem' }}>
+                <div style={{ flex: 1, height: 1, background: '#E2E8F0' }} />
+                <span>OR SIGN IN WITH PASSWORD</span>
+                <div style={{ flex: 1, height: 1, background: '#E2E8F0' }} />
+              </div>
+
+              <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'block', marginBottom: 4 }}>
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="name@example.com"
+                    style={{ width: '100%', border: '1px solid #CBD5E1', borderRadius: 8, padding: '9px 12px' }}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'block', marginBottom: 4 }}>
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    style={{ width: '100%', border: '1px solid #CBD5E1', borderRadius: 8, padding: '9px 12px' }}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+
+                <button type="submit" className="btn-primary" style={{ marginTop: 10, justifyContent: 'center' }} disabled={loading}>
+                  {loading ? 'Signing in...' : 'Sign In'}
+                </button>
+
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  style={{ justifyContent: 'center' }}
+                  onClick={() => setMode('switch')}
+                >
+                  Back to Switcher
+                </button>
+              </form>
+            </div>
           )}
+
         </div>
       </div>
     </div>

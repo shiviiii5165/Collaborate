@@ -13,6 +13,8 @@ import cookie from '@fastify/cookie';
 import { durableDb, getKolkataDateKey } from '@/lib/db/index';
 import { isNeonConfigured } from '@/lib/db/neon';
 import { IdentityService } from '@/modules/identity/service';
+import { TathastuSsoService } from '@/modules/identity/tathastu-sso';
+import { TathastuClient } from '@/integrations/tathastu/client';
 import { verifySessionToken, COOKIE_NAME, SessionPayload, buildSessionCookie } from '@/lib/auth/session';
 import { canInitiateContact } from '@collaborate/domain';
 import type { MemberProfile } from '@collaborate/contracts';
@@ -20,10 +22,11 @@ import { getRecommendationsForMember } from '@/lib/recommendations';
 import { FederationService } from '@/modules/federation/client';
 import { TathastuSyncSimulator } from '@/integrations/tathastu/sync/simulator';
 
-// Extend FastifyRequest with authenticated user
+// Extend FastifyRequest with authenticated user and rawBody
 declare module 'fastify' {
   interface FastifyRequest {
     user?: SessionPayload;
+    rawBody?: Buffer;
   }
 }
 
@@ -64,6 +67,18 @@ export function buildServer(): FastifyInstance {
     secret: process.env.SESSION_SECRET || 'collaborate_session_cookie_secret_2026',
     parseOptions: {},
   });
+
+  // Retain raw request body Buffer for webhook HMAC-SHA256 signature verification
+  fastify.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, body, done) => {
+    try {
+      (req as any).rawBody = body;
+      const json = JSON.parse(body.toString('utf8'));
+      done(null, json);
+    } catch (err: any) {
+      done(err, undefined);
+    }
+  });
+
 
   // 3. Auth Helpers
   const authenticate = async (req: FastifyRequest, reply: FastifyReply) => {
@@ -770,8 +785,160 @@ export function buildServer(): FastifyInstance {
   });
 
   // ============================================================================
-  // OIDC & SSO FEDERATION (Mock Tathastu Core Integration)
+  // PRODUCTION AI TATHASTU INTEGRATION & SSO FEDERATION
   // ============================================================================
+
+  // ============================================================================
+  // PRODUCTION AI TATHASTU INTEGRATION & SSO FEDERATION
+  // ============================================================================
+
+  // 1. Initiate AI Tathastu SSO Authorization Flow (OAuth 2.0 PKCE + State)
+  const handleTathastuStart = async (
+    req: FastifyRequest<{
+      Querystring: { redirectUri?: string; format?: string; prompt?: string; reconsent?: string };
+    }>,
+    reply: FastifyReply
+  ) => {
+    const promptParam = req.query.prompt || (req.query.reconsent === 'true' ? 'consent' : undefined);
+    const { authUrl, state, codeVerifier, codeChallenge, redirectUri } = TathastuSsoService.initiateLogin({
+      redirectUri: req.query.redirectUri,
+      prompt: promptParam,
+    });
+
+    // Store state & PKCE codeVerifier in secure, HttpOnly flow cookie (10 min TTL)
+    const flowData = JSON.stringify({ state, codeVerifier, redirectUri, createdAt: Date.now() });
+    reply.setCookie('tathastu_oauth_flow', flowData, {
+      path: '/',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 600,
+    });
+
+    if (req.query.format === 'json') {
+      return reply.send({ authUrl, state, codeChallenge, redirectUri });
+    }
+
+    return reply.redirect(authUrl);
+  };
+
+  // Both /start and /authorize supported
+  fastify.get('/api/auth/tathastu/start', handleTathastuStart);
+  fastify.get('/api/auth/tathastu/authorize', handleTathastuStart);
+
+  // 2. Browser Redirect Callback from AI Tathastu Central System
+  fastify.get(
+    '/api/auth/tathastu/callback',
+    async (
+      req: FastifyRequest<{
+        Querystring: { code?: string; state?: string; error?: string; error_description?: string };
+      }>,
+      reply
+    ) => {
+      const { code, state, error, error_description } = req.query;
+
+      if (error) {
+        const errorMsg = error_description || error;
+        return reply.redirect(`/?auth_error=${encodeURIComponent(errorMsg)}`);
+      }
+
+      if (!code) {
+        return reply.redirect(`/?auth_error=${encodeURIComponent('Missing authorization code from AI Tathastu')}`);
+      }
+
+      // Retrieve and validate state & codeVerifier from flow cookie
+      const flowCookieRaw = req.cookies['tathastu_oauth_flow'];
+      let expectedState = '';
+      let codeVerifier = 'default_pkce_verifier';
+      let redirectUri: string | undefined = undefined;
+
+      if (flowCookieRaw) {
+        try {
+          const flow = JSON.parse(flowCookieRaw);
+          expectedState = flow.state;
+          codeVerifier = flow.codeVerifier;
+          redirectUri = flow.redirectUri;
+        } catch {
+          // Fallback
+        }
+      }
+
+      reply.clearCookie('tathastu_oauth_flow', { path: '/' });
+
+      try {
+        const { token } = await TathastuSsoService.processCallback({
+          code,
+          codeVerifier,
+          state: state || '',
+          expectedState: expectedState || undefined,
+          redirectUri,
+        });
+
+        reply.header('Set-Cookie', buildSessionCookie(token));
+        return reply.redirect('/?auth_success=true');
+      } catch (err: any) {
+        return reply.redirect(`/?auth_error=${encodeURIComponent(err.message || 'Authentication failed')}`);
+      }
+    }
+  );
+
+  // 3. API/POST Callback for Programmatic Token Exchange & Linking Confirmation
+  fastify.post('/api/auth/tathastu/callback', async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
+    const { code, codeVerifier, state, expectedState, linkConfirmationPassword, claimsOverride, redirectUri } =
+      req.body || {};
+    try {
+      const { member, token, isNewUser } = await TathastuSsoService.processCallback({
+        code: code || 'mock_code',
+        codeVerifier: codeVerifier || 'mock_verifier',
+        state: state || 'mock_state',
+        expectedState,
+        linkConfirmationPassword,
+        claimsOverride,
+        redirectUri,
+      });
+
+      reply.header('Set-Cookie', buildSessionCookie(token));
+      return reply.send({
+        success: true,
+        member,
+        isNewUser,
+        message: isNewUser
+          ? 'Account successfully generated from AI Tathastu Single Sign-On.'
+          : 'Logged in with AI Tathastu Single Sign-On.',
+      });
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message || 'Tathastu SSO callback failed' });
+    }
+  });
+
+  // 4. Secure Webhook Receiver (HMAC-SHA256 Signed & Timestamp Validated)
+  fastify.post('/api/webhooks/tathastu', async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
+    const sigHeader = (
+      req.headers['x-ait-signature'] ||
+      req.headers['x-tathastu-signature'] ||
+      req.headers['x-signature'] ||
+      req.headers['x-hub-signature-256']
+    ) as string;
+
+    const timestampHeader = (
+      req.headers['x-tathastu-timestamp'] ||
+      req.headers['x-timestamp']
+    ) as string;
+
+    const rawBody = (req as any).rawBody || JSON.stringify(req.body || {});
+
+    // Cryptographic signature & replay freshness check (rejects missing/invalid signature with 401)
+    const sigResult = TathastuClient.verifyWebhookSignature(rawBody, sigHeader, timestampHeader);
+    if (!sigResult.valid) {
+      return reply.status(401).send({ error: 'INVALID_SIGNATURE', message: sigResult.error });
+    }
+
+    const event = req.body as any;
+    const result = await TathastuSsoService.processWebhook(event, req.headers as Record<string, string>);
+    return reply.status(200).send({ success: true, result });
+  });
+
+  // Backward-compatible OIDC Aliases
   fastify.get('/api/auth/oidc/authorize', async (_req, reply) => {
     const oidcData = IdentityService.createOidcAuthUrl();
     return reply.send({
@@ -801,13 +968,13 @@ export function buildServer(): FastifyInstance {
   fastify.post('/api/auth/oidc/callback', async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
     const { code, codeVerifier, state, linkConfirmationPassword, mockClaims } = req.body || {};
     try {
-      const { member, token, isNewUser } = await IdentityService.processOidcCallback(
-        code || 'mock_code_tathastu_99',
-        codeVerifier || 'mock_verifier_tathastu',
-        state || 'mock_state',
+      const { member, token, isNewUser } = await TathastuSsoService.processCallback({
+        code: code || 'mock_code_tathastu_99',
+        codeVerifier: codeVerifier || 'mock_verifier_tathastu',
+        state: state || 'mock_state',
         linkConfirmationPassword,
-        mockClaims
-      );
+        claimsOverride: mockClaims,
+      });
 
       reply.header('Set-Cookie', buildSessionCookie(token));
       return reply.send({
@@ -822,6 +989,7 @@ export function buildServer(): FastifyInstance {
       return reply.status(400).send({ error: err.message || 'OIDC callback failed' });
     }
   });
+
 
   // ============================================================================
   // EORA AI ASSISTANT
@@ -914,6 +1082,19 @@ export function buildServer(): FastifyInstance {
         member: updated,
       });
     }
+
+    if (action === 'sync_profile') {
+      const mapping = durableDb.getMappingByMemberId('aitathastu_oidc', userId);
+      const personId = sourcePersonId || mapping?.externalSubjectId || 'core_person_rahul';
+      const projection = await FederationService.fetchApprovedProjection(personId);
+      const updated = await FederationService.syncProjectionToMember(userId, projection, syncSettings);
+      return reply.send({
+        success: true,
+        message: 'Profile refreshed from AI Tathastu successfully',
+        member: updated,
+      });
+    }
+
 
     if (action === 'update_sync_settings') {
       member.tathastuSyncSettings = syncSettings;

@@ -5,6 +5,7 @@ import { LiveTathastuAdapter } from './live/adapter';
 
 export * from './contract/types';
 export * from './contract/validator';
+export * from './client';
 export * from './fixtures/personas';
 export * from './mock/adapter';
 export * from './live/adapter';
