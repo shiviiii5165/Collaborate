@@ -69,15 +69,27 @@ export function buildServer(): FastifyInstance {
   });
 
   // Retain raw request body Buffer for webhook HMAC-SHA256 signature verification
-  fastify.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, body, done) => {
-    try {
-      (req as any).rawBody = body;
-      const json = JSON.parse(body.toString('utf8'));
-      done(null, json);
-    } catch (err: any) {
-      done(err, undefined);
+  fastify.addContentTypeParser(
+    ['application/json', 'application/x-www-form-urlencoded', 'text/plain'],
+    { parseAs: 'buffer' },
+    (req, body, done) => {
+      try {
+        (req as any).rawBody = body;
+        if (!body || body.length === 0) {
+          return done(null, {});
+        }
+        const str = body.toString('utf8');
+        try {
+          const json = JSON.parse(str);
+          done(null, json);
+        } catch {
+          done(null, {});
+        }
+      } catch {
+        done(null, {});
+      }
     }
-  });
+  );
 
 
   // 3. Auth Helpers
