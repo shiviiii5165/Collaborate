@@ -1,7 +1,7 @@
 // High-Fidelity Fictional AI Tathastu Core Personas for Isolated Testing & Development
-import { ProfessionalProjectionV1 } from '../contract/types';
+import { LegacyHarnessProjection } from '../contract/types';
 
-export const MOCK_CORE_PERSONAS: Record<string, ProfessionalProjectionV1> = {
+export const MOCK_CORE_PERSONAS: Record<string, LegacyHarnessProjection> = {
   core_person_rahul: {
     schemaVersion: "1.0",
     source: "ai-tathastu",

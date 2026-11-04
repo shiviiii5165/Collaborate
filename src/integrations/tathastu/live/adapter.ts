@@ -2,7 +2,7 @@
 // Designed to be activated when AI Tathastu Core services and credentials are live.
 import {
   ITathastuIntegrationAdapter,
-  ProfessionalProjectionV1,
+  LegacyHarnessProjection,
   TathastuSyncEvent,
 } from '../contract/types';
 import { validateProfessionalProjection } from '../contract/validator';
@@ -17,7 +17,7 @@ export class LiveTathastuAdapter implements ITathastuIntegrationAdapter {
     this.serviceToken = process.env.TATHASTU_CORE_SERVICE_TOKEN;
   }
 
-  public async fetchProjection(sourcePersonId: string): Promise<ProfessionalProjectionV1> {
+  public async fetchProjection(sourcePersonId: string): Promise<LegacyHarnessProjection> {
     const token = this.serviceToken || process.env.AI_TATHASTU_CLIENT_SECRET;
     if (!token) {
       throw new Error(
@@ -54,7 +54,7 @@ export class LiveTathastuAdapter implements ITathastuIntegrationAdapter {
   }
 
 
-  public async getEligibleDiscoveryMembers(): Promise<ProfessionalProjectionV1[]> {
+  public async getEligibleDiscoveryMembers(): Promise<LegacyHarnessProjection[]> {
     if (!this.serviceToken) {
       throw new Error(
         'LIVE_CORE_NOT_CONFIGURED: TATHASTU_CORE_SERVICE_TOKEN is required for LiveTathastuAdapter.'

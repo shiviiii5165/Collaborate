@@ -44,8 +44,27 @@ export function resolveServerSecret(name: 'AUTH_SECRET' | 'SESSION_SECRET'): str
   return ephemeral.get(name)!;
 }
 
+const isCloudRuntime = () =>
+  Boolean(process.env.RENDER || process.env.VERCEL || process.env.VERCEL_ENV || process.env.FLY_APP_NAME || process.env.AWS_REGION);
+
+/**
+ * Fail closed on a hosted runtime that is not configured as production. Without this, a
+ * hosted deploy missing NODE_ENV=production would use random per-process secrets and would
+ * honour COLLABORATE_ENABLE_FIXTURES (simulated identities). Names only, never values.
+ */
+export function assertSafeRuntimeConfig(): void {
+  if (!isCloudRuntime()) return;
+  if (process.env.NODE_ENV !== 'production') {
+    throw new Error('UNSAFE_RUNTIME_CONFIG: NODE_ENV must be "production" on a hosted runtime.');
+  }
+  if (process.env.COLLABORATE_ENABLE_FIXTURES === 'true') {
+    throw new Error('UNSAFE_RUNTIME_CONFIG: COLLABORATE_ENABLE_FIXTURES must not be set on a hosted runtime.');
+  }
+}
+
 /** Throws in production if any required server secret is missing. Names only, never values. */
 export function assertProductionSecrets(): void {
+  assertSafeRuntimeConfig();
   if (process.env.NODE_ENV !== 'production') return;
   resolveServerSecret('AUTH_SECRET');
   resolveServerSecret('SESSION_SECRET');

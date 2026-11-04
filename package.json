@@ -9,7 +9,12 @@
     "lint": "tsc --noEmit",
     "test:sso": "tsx --import ./tests/setup-isolated-db.mjs tests/tathastu_sso_client_hardening.test.mjs && tsx --import ./tests/setup-isolated-db.mjs tests/tathastu_production_integration.test.mjs",
     "test:authz": "tsx --import ./tests/setup-isolated-db.mjs tests/api_authorization_hardening.test.mjs && tsx --import ./tests/setup-isolated-db.mjs tests/cors_and_payment_webhook.test.mjs",
-    "test": "npm run test:authz && npm run test:sso",
+    "test:phase2": "tsx --import ./tests/setup-isolated-db.mjs tests/phase2_privacy_ownership_sync.test.mjs && tsx tests/phase2_multi_instance_pg.test.mjs",
+    "test:phase3": "tsx --import ./tests/setup-isolated-db.mjs tests/phase3_intelligence_matching.test.mjs",
+    "test:migration": "tsx tests/migration_readiness.test.mjs && tsx scripts/rehearse_migration.ts",
+    "rehearse:migration": "tsx scripts/rehearse_migration.ts",
+    "test:staging": "tsx tests/staging_isolation.test.mjs",
+    "test": "npm run test:authz && npm run test:sso && npm run test:phase2 && npm run test:phase3 && npm run test:migration && npm run test:staging",
     "build:web": "next build",
     "start:web": "next start",
     "build:api": "tsc -p apps/api/tsconfig.json",
@@ -35,6 +40,9 @@
     "react-dom": "^19.3.0",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
-    "zod": "^4.6.5"
+    "zod": "^4.6.6"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.8"
   }
 }

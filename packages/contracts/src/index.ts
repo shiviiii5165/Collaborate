@@ -30,7 +30,10 @@ export interface ProjectItem {
   forks?: number;
   demoUrl?: string;
   imageUrl?: string;
+  links?: string[];
   sourceOrigin?: 'collaborate' | 'tathastu_core';
+  /** Imported item the member edited in Collaborate (the AI Tathastu source is unchanged). */
+  locallyEdited?: boolean;
 }
 
 export interface ExperienceItem {
@@ -39,6 +42,8 @@ export interface ExperienceItem {
   company: string;
   period: string;
   bullets: string[];
+  sourceOrigin?: 'collaborate' | 'tathastu_core';
+  locallyEdited?: boolean;
 }
 
 export interface EducationItem {
@@ -47,7 +52,85 @@ export interface EducationItem {
   period: string;
   degree: string;
   score: string;
+  sourceOrigin?: 'collaborate' | 'tathastu_core';
+  locallyEdited?: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// Profile ownership (Phase 2). Collaborate-authored and AI Tathastu-imported data
+// are stored separately; MemberProfile.skills/projects/experience/education hold
+// the deterministic merge of the two (see src/modules/profile/ownership.ts).
+// ---------------------------------------------------------------------------
+
+export interface ImportedSkill {
+  name: string;
+  category: string | null;
+  evidenceStrength: number | null;
+  verified: boolean;
+  verificationStatus: string | null;
+  sources: string[];
+}
+
+export interface ImportedAchievement {
+  type: 'achievement' | 'certification' | 'publication';
+  title: string;
+  issuer: string | null;
+  date: string | null;
+  url: string | null;
+}
+
+export interface ImportedErisReadiness {
+  score: number;
+  role: string | null;
+  gaps: unknown[];
+  computedAt: string | null;
+}
+
+/** Normalized, consent-filtered copy of the latest accepted ProfessionalProjectionV1. */
+export interface ImportedTathastuProfile {
+  schema: 'ProfessionalProjectionV1';
+  version: 1;
+  sourceSubject: string;
+  generatedAt: string;
+  consentUpdatedAt: string | null;
+  syncedAt: string;
+  scopes: Record<string, boolean>;
+  masked: string[];
+  identity: {
+    name: string | null;
+    headline: string | null;
+    avatarUrl: string | null;
+    location: string | null;
+    careerRoleLabel: string | null;
+  };
+  /** null = section not shared by the member. */
+  skills: ImportedSkill[] | null;
+  erisReadiness: ImportedErisReadiness | null;
+  projects: ProjectItem[] | null;
+  experience: ExperienceItem[] | null;
+  education: EducationItem[] | null;
+  achievements: ImportedAchievement[] | null;
+}
+
+export interface LocalProfileSections {
+  skills: string[];
+  projects: ProjectItem[];
+  experience: ExperienceItem[];
+  education: EducationItem[];
+  /** Imported entries the member chose to hide in Collaborate (skills: lower-cased names; others: ids). */
+  hiddenImported: { skills: string[]; projects: string[]; experience: string[]; education: string[] };
+  /** Member edits of imported entries, keyed by imported id. Never written back to AI Tathastu. */
+  importedOverrides: {
+    projects: Record<string, ProjectItem>;
+    experience: Record<string, ExperienceItem>;
+    education: Record<string, EducationItem>;
+  };
+  /** Locally entered counters used when the matching section is not imported. */
+  metrics: { achievements?: number; publications?: number };
+}
+
+/** Values Collaborate filled from the import into otherwise empty identity fields. */
+export type ImportedIdentityFills = Partial<Record<'headline' | 'avatarUrl' | 'location' | 'statusBadge', string>>;
 
 export interface ActivityItem {
   id: string;
@@ -127,8 +210,27 @@ export interface MemberProfile {
   isRestricted?: boolean;
   deactivated?: boolean;
   tathastu_user_id?: string;
+  /**
+   * Legacy (pre-Phase 2): raw projection as received. Migrated into importedProfile on first
+   * touch and then removed. In API responses this key carries only the sanitized
+   * TathastuProfileView produced by src/modules/profile/public-member.ts.
+   */
   tathastuProfile?: any;
   tathastuLastSyncedAt?: string;
+  importedProfile?: ImportedTathastuProfile | null;
+  localProfile?: LocalProfileSections;
+  importedIdentity?: ImportedIdentityFills;
+  /** True once the member explicitly chose whether to appear in discovery. */
+  discoveryChoiceMade?: boolean;
+  /** When the current AI Tathastu link was established; revocations sent before it are stale. */
+  tathastuLinkedAt?: string;
+  /** Collaborate-owned recommendation controls. */
+  recommendationPreferences?: {
+    /** Never show me in other members' recommendations (search/discovery follow `discoverable`). */
+    hideFromRecommendations?: boolean;
+    /** Members I dismissed; never recommended to me again. */
+    dismissedMemberIds?: string[];
+  };
 }
 
 export interface ConnectionRecord {
@@ -208,10 +310,14 @@ export interface ProfileViewLedgerEntry {
 
 export interface RecommendationMatch {
   member: MemberProfile;
+  /** Relative ranking value (0-100) within the result set; not a probability. */
   matchScore: number;
   reason: string;
   sharedInterests: string[];
   mutualCount: number;
+  /** Evidence-backed explanation (src/modules/intelligence/matching.ts). */
+  explanation?: unknown;
+  categories?: string[];
 }
 
 export interface ProfileStatsResponse {

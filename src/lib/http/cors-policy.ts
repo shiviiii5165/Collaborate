@@ -37,7 +37,10 @@ function listFromEnv(name: string): string[] {
 }
 
 export function getAllowedOrigins(): Set<string> {
-  const origins = new Set<string>(PRODUCTION_ORIGINS);
+  // A staging API (COLLABORATE_DEPLOY_ENV=staging) trusts only its own configured origins,
+  // never the production frontends.
+  const staging = (process.env.COLLABORATE_DEPLOY_ENV || '').trim().toLowerCase() === 'staging';
+  const origins = new Set<string>(staging ? [] : PRODUCTION_ORIGINS);
   for (const o of listFromEnv('NEXT_PUBLIC_APP_URL')) origins.add(o);
   for (const o of listFromEnv('CORS_ALLOWED_ORIGINS')) origins.add(o);
   if (process.env.NODE_ENV !== 'production') for (const o of DEV_ORIGINS) origins.add(o);

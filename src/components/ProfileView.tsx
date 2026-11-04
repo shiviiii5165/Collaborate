@@ -642,12 +642,16 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
                     <div className="project-stats-row">
                       <div className="project-meta-icons">
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <Star size={14} color="#F59E0B" /> {member.projects[0].stars || 112}
-                        </span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <GitFork size={14} color="#64748B" /> {member.projects[0].forks || 28}
-                        </span>
+                        {typeof member.projects[0].stars === 'number' && (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <Star size={14} color="#F59E0B" /> {member.projects[0].stars}
+                          </span>
+                        )}
+                        {typeof member.projects[0].forks === 'number' && (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <GitFork size={14} color="#64748B" /> {member.projects[0].forks}
+                          </span>
+                        )}
                       </div>
                       {member.projects[0].demoUrl && (
                         <a
@@ -812,8 +816,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     </div>
                     <div className="project-stats-row">
                       <div className="project-meta-icons">
-                        <span>⭐ {proj.stars || 50}</span>
-                        <span>🔱 {proj.forks || 12}</span>
+                        {typeof proj.stars === 'number' && <span>⭐ {proj.stars}</span>}
+                        {typeof proj.forks === 'number' && <span>🔱 {proj.forks}</span>}
+                        {proj.sourceOrigin === 'tathastu_core' && (
+                          <span title={proj.locallyEdited ? 'Imported from AI Tathastu, edited in Collaborate' : 'Imported from AI Tathastu'}>
+                            {proj.locallyEdited ? 'AI Tathastu · edited' : 'AI Tathastu'}
+                          </span>
+                        )}
                       </div>
                       {proj.demoUrl && (
                         <a

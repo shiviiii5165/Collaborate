@@ -2,6 +2,8 @@
 // Simulates the 10 synchronization events specified in Phase P3 Section 16.
 import { durableDb } from '@/lib/db/index';
 import { getTathastuAdapter, TathastuSyncEvent, TathastuSyncEventType } from '../index';
+import { FederationService } from '@/modules/federation/client';
+import { TathastuSsoService } from '@/modules/identity/tathastu-sso';
 
 export interface SyncSimulationReport {
   eventId: string;
@@ -47,49 +49,18 @@ export class TathastuSyncSimulator {
         break;
       }
 
-      case 'profile_updated': {
-        if (member) {
-          // Preserve local overrides: never overwrite custom headline or about if modified locally
-          preservedOverrides = ['headline', 'about'];
-          if (payload?.profile?.skills) {
-            const skillSet = new Set(member.skills);
-            for (const s of payload.profile.skills) {
-              skillSet.add(typeof s === 'string' ? s : s.name);
-            }
-            member.skills = Array.from(skillSet);
-          }
-          durableDb.saveMember(member);
-          message = `Updated member ${member.id} while preserving custom headline and bio overrides.`;
-        }
-        break;
-      }
-
-      case 'new_confirmed_project': {
-        if (member && payload?.project) {
-          const exists = member.projects.some((p) => p.title === payload.project.title);
-          if (!exists) {
-            member.projects.push({
-              id: payload.project.id || `proj_${Date.now()}`,
-              title: payload.project.title,
-              description: payload.project.description || '',
-              tags: payload.project.tags || [],
-              sourceOrigin: 'tathastu_core',
-              featured: false,
-            });
-            durableDb.saveMember(member);
-          }
-          message = `Merged verified Core project into portfolio for member ${member.id}.`;
-        }
-        break;
-      }
-
+      // Events that change imported data re-import the harness projection through the same
+      // validated ownership pipeline production uses (never by editing the merged fields).
+      case 'profile_updated':
+      case 'new_confirmed_project':
       case 'approved_skill_updated': {
-        if (member && payload?.skillName) {
-          if (!member.skills.includes(payload.skillName)) {
-            member.skills.push(payload.skillName);
-            durableDb.saveMember(member);
-          }
-          message = `Added approved skill ${payload.skillName} to member ${member.id}.`;
+        if (member) {
+          preservedOverrides = ['headline', 'about', 'local skills', 'local projects'];
+          const projection = (await FederationService.fetchApprovedProjection(sourcePersonId)) as any;
+          projection.generatedAt = new Date().toISOString();
+          TathastuSsoService.importProjection(member, projection);
+          await durableDb.saveMemberAsync(member);
+          message = `Re-imported AI Tathastu data for member ${member.id}; Collaborate-authored data preserved.`;
         }
         break;
       }
@@ -103,48 +74,17 @@ export class TathastuSyncSimulator {
         break;
       }
 
-      case 'consent_revoked': {
-        if (member) {
-          // Remove Tathastu synced projects, revert sync status
-          member.projects = member.projects.filter((p) => p.sourceOrigin !== 'tathastu_core');
-          member.tathastuSyncStatus = 'unlinked';
-          member.isLinkedWithTathastu = false;
-          durableDb.saveMember(member);
-          message = `Consent revoked by user. Quarantined Core projects removed; Collaborate account preserved.`;
-        }
-        break;
-      }
-
-      case 'user_unlinked': {
-        if (member) {
-          member.isLinkedWithTathastu = false;
-          member.tathastuSyncStatus = 'unlinked';
-          if (mapping) durableDb.removeMapping(mapping.id);
-          durableDb.saveMember(member);
-          message = `User unlinked cleanly. Collaborate account remains active independently.`;
-        }
-        break;
-      }
-
-      case 'source_record_deleted': {
-        if (member) {
-          member.isLinkedWithTathastu = false;
-          member.tathastuSyncStatus = 'unlinked';
-          durableDb.saveMember(member);
-          message = `Upstream Core record deleted. Retained Collaborate member record without data loss.`;
-        }
-        break;
-      }
-
+      case 'consent_revoked':
+      case 'user_unlinked':
+      case 'source_record_deleted':
       case 'user_deactivated': {
         if (member) {
-          member.isLinkedWithTathastu = false;
-          durableDb.saveMember(member);
-          message = `Upstream Core account deactivated. Collaborate account preserved.`;
+          TathastuSsoService.unlinkAndPurge(member);
+          await durableDb.saveMemberAsync(member);
+          message = `AI Tathastu link removed and imported data deleted; Collaborate account and its own data preserved.`;
         }
         break;
       }
-
       case 'conflicting_local_override': {
         if (member) {
           preservedOverrides = ['headline', 'about'];

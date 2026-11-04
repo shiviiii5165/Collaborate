@@ -1,7 +1,7 @@
 // MockTathastuAdapter - Replaceable Mock Core Integration for Development and Testing
 import {
   ITathastuIntegrationAdapter,
-  ProfessionalProjectionV1,
+  LegacyHarnessProjection,
   TathastuSyncEvent,
 } from '../contract/types';
 import { validateProfessionalProjection } from '../contract/validator';
@@ -10,7 +10,7 @@ import { MOCK_CORE_PERSONAS } from '../fixtures/personas';
 export class MockTathastuAdapter implements ITathastuIntegrationAdapter {
   public readonly mode = 'mock' as const;
 
-  public async fetchProjection(sourcePersonId: string): Promise<ProfessionalProjectionV1> {
+  public async fetchProjection(sourcePersonId: string): Promise<LegacyHarnessProjection> {
     const raw = MOCK_CORE_PERSONAS[sourcePersonId] || MOCK_CORE_PERSONAS['core_person_rahul'];
     if (!raw) {
       throw new Error(`Mock Tathastu Core persona not found: ${sourcePersonId}`);
@@ -21,7 +21,7 @@ export class MockTathastuAdapter implements ITathastuIntegrationAdapter {
     return validated;
   }
 
-  public async getEligibleDiscoveryMembers(): Promise<ProfessionalProjectionV1[]> {
+  public async getEligibleDiscoveryMembers(): Promise<LegacyHarnessProjection[]> {
     return Object.values(MOCK_CORE_PERSONAS).filter(
       (p) => p.permissions.importApproved && p.permissions.discoverable
     );

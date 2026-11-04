@@ -10,7 +10,9 @@ import crypto from 'crypto';
 import Fastify, { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
-import { durableDb, getKolkataDateKey } from '@/lib/db/index';
+import { durableDb, getKolkataDateKey, ConcurrentModificationError } from '@/lib/db/index';
+import { toPublicMember, toSelfMember, isVisibleInDiscovery } from '@/modules/profile/public-member';
+import { applyLocalProfileEdit, releaseIdentityFills } from '@/modules/profile/ownership';
 import { isNeonConfigured } from '@/lib/db/neon';
 import { IdentityService } from '@/modules/identity/service';
 import { TathastuSsoService } from '@/modules/identity/tathastu-sso';
@@ -33,10 +35,13 @@ import {
   PAYMENT_WEBHOOK_PROVIDER,
 } from '@/modules/billing/payment-webhook';
 import { isOriginAllowed } from '@/lib/http/cors-policy';
+import { checkPasswordAttempt } from '@/lib/http/rate-limit';
 import { canInitiateContact } from '@collaborate/domain';
 import type { MemberProfile } from '@collaborate/contracts';
-import { getRecommendationsForMember } from '@/lib/recommendations';
-import { FederationService } from '@/modules/federation/client';
+import { getRecommendationsForMember, getProjectCollaborators } from '@/lib/recommendations';
+import { MATCH_CATEGORIES, type MatchCategory } from '@/modules/intelligence/matching';
+import { getProfileIntelligence } from '@/modules/intelligence/profile-intelligence';
+import { FederationService, ReauthorizationRequiredError } from '@/modules/federation/client';
 import { TathastuSyncSimulator } from '@/integrations/tathastu/sync/simulator';
 
 // Extend FastifyRequest with authenticated user and rawBody
@@ -54,6 +59,38 @@ export function buildServer(): FastifyInstance {
   const fastify = Fastify({
     logger: false,
     trustProxy: true,
+  });
+
+  // 0. Shared durable storage (Postgres mode). Every request first pulls documents changed by
+  //    other instances; every response is sent only after this request's changes are durably
+  //    written. A write conflict with another instance returns 409 and writes nothing.
+  //    No-ops for the local JSON store used in development and tests.
+  const LIVENESS_PATHS = new Set(['/', '/health']);
+  fastify.addHook('onRequest', async (req, reply) => {
+    if (LIVENESS_PATHS.has(req.url)) return;
+    try {
+      await durableDb.syncFromStore();
+    } catch (err: any) {
+      console.error('[Storage] Sync failed:', err?.message || err);
+      return reply.status(503).send({ error: 'STORAGE_UNAVAILABLE', message: 'Storage is temporarily unavailable.' });
+    }
+  });
+  fastify.addHook('onSend', async (req, reply, payload) => {
+    if (!durableDb.usesSharedStore || LIVENESS_PATHS.has(req.url)) return payload;
+    try {
+      await durableDb.flush(req.method !== 'GET' && req.method !== 'HEAD' && req.method !== 'OPTIONS');
+      return payload;
+    } catch (err: any) {
+      reply.header('content-type', 'application/json; charset=utf-8');
+      reply.removeHeader('set-cookie');
+      if (err instanceof ConcurrentModificationError) {
+        reply.code(409);
+        return JSON.stringify({ error: 'CONCURRENT_MODIFICATION', message: 'This change conflicted with another update. Please retry.' });
+      }
+      console.error('[Storage] Flush failed:', err?.message || err);
+      reply.code(503);
+      return JSON.stringify({ error: 'STORAGE_UNAVAILABLE', message: 'Your change could not be saved. Please retry.' });
+    }
   });
 
   // 1. CORS: exact origins only (see src/lib/http/cors-policy.ts). No wildcards.
@@ -108,6 +145,15 @@ export function buildServer(): FastifyInstance {
     }
   );
 
+
+  // 2b. Brute-force protection for password-bearing endpoints.
+  const limitPasswordAttempt = (req: FastifyRequest, reply: FastifyReply, account: string): boolean => {
+    const r = checkPasswordAttempt(req.ip || 'unknown', account || 'unknown');
+    if (r.allowed) return true;
+    reply.header('Retry-After', String(r.retryAfter));
+    reply.status(429).send({ error: 'TOO_MANY_ATTEMPTS', message: 'Too many attempts. Please wait and try again.', retryAfter: r.retryAfter });
+    return false;
+  };
 
   // 3. Auth Helpers
   const authenticate = async (req: FastifyRequest, reply: FastifyReply) => {
@@ -200,6 +246,7 @@ export function buildServer(): FastifyInstance {
     if (!email || !password || !fullName) {
       return reply.status(400).send({ error: 'Missing required registration fields' });
     }
+    if (!limitPasswordAttempt(req, reply, `register:${email}`)) return reply;
 
     try {
       const { member, token } = await IdentityService.registerStandalone(
@@ -210,7 +257,7 @@ export function buildServer(): FastifyInstance {
       );
 
       reply.header('Set-Cookie', buildSessionCookie(token));
-      return reply.status(201).send({ success: true, message: 'Registration successful', member });
+      return reply.status(201).send({ success: true, message: 'Registration successful', member: toSelfMember(member) });
     } catch (err: any) {
       return reply.status(400).send({ error: err.message || 'Registration failed' });
     }
@@ -221,11 +268,12 @@ export function buildServer(): FastifyInstance {
     if (!email || !password) {
       return reply.status(400).send({ error: 'Missing email or password' });
     }
+    if (!limitPasswordAttempt(req, reply, `login:${email}`)) return reply;
 
     try {
       const { member, token } = await IdentityService.loginWithPassword(email, password);
       reply.header('Set-Cookie', buildSessionCookie(token));
-      return reply.send({ success: true, message: 'Logged in successfully', member });
+      return reply.send({ success: true, message: 'Logged in successfully', member: toSelfMember(member) });
     } catch (err: any) {
       return reply.status(401).send({ error: err.message || 'Login failed' });
     }
@@ -244,7 +292,8 @@ export function buildServer(): FastifyInstance {
     if (!member) {
       return reply.status(404).send({ error: 'Member not found' });
     }
-    return reply.send({ authenticated: true, member, user: member, session: req.user });
+    const self = toSelfMember(member);
+    return reply.send({ authenticated: true, member: self, user: self, session: req.user });
   });
 
   // ============================================================================
@@ -297,7 +346,11 @@ export function buildServer(): FastifyInstance {
 
         const conn = durableDb.getConnectionState(viewerId, id);
         return reply.send({
-          member,
+          member: toPublicMember(member, {
+            viewerId,
+            isConnected: conn?.status === 'accepted',
+            isAdmin: req.user?.role === 'admin',
+          }),
           quota: {
             remaining: quotaResult.remaining,
             alreadyViewedToday: quotaResult.alreadyViewedToday,
@@ -311,7 +364,7 @@ export function buildServer(): FastifyInstance {
       // Viewing self or guest viewing
       const connStatus = viewerId === id ? 'self' : 'not_connected';
       return reply.send({
-        member,
+        member: viewerId === id ? toSelfMember(member) : toPublicMember(member, {}),
         quota: { remaining: 3, alreadyViewedToday: true, dateKey: getKolkataDateKey() },
         connectionStatus: connStatus,
       });
@@ -324,12 +377,14 @@ export function buildServer(): FastifyInstance {
       if (!member || (member.id !== req.user.userId && req.user.role !== 'admin')) {
         return reply.status(404).send({ error: 'Profile not found' });
       }
-      return reply.send({ member });
+      return reply.send({ member: toSelfMember(member) });
     }
 
+    // Directory listing: only members who chose to be discoverable with a public profile.
     const members = durableDb
       .getAllMembers()
-      .filter((m) => !m.deactivated && !m.isRestricted && m.profileVisibility === 'public');
+      .filter((m) => m.profileVisibility === 'public' && isVisibleInDiscovery(m, viewerId ? durableDb.getMemberById(viewerId) : null, false))
+      .map((m) => toPublicMember(m, { viewerId }));
     return reply.send(members);
   });
 
@@ -338,7 +393,13 @@ export function buildServer(): FastifyInstance {
     'id', 'email', 'role', 'plan', 'planExpiresAt', 'isVerified', 'verifiedCategory', 'verifiedAt',
     'tathastu_user_id', 'isLinkedWithTathastu', 'tathastuSyncStatus', 'tathastuProfile', 'tathastuLastSyncedAt',
     'isRestricted', 'deactivated', 'safeguardingApproved', 'isUnder18', 'statusBadges',
+    // Ownership bookkeeping: changed only through the import pipeline or applyLocalProfileEdit.
+    'importedProfile', 'localProfile', 'importedIdentity', 'tathastuLinkedAt', 'discoveryChoiceMade',
+    // Validated through POST /api/recommendations/preferences only.
+    'recommendationPreferences',
   ];
+  /** Sections whose effective value is derived from local + imported data. */
+  const OWNED_SECTIONS = ['skills', 'projects', 'experience', 'education', 'metrics'] as const;
 
   fastify.put('/api/profiles', { preHandler: authenticate }, async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
     const body = req.body || {};
@@ -354,18 +415,22 @@ export function buildServer(): FastifyInstance {
     const existing = durableDb.getMemberById(targetUserId);
     if (!existing) return reply.status(404).send({ error: 'Member not found' });
 
-    const updatedMember: MemberProfile = {
-      ...existing,
-      ...updates,
-      metrics: { ...existing.metrics, ...(updates.metrics || {}) },
-      skills: updates.skills || existing.skills,
-      projects: updates.projects || existing.projects,
-      experience: updates.experience || existing.experience,
-      education: updates.education || existing.education,
-    };
+    // Plain fields are Collaborate-owned and set directly. Profile sections go through the
+    // ownership model: edits become local data, hides or overrides of imported entries, and
+    // never modify the imported AI Tathastu copy.
+    const sectionUpdates: Record<string, any> = {};
+    for (const key of OWNED_SECTIONS) {
+      if (key in updates) sectionUpdates[key] = updates[key];
+      delete updates[key];
+    }
+    const updatedMember: MemberProfile = { ...existing, ...updates };
+    if ('discoverable' in updates) updatedMember.discoveryChoiceMade = true;
+    releaseIdentityFills(updatedMember, Object.keys(updates));
+    applyLocalProfileEdit(updatedMember, sectionUpdates);
 
     await durableDb.saveMemberAsync(updatedMember);
-    return reply.send({ success: true, member: updatedMember, profile: updatedMember });
+    const self = toSelfMember(updatedMember);
+    return reply.send({ success: true, member: self, profile: self });
   });
 
   fastify.get('/api/discover', async (req: FastifyRequest<{ Querystring: { q?: string; tag?: string; skill?: string; viewerId?: string } }>, reply) => {
@@ -373,14 +438,22 @@ export function buildServer(): FastifyInstance {
     const { q, tag, skill } = req.query;
     const currentUserId = req.user?.userId || ''; // never from ?viewerId=
 
-    const recommendations = currentUserId ? getRecommendationsForMember(currentUserId, 6) : [];
+    const viewer = currentUserId ? durableDb.getMemberById(currentUserId) : null;
+    const isConnected = (otherId: string) =>
+      Boolean(currentUserId) && durableDb.getConnectionState(currentUserId, otherId)?.status === 'accepted';
 
+    const recommendations = currentUserId
+      ? getRecommendationsForMember(currentUserId, 6).map((r) => ({
+          ...r,
+          member: toPublicMember(r.member, { viewerId: currentUserId, isConnected: isConnected(r.member.id) }),
+        }))
+      : [];
+
+    // Same gate as recommendations: discoverable, visibility, safeguarding, blocks (both ways).
     let members = durableDb.getAllMembers().filter((m) => {
-      if (m.deactivated || m.isRestricted) return false;
-      if (m.id === currentUserId || m.role === 'admin') return false;
-      if (m.profileVisibility === 'private') return false;
+      if (m.id === currentUserId) return false;
       if (currentUserId && durableDb.isBlocked(currentUserId, m.id)) return false;
-      return true;
+      return isVisibleInDiscovery(m, viewer, isConnected(m.id));
     });
 
     if (q) {
@@ -404,7 +477,7 @@ export function buildServer(): FastifyInstance {
     const results = members.map((m) => {
       const conn = currentUserId ? durableDb.getConnectionState(currentUserId, m.id) : null;
       return {
-        ...m,
+        ...toPublicMember(m, { viewerId: currentUserId, isConnected: conn?.status === 'accepted' }),
         connectionStatus: conn ? conn.status : 'not_connected',
         connectionId: conn ? conn.id : null,
       };
@@ -417,6 +490,67 @@ export function buildServer(): FastifyInstance {
       recommendations,
       viewerPlan: currentUserId ? durableDb.getMemberById(currentUserId)?.plan || 'free' : 'free',
     });
+  });
+
+  // ============================================================================
+  // PROFILE INTELLIGENCE & EXPLAINABLE RECOMMENDATIONS
+  // ============================================================================
+  // Own structured profile understanding (skills with provenance and evidence, derived
+  // domains, completeness). Only ever for the session member.
+  fastify.get('/api/intelligence/me', { preHandler: authenticate }, async (req: FastifyRequest, reply) => {
+    const member = durableDb.getMemberById(req.user!.userId);
+    if (!member) return reply.status(404).send({ error: 'Member not found' });
+    reply.header('Cache-Control', 'no-store');
+    return reply.send({ intelligence: getProfileIntelligence(member) });
+  });
+
+  fastify.get('/api/recommendations', { preHandler: authenticate }, async (req: FastifyRequest<{ Querystring: { category?: string; limit?: string } }>, reply) => {
+    const userId = req.user!.userId;
+    const category = (req.query.category || 'all') as MatchCategory;
+    if (!MATCH_CATEGORIES.includes(category)) {
+      return reply.status(400).send({ error: 'INVALID_CATEGORY', categories: MATCH_CATEGORIES });
+    }
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || 6, 20));
+    const recommendations = getRecommendationsForMember(userId, limit, category).map((r) => ({
+      ...r,
+      member: toPublicMember(r.member, { viewerId: userId, isConnected: false }),
+    }));
+    return reply.send({ category, count: recommendations.length, recommendations });
+  });
+
+  // Who could contribute to one of MY projects. Another member's project id returns 404.
+  fastify.get('/api/projects/collaborators', { preHandler: authenticate }, async (req: FastifyRequest<{ Querystring: { projectId?: string } }>, reply) => {
+    const userId = req.user!.userId;
+    const projectId = req.query.projectId || '';
+    const result = projectId ? getProjectCollaborators(userId, projectId) : null;
+    if (!result) return reply.status(404).send({ error: 'PROJECT_NOT_FOUND', message: 'Project not found in your profile' });
+    return reply.send({
+      ...result,
+      candidates: result.candidates.map((c) => ({
+        ...c,
+        member: toPublicMember(c.member, {
+          viewerId: userId,
+          isConnected: durableDb.getConnectionState(userId, c.member.id)?.status === 'accepted',
+        }),
+      })),
+    });
+  });
+
+  fastify.post('/api/recommendations/preferences', { preHandler: authenticate }, async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
+    const member = durableDb.getMemberById(req.user!.userId);
+    if (!member) return reply.status(404).send({ error: 'Member not found' });
+    const { hideFromRecommendations, dismissMemberId, undismissMemberId } = req.body || {};
+    const prefs = { ...(member.recommendationPreferences || {}) };
+    if (hideFromRecommendations !== undefined) {
+      if (typeof hideFromRecommendations !== 'boolean') return reply.status(400).send({ error: 'hideFromRecommendations must be boolean' });
+      prefs.hideFromRecommendations = hideFromRecommendations;
+    }
+    const dismissed = new Set(prefs.dismissedMemberIds || []);
+    if (typeof dismissMemberId === 'string' && dismissMemberId && dismissMemberId !== member.id) dismissed.add(dismissMemberId);
+    if (typeof undismissMemberId === 'string') dismissed.delete(undismissMemberId);
+    prefs.dismissedMemberIds = [...dismissed].slice(-500);
+    await durableDb.saveMemberAsync({ ...member, recommendationPreferences: prefs });
+    return reply.send({ success: true, recommendationPreferences: prefs });
   });
 
   // ============================================================================
@@ -569,7 +703,10 @@ export function buildServer(): FastifyInstance {
   // SAVED BOOKMARKS & STATS
   // ============================================================================
   fastify.get('/api/saved', { preHandler: authenticate }, async (req: FastifyRequest, reply) => {
-    const saved = durableDb.getSavedMembers(req.user!.userId);
+    const userId = req.user!.userId;
+    const saved = durableDb.getSavedMembers(userId).map((m) =>
+      toPublicMember(m, { viewerId: userId, isConnected: durableDb.getConnectionState(userId, m.id)?.status === 'accepted' })
+    );
     return reply.send({ count: saved.length, savedMembers: saved, savedProfiles: saved });
   });
 
@@ -617,6 +754,7 @@ export function buildServer(): FastifyInstance {
       if (!currentPassword || !newPassword) {
         return reply.status(400).send({ error: 'Missing current or new password' });
       }
+      if (!limitPasswordAttempt(req, reply, `pwchange:${userId}`)) return reply;
       const member = durableDb.getMemberById(userId);
       if (!member) return reply.status(404).send({ error: 'Member not found' });
       const cred = durableDb.getCredential(userId);
@@ -659,6 +797,7 @@ export function buildServer(): FastifyInstance {
     if (confirmation !== 'DELETE MY ACCOUNT') {
       return reply.status(400).send({ error: 'Confirmation phrase must be DELETE MY ACCOUNT' });
     }
+    if (!limitPasswordAttempt(req, reply, `delete:${userId}`)) return reply;
 
     const member = durableDb.getMemberById(userId);
     if (!member) return reply.status(404).send({ error: 'Member not found' });
@@ -689,7 +828,7 @@ export function buildServer(): FastifyInstance {
     if (!member) return reply.status(404).send({ error: 'Member not found' });
 
     const exportData = {
-      profile: member,
+      profile: toSelfMember(member),
       connections: durableDb.getAllConnections().filter((c) => c.requesterId === userId || c.recipientId === userId),
       exportedAt: new Date().toISOString(),
       platform: 'Collaborate by AI Tathastu',
@@ -786,18 +925,30 @@ export function buildServer(): FastifyInstance {
     const member = durableDb.getMemberById(memberId);
     if (!member) return reply.status(404).send({ error: 'Member not found' });
 
-    let claimed: boolean;
+    // Delivery ledger: the event counts as processed only after the upgrade is durably saved.
+    // A failed save leaves it retryable (503), so the provider's retry can still apply it.
+    let claim: 'claimed' | 'processed' | 'in_progress';
     try {
-      claimed = await durableDb.claimWebhookEventAsync(PAYMENT_WEBHOOK_PROVIDER, eventId, event.type, { memberId });
+      claim = await durableDb.beginWebhookDelivery(PAYMENT_WEBHOOK_PROVIDER, eventId, event.type);
     } catch {
       return reply.status(503).send({ error: 'WEBHOOK_STORE_UNAVAILABLE' });
     }
-    if (!claimed) return reply.status(409).send({ error: 'REPLAYED_EVENT', eventId });
+    if (claim === 'processed') return reply.status(409).send({ error: 'REPLAYED_EVENT', eventId });
+    if (claim === 'in_progress') return reply.status(409).send({ error: 'EVENT_IN_PROGRESS', eventId });
 
-    member.plan = 'premium';
-    member.planExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-    await durableDb.saveMemberAsync(member);
-    return reply.send({ success: true, verified: true, eventId, plan: member.plan });
+    const upgraded = {
+      ...member,
+      plan: 'premium' as const,
+      planExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+    try {
+      await durableDb.saveMemberAsync(upgraded);
+      await durableDb.completeWebhookDelivery(PAYMENT_WEBHOOK_PROVIDER, eventId);
+    } catch (err: any) {
+      await durableDb.failWebhookDelivery(PAYMENT_WEBHOOK_PROVIDER, eventId, err?.message || 'save failed').catch(() => undefined);
+      return reply.status(503).send({ error: 'PAYMENT_NOT_APPLIED_RETRY', eventId });
+    }
+    return reply.send({ success: true, verified: true, eventId, plan: upgraded.plan });
   };
 
   fastify.post('/api/webhooks/payments', handlePaymentWebhook);
@@ -1056,7 +1207,7 @@ export function buildServer(): FastifyInstance {
       reply.header('Set-Cookie', buildSessionCookie(token));
       return reply.send({
         success: true,
-        member,
+        member: toSelfMember(member),
         isNewUser,
         message: isNewUser
           ? 'Account successfully generated from AI Tathastu Single Sign-On.'
@@ -1078,11 +1229,12 @@ export function buildServer(): FastifyInstance {
     }
 
     const password = typeof req.body?.password === 'string' ? req.body.password : '';
+    if (!limitPasswordAttempt(req, reply, `link:${pending.email}`)) return reply;
     try {
       const { member, token } = await TathastuSsoService.completePendingLink({ ...pending, password });
       reply.clearCookie(PENDING_LINK_COOKIE_NAME, { path: '/' });
       reply.header('Set-Cookie', buildSessionCookie(token));
-      return reply.send({ success: true, member });
+      return reply.send({ success: true, member: toSelfMember(member) });
     } catch (err) {
       const safeCode = classifySsoError(err);
       logSsoFailure('link', err);
@@ -1096,31 +1248,33 @@ export function buildServer(): FastifyInstance {
     }
   });
 
-  // 4. Secure Webhook Receiver (HMAC-SHA256 Signed & Timestamp Validated)
-  fastify.post('/api/webhooks/tathastu', async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
-    const sigHeader = (
-      req.headers['x-ait-signature'] ||
-      req.headers['x-tathastu-signature'] ||
-      req.headers['x-signature'] ||
-      req.headers['x-hub-signature-256']
-    ) as string;
+  // 4. Webhook receiver (AI Tathastu contract: X-AIT-Signature t=<unix>,v1=<HMAC-SHA256(secret, "t.body")>).
+  //    Verified over the exact raw request bytes; replay window 5 minutes; delivery id taken
+  //    from the signed body; processed exactly once across instances via the delivery ledger.
+  fastify.post('/api/webhooks/tathastu', async (req: FastifyRequest, reply) => {
+    const sigHeader = req.headers['x-ait-signature'] as string | undefined;
+    const rawBody = req.rawBody;
+    if (!rawBody || rawBody.length === 0) {
+      return reply.status(400).send({ error: 'MISSING_RAW_BODY', message: 'Webhook body must be sent as application/json.' });
+    }
 
-    const timestampHeader = (
-      req.headers['x-tathastu-timestamp'] ||
-      req.headers['x-timestamp']
-    ) as string;
-
-    const rawBody = (req as any).rawBody || JSON.stringify(req.body || {});
-
-    // Cryptographic signature & replay freshness check (rejects missing/invalid signature with 401)
-    const sigResult = TathastuClient.verifyWebhookSignature(rawBody, sigHeader, timestampHeader);
+    const sigResult = TathastuClient.verifyWebhookSignature(rawBody, sigHeader, undefined, undefined, { requireContractFormat: true });
     if (!sigResult.valid) {
       return reply.status(401).send({ error: 'INVALID_SIGNATURE', message: sigResult.error });
     }
 
-    const event = req.body as any;
-    const result = await TathastuSsoService.processWebhook(event, req.headers as Record<string, string>);
-    return reply.status(200).send({ success: true, result });
+    let event: unknown;
+    try {
+      event = JSON.parse(rawBody.toString('utf8'));
+    } catch {
+      return reply.status(400).send({ error: 'INVALID_JSON' });
+    }
+
+    const result = await TathastuSsoService.processWebhook(event, {
+      'x-ait-delivery': req.headers['x-ait-delivery'] as string | undefined,
+      'x-ait-event': req.headers['x-ait-event'] as string | undefined,
+    });
+    return reply.status(result.status).send({ success: result.status === 200, result });
   });
 
   // Backward-compatible OIDC Aliases
@@ -1156,7 +1310,7 @@ export function buildServer(): FastifyInstance {
       reply.header('Set-Cookie', buildSessionCookie(token));
       return reply.send({
         success: true,
-        member,
+        member: toSelfMember(member),
         isNewUser,
         message: isNewUser
           ? 'Account successfully generated from AI Tathastu SSO.'
@@ -1180,23 +1334,41 @@ export function buildServer(): FastifyInstance {
     let responseText = '';
     let quickActions: string[] = [];
 
+    // Answers are built only from this member's own data and the explainable matching engine.
+    // No invented statistics, people, levels or claims.
+    const intel = getProfileIntelligence(member);
+    const firstName = member.fullName.split(' ')[0];
     if (cleanPrompt.includes('collaborator') || cleanPrompt.includes('project')) {
       const recs = getRecommendationsForMember(member.id, 2);
-      const names = recs.map((r) => `${r.member.fullName} (${r.member.headline.split('|')[0].trim()})`).join(' and ');
-      responseText = `Based on your featured project "${member.projects[0]?.title || 'Tathastu AI Assistant'}", I recommend connecting with ${names}. Both have complementary expertise in Vision Transformers and Distributed ML that would elevate your RAG evaluation benchmarks!`;
-      quickActions = ['Send Connection Request to Priya', 'View Project Details', 'Share Pitch Note'];
+      if (recs.length === 0) {
+        responseText = 'I could not find a well-supported match yet. Adding skills, projects and collaboration interests gives me real evidence to match on.';
+      } else {
+        responseText = recs.map((r) => `${r.member.fullName}: ${r.reason}`).join(' ');
+      }
+      quickActions = ['Discover people', 'Edit my projects'];
     } else if (cleanPrompt.includes('github') || cleanPrompt.includes('profile')) {
-      responseText = `Rahul, your GitHub has ${member.metrics.githubContributions} contributions this year, which is strong! To stand out to top AI engineering teams, consider pinning your featured repository, adding architectural diagrams (Mermaid or system graphs) to its README, and documenting reproducible evaluation benchmarks with latency metrics.`;
-      quickActions = ['Edit Featured Projects', 'Update Headline', 'Sync with Tathastu'];
-    } else if (cleanPrompt.includes('internship') || cleanPrompt.includes('opportunity')) {
-      responseText = `Given your goal of becoming a GenAI Engineer, researchers and engineers at Google (like Aman Verma) and IIIT Delhi are actively looking for collaborators on LLM evaluation pipelines. Reaching out with a specific question on their published work has an 82% higher acceptance rate!`;
-      quickActions = ['Discover ML Engineers', 'Draft Outreach Message'];
-    } else if (cleanPrompt.includes('roadmap') || cleanPrompt.includes('genai engineer')) {
-      responseText = `Your GenAI Engineer roadmap is currently at Level 3 of 5. You have mastered RAG architectures and vector databases. The next critical milestone is mastering multi-GPU inference caching (e.g. vLLM / TensorRT-LLM) and synthetic data evaluation pipelines.`;
-      quickActions = ['View Full Analysis', 'Explore Skills to Learn'];
+      const missing = intel.completeness.missing;
+      responseText = missing.length
+        ? `Your profile is missing: ${missing.join(', ')}. Filling these in improves how accurately you are matched.`
+        : 'Your profile covers every section I use for matching.';
+      const verified = intel.skills.filter((s) => s.provenance === 'ai_tathastu_verified').length;
+      if (verified) responseText += ` ${verified} of your skills are verified on AI Tathastu.`;
+      quickActions = ['Edit profile', 'Sync with Tathastu'];
+    } else if (cleanPrompt.includes('internship') || cleanPrompt.includes('opportunity') || cleanPrompt.includes('mentor')) {
+      const mentors = getRecommendationsForMember(member.id, 3, 'mentors');
+      responseText = mentors.length
+        ? `Members who say they mentor and fit your interests: ${mentors.map((r) => r.member.fullName).join(', ')}.`
+        : 'No members who state they mentor match your stated interests yet. Adding "mentorship" to your collaboration interests helps.';
+      quickActions = ['Discover people'];
+    } else if (cleanPrompt.includes('roadmap') || cleanPrompt.includes('skill')) {
+      const domains = intel.domains.slice(0, 2).map((d) => `${d.domain} (based on ${d.evidence.slice(0, 3).join(', ')})`);
+      responseText = domains.length
+        ? `From your listed skills and projects, your strongest areas are ${domains.join(' and ')}. This is derived from your profile, not an assessment.`
+        : 'Add skills or projects so I can describe your focus areas.';
+      quickActions = ['Explore skills'];
     } else {
-      responseText = `Great to connect, ${member.fullName.split(' ')[0]}! I'm analyzing your current network and verified profile. How can I assist your technical journey today?`;
-      quickActions = ['Find collaborators', 'Improve my profile', 'Review roadmap'];
+      responseText = `Hi ${firstName}! I can suggest collaborators, review what your profile is missing, or summarize your focus areas from your own profile data.`;
+      quickActions = ['Find collaborators', 'Improve my profile', 'Review my focus areas'];
     }
 
     return reply.send({
@@ -1231,8 +1403,15 @@ export function buildServer(): FastifyInstance {
     if (action === 'get_projection') {
       const personId = resolveOwnPersonId(userId, sourcePersonId);
       if (!personId) return reply.status(404).send({ error: 'NOT_LINKED', message: 'No linked AI Tathastu profile for this account' });
-      const projection = await FederationService.fetchApprovedProjection(personId);
-      return reply.send(projection);
+      try {
+        const projection = await FederationService.fetchApprovedProjection(personId);
+        return reply.send(projection);
+      } catch (err) {
+        if (err instanceof ReauthorizationRequiredError) {
+          return reply.status(409).send({ error: 'REAUTHORIZE_REQUIRED', message: err.message, startUrl: '/api/auth/tathastu/start' });
+        }
+        throw err;
+      }
     }
 
     const member = durableDb.getMemberById(userId);
@@ -1267,16 +1446,26 @@ export function buildServer(): FastifyInstance {
     if (action === 'one_click_import' || action === 'sync_profile') {
       const personId = resolveOwnPersonId(userId, sourcePersonId);
       if (!personId) return reply.status(404).send({ error: 'NOT_LINKED', message: 'Link your AI Tathastu account first' });
-      const projection = await FederationService.fetchApprovedProjection(personId);
-      const updated = await FederationService.syncProjectionToMember(userId, projection, syncSettings);
-      return reply.send({
-        success: true,
-        message:
-          action === 'sync_profile'
-            ? 'Profile refreshed from AI Tathastu successfully'
-            : 'Successfully generated profile draft from AI Tathastu Core',
-        member: updated,
-      });
+      try {
+        const projection = await FederationService.fetchApprovedProjection(personId);
+        const updated = await FederationService.syncProjectionToMember(userId, projection, syncSettings);
+        return reply.send({
+          success: true,
+          message:
+            action === 'sync_profile'
+              ? 'Profile refreshed from AI Tathastu successfully'
+              : 'Successfully generated profile draft from AI Tathastu Core',
+          member: toSelfMember(updated),
+        });
+      } catch (err: any) {
+        if (err instanceof ReauthorizationRequiredError) {
+          return reply.status(409).send({ error: 'REAUTHORIZE_REQUIRED', message: err.message, startUrl: '/api/auth/tathastu/start?prompt=consent' });
+        }
+        if (err?.name === 'ProjectionContractError' || String(err?.message).startsWith('PROJECTION_SUBJECT_MISMATCH')) {
+          return reply.status(422).send({ error: 'INVALID_PROJECTION', message: 'AI Tathastu returned a profile Collaborate cannot accept.' });
+        }
+        throw err;
+      }
     }
 
     if (action === 'update_sync_settings') {

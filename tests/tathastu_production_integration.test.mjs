@@ -38,6 +38,7 @@ import { TathastuSsoService } from '../src/modules/identity/tathastu-sso.ts';
 import { IdentityService } from '../src/modules/identity/service.ts';
 import { durableDb } from '../src/lib/db/index.ts';
 import { buildServer } from '../apps/api/src/server.ts';
+import { projectionV1 } from './helpers/projection-v1.mjs';
 
 let passedTests = 0;
 let totalTests = 0;
@@ -380,7 +381,7 @@ async function runSuite() {
   // --------------------------------------------------------------------------
   console.log('\n--- Section 4: Identity Resolution, Anti-Takeover & Projection ---');
 
-  await test('New AI Tathastu student creates Collaborate profile with verified status badges', async () => {
+  await test('New AI Tathastu member: imports consented data, NOT auto-verified, NOT auto-discoverable', async () => {
     const newStudentSub = `urn:tathastu:person:student_new_${testRunId}`;
     const newStudentEmail = `student_${testRunId}@aitathastu.test`;
 
@@ -392,43 +393,37 @@ async function runSuite() {
         sub: newStudentSub,
         email: newStudentEmail,
         fullName: 'Karan Malhotra',
-        profile: {
-          schemaVersion: '1.0',
-          source: 'ai-tathastu',
-          sourcePersonId: newStudentSub,
-          sourceVersion: '1.0',
-          updatedAt: new Date().toISOString(),
-          profile: {
-            displayName: 'Karan Malhotra',
-            headline: 'Systems & ML Infrastructure Engineer',
-            location: 'Bangalore, India',
-            education: [
-              { id: 'edu_1', institution: 'IIT Bombay', degree: 'B.Tech CSE', period: '2022 – 2026', score: 'CGPA: 9.4' },
-            ],
-            skills: [
-              { id: 'sk_1', name: 'Distributed Systems', category: 'framework', confirmedByCore: true },
-              { id: 'sk_2', name: 'CUDA', category: 'language', confirmedByCore: true },
-            ],
-            projects: [
-              { id: 'pr_1', title: 'vLLM Inference Engine', description: 'Optimized PagedAttention kernels', tags: ['CUDA', 'C++'], sourceOrigin: 'ai_tathastu_core' },
-            ],
-            achievements: [],
-            interests: ['MLOps', 'Distributed Training'],
-            portfolioLinks: [],
-          },
-          permissions: { importApproved: true, discoverable: true, allowedFieldPaths: [], consentVersion: '1.0', consentGrantedAt: new Date().toISOString() },
-          quarantinedPrivateData: [],
-        },
+        profile: projectionV1({
+          sub: newStudentSub,
+          email: newStudentEmail,
+          name: 'Karan Malhotra',
+          headline: 'Systems & ML Infrastructure Engineer',
+          location: { city: 'Bangalore', country: 'India' },
+          education: [{ institution: 'IIT Bombay', degree: 'B.Tech', fieldOfStudy: 'CSE', dates: '2022 – 2026', grade: 'CGPA: 9.4' }],
+          skills: [{ name: 'Distributed Systems', verified: true }, { name: 'CUDA', verified: true }],
+          projects: [{ key: 'p_vllm', title: 'vLLM Inference Engine', description: 'Optimized PagedAttention kernels', technologies: ['CUDA', 'C++'] }],
+          achievements: [],
+        }),
       },
     });
 
     assert.strictEqual(isNewUser, true);
     assert.strictEqual(member.email, newStudentEmail);
     assert.strictEqual(member.fullName, 'Karan Malhotra');
-    assert.strictEqual(member.isVerified, true);
+    assert.strictEqual(member.isVerified, false, 'SSO sign-in must not grant verification');
+    assert.ok(!member.statusBadges.includes('Verified Student'), 'no fabricated verification badge');
+    assert.strictEqual(member.discoverable, false, 'not discoverable until the member chooses');
+    assert.strictEqual(member.discoveryChoiceMade, false);
+    assert.ok(!(member.contextTags || []).includes(newStudentEmail), 'email never stored as a public tag');
     assert.strictEqual(member.isLinkedWithTathastu, true);
+    assert.strictEqual(member.headline, 'Systems & ML Infrastructure Engineer');
+    assert.strictEqual(member.location, 'Bangalore, India');
     assert.ok(member.skills.includes('Distributed Systems'));
-    assert.ok(member.projects.some((p) => p.title === 'vLLM Inference Engine'));
+    const imported = member.projects.find((p) => p.title === 'vLLM Inference Engine');
+    assert.ok(imported, 'imported project present');
+    assert.strictEqual(imported.sourceOrigin, 'tathastu_core');
+    assert.strictEqual(imported.stars, undefined, 'no invented stars');
+    assert.strictEqual(imported.forks, undefined, 'no invented forks');
     assert.ok(token && token.length > 20);
 
     // Verify external identity mapping saved
@@ -529,26 +524,13 @@ async function runSuite() {
         sub: studentSub,
         email: studentEmail,
         fullName: 'Siddharth Nair',
-        profile: {
-          schemaVersion: '1.0',
-          source: 'ai-tathastu',
-          sourcePersonId: studentSub,
-          sourceVersion: '2.0',
-          updatedAt: new Date().toISOString(),
-          profile: {
-            displayName: 'Siddharth Nair',
-            headline: 'Overwriting Remote Headline Attempt',
-            about: 'Overwriting Remote About Attempt',
-            skills: [{ id: 'sk_new', name: 'Vision Transformers', category: 'ml_ai', confirmedByCore: true }],
-            education: [],
-            projects: [],
-            achievements: [],
-            interests: [],
-            portfolioLinks: [],
-          },
-          permissions: { importApproved: true, discoverable: true, allowedFieldPaths: [], consentVersion: '1.0', consentGrantedAt: new Date().toISOString() },
-          quarantinedPrivateData: [],
-        },
+        profile: projectionV1({
+          sub: studentSub,
+          email: studentEmail,
+          name: 'Siddharth Nair',
+          headline: 'Overwriting Remote Headline Attempt',
+          skills: [{ name: 'Vision Transformers', category: 'ml_ai', verified: true }],
+        }),
       },
     });
 
@@ -572,30 +554,31 @@ async function runSuite() {
         sub: studentSub,
         email: studentEmail,
         fullName: 'Selective Consent Student',
-        profile: {
-          schemaVersion: '1.0',
-          source: 'ai-tathastu',
-          sourcePersonId: studentSub,
-          sourceVersion: '1.0',
-          updatedAt: new Date().toISOString(),
-          profile: {
-            displayName: 'Selective Consent Student',
-            skills: [{ id: 'sk_c1', name: 'PyTorch', category: 'framework', confirmedByCore: true }],
-            // projects is empty / omitted due to user unchecking projects switch
-            projects: [],
-            education: [],
-            achievements: [],
-            interests: [],
-            portfolioLinks: [],
-          },
-          permissions: { importApproved: true, discoverable: true, allowedFieldPaths: ['profile.skills'], consentVersion: '1.0', consentGrantedAt: new Date().toISOString() },
-          quarantinedPrivateData: [],
-        },
+        // Only the skills scope is on: every other section is null and listed in privacy.masked.
+        profile: projectionV1({ sub: studentSub, email: studentEmail, name: 'Selective Consent Student', skills: [{ name: 'PyTorch' }] }),
       },
     });
 
     assert.ok(member.skills.includes('PyTorch'));
     assert.strictEqual(member.projects.length, 0); // No phantom projects created
+    assert.strictEqual(member.importedProfile.projects, null);
+    assert.strictEqual(member.importedProfile.education, null);
+    assert.strictEqual(member.importedProfile.experience, null);
+    assert.strictEqual(member.importedProfile.achievements, null);
+  });
+
+  await test('Masked section is never imported even if the payload carries data for it', async () => {
+    const sub = `urn:tathastu:person:masked_${testRunId}`;
+    const email = `masked_${testRunId}@aitathastu.test`;
+    const p = projectionV1({ sub, email, name: 'Masked Student', skills: [{ name: 'Go' }], projects: [{ key: 'k1', title: 'Leaky Project' }] });
+    p.privacy.masked.push('projects'); // projects marked withheld: data present must still be ignored
+    p.privacy.scopes.projects = false;
+    const { member } = await TathastuSsoService.processCallback({
+      code: `code_masked_${testRunId}`, codeVerifier: 'v', state: 's',
+      claimsOverride: { sub, email, fullName: 'Masked Student', profile: p },
+    });
+    assert.ok(!member.projects.some((x) => x.title === 'Leaky Project'));
+    assert.strictEqual(member.importedProfile.projects, null);
   });
 
   // --------------------------------------------------------------------------
@@ -685,13 +668,17 @@ async function runSuite() {
     assert.ok(result.error?.includes('STALE_TIMESTAMP'));
   });
 
-  await test('Webhook idempotency: duplicate event deliveries and X-AIT-Delivery headers are safely acknowledged', () => {
-    const duplicateEventId = `evt_dedup_${testRunId}`;
-    const check1 = TathastuClient.checkAndRecordWebhookEvent(duplicateEventId);
-    assert.strictEqual(check1.isDuplicate, false);
+  await test('Webhook delivery ledger: claim -> complete -> duplicate; failed deliveries are retryable', async () => {
+    const id = `evt_dedup_${testRunId}`;
+    assert.strictEqual(await durableDb.beginWebhookDelivery('aitathastu', id, 'profile.updated'), 'claimed');
+    assert.strictEqual(await durableDb.beginWebhookDelivery('aitathastu', id, 'profile.updated'), 'in_progress');
+    await durableDb.completeWebhookDelivery('aitathastu', id);
+    assert.strictEqual(await durableDb.beginWebhookDelivery('aitathastu', id, 'profile.updated'), 'processed');
 
-    const check2 = TathastuClient.checkAndRecordWebhookEvent(duplicateEventId);
-    assert.strictEqual(check2.isDuplicate, true);
+    const failing = `evt_fail_${testRunId}`;
+    assert.strictEqual(await durableDb.beginWebhookDelivery('aitathastu', failing, 'profile.updated'), 'claimed');
+    await durableDb.failWebhookDelivery('aitathastu', failing, 'simulated');
+    assert.strictEqual(await durableDb.beginWebhookDelivery('aitathastu', failing, 'profile.updated'), 'claimed', 'failed delivery can be retried');
   });
 
   await test('Processes profile.updated webhook and merges newly verified capstone project', async () => {
@@ -706,24 +693,21 @@ async function runSuite() {
       claimsOverride: { sub: targetSub, email: targetEmail, fullName: 'Webhook Capstone Student' },
     });
 
-    // 2. Dispatch profile.updated webhook
+    // 2. Dispatch profile.updated webhook (AI Tathastu envelope: id, type, createdAt, data)
     const updateResult = await TathastuSsoService.processWebhook({
-      eventId: `evt_capstone_${testRunId}`,
-      eventType: 'profile.updated',
-      sourcePersonId: targetSub,
-      timestamp: new Date().toISOString(),
-      payload: {
-        profile: {
-          displayName: 'Webhook Capstone Student',
-          skills: [{ id: 'sk_cap', name: 'TensorRT-LLM', category: 'tool', confirmedByCore: true }],
-          projects: [
-            { id: 'proj_cap_1', title: 'Enterprise RAG Agent', description: 'Production sub-50ms latency RAG', tags: ['RAG', 'vLLM'], sourceOrigin: 'ai_tathastu_core' },
-          ],
-          education: [],
-          achievements: [],
-          interests: [],
-          portfolioLinks: [],
-        },
+      id: `evt_capstone_${testRunId}`,
+      type: 'profile.updated',
+      createdAt: new Date().toISOString(),
+      data: {
+        userId: targetSub,
+        reason: 'profile_recomputed',
+        profile: projectionV1({
+          sub: targetSub,
+          email: targetEmail,
+          name: 'Webhook Capstone Student',
+          skills: [{ name: 'TensorRT-LLM', category: 'tool', verified: true }],
+          projects: [{ key: 'proj_cap_1', title: 'Enterprise RAG Agent', description: 'Production sub-50ms latency RAG', technologies: ['RAG', 'vLLM'] }],
+        }),
       },
     });
 
@@ -748,43 +732,35 @@ async function runSuite() {
         sub: revSub,
         email: revEmail,
         fullName: 'Revocation Test Student',
-        profile: {
-          schemaVersion: '1.0',
-          source: 'ai-tathastu',
-          sourcePersonId: revSub,
-          sourceVersion: '1.0',
-          updatedAt: new Date().toISOString(),
-          profile: {
-            displayName: 'Revocation Test Student',
-            skills: [],
-            projects: [{ id: 'p_core_rev', title: 'Core Project to Delete', description: 'desc', tags: [], sourceOrigin: 'ai_tathastu_core' }],
-            education: [],
-            achievements: [],
-            interests: [],
-            portfolioLinks: [],
-          },
-          permissions: { importApproved: true, discoverable: true, allowedFieldPaths: [], consentVersion: '1.0', consentGrantedAt: new Date().toISOString() },
-          quarantinedPrivateData: [],
-        },
+        profile: projectionV1({
+          sub: revSub,
+          email: revEmail,
+          name: 'Revocation Test Student',
+          skills: [{ name: 'Imported Skill' }],
+          projects: [{ key: 'p_core_rev', title: 'Core Project to Delete', description: 'desc' }],
+          experience: [{ organization: 'Imported Org', role: 'Imported Role' }],
+          education: [{ institution: 'Imported University', degree: 'B.Sc' }],
+          achievements: [{ type: 'certification', title: 'Imported Cert' }],
+        }),
       },
     });
 
-    // Add a locally created project that should NOT be deleted
-    member.projects.push({
-      id: 'p_local_keep',
-      title: 'Local Hackathon Project',
-      description: 'Built locally on Collaborate',
-      tags: ['Local'],
-      sourceOrigin: 'collaborate',
+    // Collaborate-authored data in every section (added through the ownership model)
+    const { applyLocalProfileEdit } = await import('../src/modules/profile/ownership.ts');
+    applyLocalProfileEdit(member, {
+      skills: [...member.skills, 'Local Skill'],
+      projects: [...member.projects, { id: 'p_local_keep', title: 'Local Hackathon Project', description: 'Built locally on Collaborate', tags: ['Local'] }],
+      experience: [...member.experience, { id: 'e_local', role: 'Local Role', company: 'Local Co', period: '2025', bullets: [] }],
+      education: [...member.education, { id: 'ed_local', institution: 'Local School', degree: 'Diploma', period: '2020', score: '' }],
     });
     await durableDb.saveMemberAsync(member);
 
     // 2. Dispatch integration.revoked webhook
     const revResult = await TathastuSsoService.processWebhook({
-      eventId: `evt_rev_${testRunId}`,
-      eventType: 'integration.revoked',
-      sourcePersonId: revSub,
-      timestamp: new Date().toISOString(),
+      id: `evt_rev_${testRunId}`,
+      type: 'integration.revoked',
+      createdAt: new Date(Date.now() + 1000).toISOString(),
+      data: { userId: revSub },
     });
 
     assert.strictEqual(revResult.handled, true);
@@ -797,6 +773,15 @@ async function runSuite() {
     assert.strictEqual(revMember.tathastuSyncStatus, 'unlinked');
     assert.ok(!revMember.projects.some((p) => p.title === 'Core Project to Delete'), 'Core projects must be removed');
     assert.ok(revMember.projects.some((p) => p.title === 'Local Hackathon Project'), 'Local projects must be preserved');
+    // Every imported section is gone; every local entry survives.
+    assert.ok(!revMember.skills.includes('Imported Skill'));
+    assert.ok(revMember.skills.includes('Local Skill'));
+    assert.ok(!revMember.experience.some((e) => e.company === 'Imported Org'));
+    assert.ok(revMember.experience.some((e) => e.company === 'Local Co'));
+    assert.ok(!revMember.education.some((e) => e.institution === 'Imported University'));
+    assert.ok(revMember.education.some((e) => e.institution === 'Local School'));
+    assert.strictEqual(revMember.importedProfile, null);
+    assert.strictEqual(revMember.tathastu_user_id, undefined);
 
     // Verify mapping is severed
     const severedMapping = durableDb.getMappingByExternalSub('aitathastu_oidc', revSub);
@@ -816,18 +801,17 @@ async function runSuite() {
         sub: studentSub,
         email: studentEmail,
         fullName: 'Null Testing Student',
-        profile: {
-          schema: 'ProfessionalProjectionV1',
-          version: 1,
-          audience: 'collaborate',
-          identity: { id: studentSub, email: studentEmail, name: 'Null Testing Student' },
-          skills: { items: [{ name: 'TensorFlow', category: 'framework' }] },
+        profile: projectionV1({
+          sub: studentSub,
+          email: studentEmail,
+          name: 'Null Testing Student',
+          generatedAt: new Date(Date.now() - 60_000).toISOString(),
+          skills: [{ name: 'TensorFlow', category: 'framework' }],
           projects: [{ key: 'proj_null_1', title: 'Existing Project', technologies: ['TS'] }],
           education: [{ institution: 'IIT Delhi', degree: 'B.Tech' }],
           experience: [{ organization: 'AI Lab', role: 'Intern' }],
           achievements: [{ type: 'achievement', title: 'Winner' }],
-          activity: { github: { repositories: 15 } },
-        },
+        }),
       },
     });
 
@@ -835,30 +819,28 @@ async function runSuite() {
     assert.strictEqual(member.projects.length, 1);
     assert.strictEqual(member.education.length, 1);
     assert.strictEqual(member.experience.length, 1);
+    assert.strictEqual(member.metrics.achievements, 1);
 
-    // 2. Upstream user revokes consent for everything except identity: sections become null
-    TathastuSsoService.mergeProjectionData(member, {
-      schema: 'ProfessionalProjectionV1',
-      version: 1,
-      audience: 'collaborate',
-      identity: { id: studentSub, email: studentEmail, name: 'Null Testing Student' },
-      skills: null,
-      projects: null,
-      education: null,
-      experience: null,
-      achievements: null,
-      activity: null,
-    });
+    // The member also keeps Collaborate-authored data that must survive scope withdrawal.
+    const { applyLocalProfileEdit } = await import('../src/modules/profile/ownership.ts');
+    applyLocalProfileEdit(member, { skills: [...member.skills, 'Handwritten Skill'] });
     await durableDb.saveMemberAsync(member);
 
-    // 3. Verify all consented sections are completely deleted / reset per contract
+    // 2. Upstream member withdraws every scope: sections become null (newer projection)
+    const outcome = TathastuSsoService.importProjection(
+      member,
+      projectionV1({ sub: studentSub, email: studentEmail, name: 'Null Testing Student' })
+    );
+    assert.strictEqual(outcome, 'IMPORTED');
+    await durableDb.saveMemberAsync(member);
+
+    // 3. Imported data for each withdrawn section is deleted; local data is preserved
     const updatedMember = durableDb.getMemberById(member.id);
-    assert.strictEqual(updatedMember.skills.length, 0, 'Skills must be deleted when null');
+    assert.deepStrictEqual(updatedMember.skills, ['Handwritten Skill'], 'only the local skill remains');
     assert.strictEqual(updatedMember.projects.length, 0, 'Core projects must be deleted when null');
     assert.strictEqual(updatedMember.education.length, 0, 'Education must be deleted when null');
     assert.strictEqual(updatedMember.experience.length, 0, 'Experience must be deleted when null');
     assert.strictEqual(updatedMember.metrics.achievements, 0, 'Achievements must be reset when null');
-    assert.strictEqual(updatedMember.metrics.githubContributions, '—', 'Activity must be reset to "—" when null');
   });
 
   // --------------------------------------------------------------------------
@@ -961,41 +943,40 @@ async function runSuite() {
     });
 
     const webhookBody = {
-      eventId: `evt_api_wh_${testRunId}`,
-      eventType: 'profile.updated',
-      sourcePersonId: whSub,
-      timestamp: new Date().toISOString(),
-      payload: {
-        profile: {
-          displayName: 'API Webhook User',
-          skills: [{ id: 'sk_wh_api', name: 'FastAPI', category: 'framework', confirmedByCore: true }],
-          projects: [],
-          education: [],
-          achievements: [],
-          interests: [],
-          portfolioLinks: [],
-        },
+      id: `evt_api_wh_${testRunId}`,
+      type: 'profile.updated',
+      createdAt: new Date().toISOString(),
+      data: {
+        userId: whSub,
+        profile: projectionV1({ sub: whSub, email: whEmail, name: 'API Webhook User', skills: [{ name: 'FastAPI', category: 'framework', verified: true }] }),
       },
     };
-
     const rawPayload = JSON.stringify(webhookBody);
-    const signature = crypto.createHmac('sha256', webhookSecret).update(rawPayload).digest('hex');
-    const timestamp = new Date().toISOString();
 
+    // The legacy body-only signature (unauthenticated timestamp) is rejected by the receiver.
+    const legacySig = crypto.createHmac('sha256', webhookSecret).update(rawPayload).digest('hex');
+    const legacy = await fastifyApp.inject({
+      method: 'POST',
+      url: '/api/webhooks/tathastu',
+      headers: { 'content-type': 'application/json', 'x-tathastu-signature': legacySig, 'x-tathastu-timestamp': new Date().toISOString() },
+      payload: rawPayload,
+    });
+    assert.strictEqual(legacy.statusCode, 401, 'legacy signature format must be rejected');
+
+    const t = Math.floor(Date.now() / 1000);
+    const v1 = crypto.createHmac('sha256', webhookSecret).update(`${t}.${rawPayload}`).digest('hex');
     const res = await fastifyApp.inject({
       method: 'POST',
       url: '/api/webhooks/tathastu',
-      headers: {
-        'content-type': 'application/json',
-        'x-tathastu-signature': signature,
-        'x-tathastu-timestamp': timestamp,
-      },
+      headers: { 'content-type': 'application/json', 'x-ait-signature': `t=${t},v1=${v1}` },
       payload: rawPayload,
     });
 
-    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(res.statusCode, 200, res.body);
     const data = JSON.parse(res.body);
     assert.strictEqual(data.success, true);
+    assert.strictEqual(data.result.action, 'PROFILE_UPDATED');
+    assert.ok(durableDb.getMemberByEmail(whEmail).skills.includes('FastAPI'));
   });
 
   await test('Fastify: POST /api/webhooks/tathastu with X-AIT-Signature (t=<unix>,v1=<hex>) and X-AIT-Delivery handles event and deduplicates safely', async () => {
@@ -1017,13 +998,7 @@ async function runSuite() {
       createdAt: new Date().toISOString(),
       data: {
         userId: deliverySub,
-        profile: {
-          schema: 'ProfessionalProjectionV1',
-          version: 1,
-          audience: 'collaborate',
-          identity: { id: deliverySub, email: deliveryEmail, name: 'Delivery User' },
-          skills: { items: [{ name: 'Rust', category: 'language', verified: true }] },
-        },
+        profile: projectionV1({ sub: deliverySub, email: deliveryEmail, name: 'Delivery User', skills: [{ name: 'Rust', category: 'language', verified: true }] }),
       },
     };
 

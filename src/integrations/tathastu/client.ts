@@ -1,12 +1,6 @@
 import crypto from 'crypto';
 import { createRemoteJWKSet, jwtVerify, JWTVerifyGetKey } from 'jose';
-import {
-  ProfessionalProjectionV1,
-  TathastuTokenResponse,
-  TathastuWebhookEvent,
-} from './contract/types';
-import { validateProfessionalProjection } from './contract/validator';
-import { durableDb } from '@/lib/db/index';
+import { TathastuTokenResponse } from './contract/types';
 import { getConfigDiagnostics } from './config';
 
 /**
@@ -16,7 +10,6 @@ import { getConfigDiagnostics } from './config';
  */
 export class TathastuClient {
   private static cachedJwks: JWTVerifyGetKey | null = null;
-  private static processedWebhookEvents = new Map<string, number>();
 
   /**
    * Validate all required integration environment variables at startup
@@ -338,7 +331,7 @@ export class TathastuClient {
   public static async fetchProfile(
     accessToken: string,
     profileUrl?: string
-  ): Promise<ProfessionalProjectionV1> {
+  ): Promise<unknown> {
     const targetUrl = profileUrl || this.getProfileUrl();
 
     let res: Response;
@@ -370,8 +363,8 @@ export class TathastuClient {
       throw new Error('INVALID_PROFILE_PAYLOAD: Empty or invalid JSON received from Profile API.');
     }
 
-    // Validate against versioned contract schema
-    return validateProfessionalProjection(json);
+    // Untrusted until parsed: callers run parseProjectionV1 (contract/projection-v1.ts).
+    return json;
   }
 
   /**
@@ -383,7 +376,8 @@ export class TathastuClient {
     rawBody: string | Buffer,
     signatureHeader?: string,
     timestampHeader?: string,
-    customSecret?: string
+    customSecret?: string,
+    options: { requireContractFormat?: boolean } = {}
   ): { valid: boolean; error?: string } {
     const secret = customSecret || this.getWebhookSecret();
 
@@ -443,7 +437,12 @@ export class TathastuClient {
       return { valid: true };
     }
 
-    // Format 2: Fallback / Legacy format: timestampHeader with raw or sha256=<hex> signature
+    // Format 2 (legacy) signs the body only, so its timestamp header is not authenticated and
+    // gives no replay protection. AI Tathastu never sends it; the production receiver
+    // passes requireContractFormat and rejects it.
+    if (options.requireContractFormat) {
+      return { valid: false, error: 'INVALID_SIGNATURE_FORMAT: Expected X-AIT-Signature t=<timestamp>,v1=<signature>.' };
+    }
     if (timestampHeader) {
       const eventTime = isNaN(Number(timestampHeader))
         ? Date.parse(timestampHeader)
@@ -482,65 +481,14 @@ export class TathastuClient {
     return { valid: true };
   }
 
-  /**
-   * 6. Webhook Idempotency & Replay Protection
-   * Records event IDs and rejects duplicate deliveries safely.
-   * Persists to durable storage (Postgres / JSON store) to survive process restarts
-   * and multi-instance cloud deployments.
-   */
-  public static checkAndRecordWebhookEvent(eventId: string): { isDuplicate: boolean } {
-    if (!eventId) return { isDuplicate: false };
-
-    // 1. Fast in-memory check
-    const now = Date.now();
-    for (const [id, ts] of this.processedWebhookEvents.entries()) {
-      if (now - ts > 86400000) {
-        this.processedWebhookEvents.delete(id);
-      }
-    }
-
-    if (this.processedWebhookEvents.has(eventId)) {
-      return { isDuplicate: true };
-    }
-
-    // 2. Check durable storage
-    if (durableDb.isWebhookProcessed('aitathastu', eventId)) {
-      this.processedWebhookEvents.set(eventId, now);
-      return { isDuplicate: true };
-    }
-
-    this.processedWebhookEvents.set(eventId, now);
-    durableDb.recordWebhookEvent('aitathastu', eventId, 'webhook');
-    return { isDuplicate: false };
-  }
-
-  public static async checkAndRecordWebhookEventAsync(
-    eventId: string,
-    eventType: string = 'webhook',
-    payload: any = {}
-  ): Promise<{ isDuplicate: boolean }> {
-    if (!eventId) return { isDuplicate: false };
-
-    if (this.processedWebhookEvents.has(eventId)) {
-      return { isDuplicate: true };
-    }
-
-    const isProcessed = await durableDb.isWebhookProcessedAsync('aitathastu', eventId);
-    if (isProcessed) {
-      this.processedWebhookEvents.set(eventId, Date.now());
-      return { isDuplicate: true };
-    }
-
-    this.processedWebhookEvents.set(eventId, Date.now());
-    await durableDb.recordWebhookEventAsync('aitathastu', eventId, eventType, payload);
-    return { isDuplicate: false };
-  }
+  // Webhook idempotency lives in the durable delivery ledger
+  // (durableDb.beginWebhookDelivery / completeWebhookDelivery / failWebhookDelivery), shared by
+  // all API instances. A delivery counts as processed only after it was handled successfully.
 
   /**
    * For testing: Reset internal caches
    */
   public static resetCaches(): void {
     this.cachedJwks = null;
-    this.processedWebhookEvents.clear();
   }
 }
