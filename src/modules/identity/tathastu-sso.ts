@@ -380,6 +380,9 @@ export class TathastuSsoService {
   public static unlinkAndPurge(member: MemberProfile): void {
     const mapping = durableDb.getMappingByMemberId('aitathastu_oidc', member.id);
     if (mapping) durableDb.removeMapping(mapping.id);
+    // Remember the subject: an automatic profile is never recreated for someone who disconnected.
+    const sub = member.tathastu_user_id || mapping?.externalSubjectId;
+    if (sub) member.unlinkedTathastuSubjects = [...new Set([...(member.unlinkedTathastuSubjects || []), sub])];
     clearImportedProfile(member);
     member.tathastu_user_id = undefined;
     member.tathastuLinkedAt = undefined;
@@ -426,6 +429,83 @@ export class TathastuSsoService {
     }
   }
 
+  /**
+   * Creates a PRIVATE Collaborate profile for an AI Tathastu user (owner decision 2026-11-05):
+   * not discoverable, profile page private, until the member turns visibility on. Never merges with
+   * an existing account by email, and never recreates a profile for a subject that disconnected here.
+   */
+  private static async autoProvisionMember(externalSub: string, rawProfile: unknown): Promise<WebhookOutcome> {
+    let projection: ProfessionalProjectionV1;
+    try {
+      projection = parseProjectionV1(rawProfile, TathastuClient.getClientId());
+    } catch (err) {
+      console.warn(`[Tathastu Webhook] Auto-provision projection rejected: ${(err as Error).message}`);
+      return { status: 200, handled: true, action: 'REJECTED_INVALID_PROJECTION' };
+    }
+    if (projection.identity.id !== externalSub) return { status: 200, handled: true, action: 'REJECTED_INVALID_PROJECTION' };
+    if (durableDb.getAllMembers().some((m) => (m.unlinkedTathastuSubjects || []).includes(externalSub))) {
+      return { status: 200, handled: true, action: 'IGNORED_PREVIOUSLY_DISCONNECTED' };
+    }
+    if (durableDb.getMappingByExternalSub('aitathastu_oidc', externalSub)) {
+      return { status: 200, handled: true, action: 'IGNORED_ALREADY_LINKED' };
+    }
+    const email = (projection.identity.email || '').toLowerCase().trim();
+    if (!email || !email.includes('@')) return { status: 200, handled: true, action: 'IGNORED_NO_EMAIL' };
+    if (durableDb.getMemberByEmail(email)) {
+      // An independent Collaborate account uses this email: never merge by email. The owner can
+      // link it with their Collaborate password via "Continue with AI Tathastu".
+      return { status: 200, handled: true, action: 'IGNORED_EMAIL_BELONGS_TO_EXISTING_ACCOUNT' };
+    }
+
+    const now = new Date().toISOString();
+    const member: MemberProfile = {
+      id: `usr_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
+      email,
+      fullName: projection.identity.name || 'AI Tathastu Member',
+      headline: '',
+      avatarUrl: '/images/default_avatar.svg',
+      bannerUrl: '/images/campus_banner.jpg',
+      isVerified: false,
+      plan: 'free',
+      statusBadges: [],
+      location: '',
+      about: '',
+      contextTags: [],
+      socialLinks: {},
+      metrics: { projects: 0, skills: 0, achievements: 0, githubContributions: '—', leetcodeProblems: '—', publications: 0 },
+      skills: [],
+      projects: [],
+      experience: [],
+      education: [],
+      recentActivity: [],
+      aiSpecializations: [],
+      collaborationInterests: [],
+      discoverable: false,
+      discoveryChoiceMade: false,
+      profileVisibility: 'private',
+      contactVisibility: 'connections_only',
+      isLinkedWithTathastu: true,
+      tathastuSyncStatus: 'synced',
+      tathastuSyncSettings: { autoSyncProjects: true, autoSyncSkills: true, autoSyncAchievements: true },
+      role: 'member',
+      tathastu_user_id: externalSub,
+      tathastuLinkedAt: now,
+      autoProvisioned: true,
+    };
+    ensureOwnershipModel(member);
+    applyImportedProjection(member, projection);
+    durableDb.setMapping({
+      id: `map_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
+      memberId: member.id,
+      provider: 'aitathastu_oidc',
+      externalSubjectId: externalSub,
+      externalEmail: email,
+      createdAt: now,
+    });
+    await durableDb.saveMemberAsync(member);
+    return { status: 200, handled: true, action: 'AUTO_PROVISIONED_PRIVATE', memberId: member.id };
+  }
+
   private static async handleWebhookEvent(eventType: string, event: any): Promise<WebhookOutcome> {
     const externalSub = typeof event?.data?.userId === 'string' ? event.data.userId : '';
     if (!externalSub) return { status: 200, handled: true, action: 'IGNORED_NO_USER_ID' };
@@ -433,6 +513,11 @@ export class TathastuSsoService {
     // Only a member whose CURRENT link is this subject is affected (unlinked members are ignored).
     const stored = durableDb.getMemberByTathastuUserId(externalSub);
     if (!stored || stored.tathastu_user_id !== externalSub) {
+      // Automatic profile: only for AI Tathastu's explicit auto_provision event, never for an
+      // ordinary update (so a late update after a disconnect can never recreate a profile).
+      if (eventType === 'profile.updated' && event?.data?.reason === 'auto_provision') {
+        return this.autoProvisionMember(externalSub, event?.data?.profile);
+      }
       return { status: 200, handled: true, action: 'IGNORED_UNKNOWN_USER' };
     }
     // Work on a copy: if saving fails, the stored member is untouched and the retry starts clean.

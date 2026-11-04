@@ -52,6 +52,18 @@ function safeUrl(u: string | null | undefined): string | null {
   }
 }
 
+/** "3 days ago" style label; recomputed on every read for items that carry `at`. */
+export function timeAgo(iso: string, now = Date.now()): string {
+  const s = Math.max(0, Math.floor((now - Date.parse(iso)) / 1000));
+  if (Number.isNaN(s)) return '';
+  const units: [number, string][] = [[31536000, 'year'], [2592000, 'month'], [604800, 'week'], [86400, 'day'], [3600, 'hour'], [60, 'minute']];
+  for (const [secs, name] of units) {
+    const n = Math.floor(s / secs);
+    if (n >= 1) return `${n} ${name}${n > 1 ? 's' : ''} ago`;
+  }
+  return 'just now';
+}
+
 function emptyLocal(): LocalProfileSections {
   return {
     skills: [],
@@ -161,6 +173,21 @@ export function normalizeProjection(p: ProfessionalProjectionV1, now = new Date(
     projects,
     experience,
     education,
+    activity:
+      shared('activity') && p.activity
+        ? {
+            connectedSources: p.activity.connectedSources,
+            githubRepositories: p.activity.github?.repositories ?? 0,
+            recentRepositories: (p.activity.github?.recent ?? []).slice(0, 10).map((r) => ({
+              name: r.name,
+              url: safeUrl(r.url),
+              stars: r.stars,
+              languages: r.languages.slice(0, 6),
+              lastCommitAt: r.lastCommitAt && !Number.isNaN(Date.parse(r.lastCommitAt)) ? new Date(r.lastCommitAt).toISOString() : null,
+            })),
+            profileUpdatedAt: p.activity.profileUpdatedAt,
+          }
+        : null,
     achievements:
       shared('achievements') && p.achievements
         ? p.achievements.map((a) => ({
@@ -286,6 +313,22 @@ export function recomputeEffectiveProfile(member: MemberProfile): void {
     local.importedOverrides.education,
     (a, b) => lc(a.institution) === lc(b.institution) && lc(a.degree) === lc(b.degree)
   );
+
+  // Recent activity: Collaborate-authored items first, then imported GitHub activity (newest first).
+  const localActivity = (member.recentActivity || []).filter((a) => a.sourceOrigin !== 'tathastu_core');
+  const importedActivity = (imp?.activity?.recentRepositories ?? [])
+    .filter((r) => r.lastCommitAt)
+    .sort((a, b) => Date.parse(b.lastCommitAt!) - Date.parse(a.lastCommitAt!))
+    .map((r) => ({
+      id: `${IMPORTED_PREFIX}act:${shortHash(r.name)}`,
+      type: 'github' as const,
+      title: `Committed to ${r.name}${r.languages.length ? ` (${r.languages.slice(0, 3).join(', ')})` : ''}`,
+      timeAgo: timeAgo(r.lastCommitAt!),
+      at: r.lastCommitAt!,
+      ...(r.url ? { url: r.url } : {}),
+      sourceOrigin: 'tathastu_core' as const,
+    }));
+  member.recentActivity = [...localActivity, ...importedActivity];
 
   const achievements = imp?.achievements;
   member.metrics = {

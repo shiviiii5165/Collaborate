@@ -397,6 +397,7 @@ export function buildServer(): FastifyInstance {
     'importedProfile', 'localProfile', 'importedIdentity', 'tathastuLinkedAt', 'discoveryChoiceMade',
     // Validated through POST /api/recommendations/preferences only.
     'recommendationPreferences',
+    'autoProvisioned', 'unlinkedTathastuSubjects',
   ];
   /** Sections whose effective value is derived from local + imported data. */
   const OWNED_SECTIONS = ['skills', 'projects', 'experience', 'education', 'metrics'] as const;
@@ -424,7 +425,14 @@ export function buildServer(): FastifyInstance {
       delete updates[key];
     }
     const updatedMember: MemberProfile = { ...existing, ...updates };
-    if ('discoverable' in updates) updatedMember.discoveryChoiceMade = true;
+    if ('discoverable' in updates) {
+      // An automatically created profile starts private; turning discovery on is the member's
+      // opt-in, so it also makes the profile page visible (unless they choose a visibility too).
+      if (updates.discoverable === true && existing.autoProvisioned && !existing.discoveryChoiceMade && !('profileVisibility' in updates)) {
+        updatedMember.profileVisibility = 'public';
+      }
+      updatedMember.discoveryChoiceMade = true;
+    }
     releaseIdentityFills(updatedMember, Object.keys(updates));
     applyLocalProfileEdit(updatedMember, sectionUpdates);
 

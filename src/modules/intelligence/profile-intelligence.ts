@@ -48,6 +48,8 @@ export interface ProfileIntelligence {
   projects: { id: string; title: string; technologies: string[]; provenance: Provenance }[];
   experience: { role: string; company: string; provenance: Provenance }[];
   education: { institution: string; degree: string; provenance: Provenance }[];
+  /** Derived from imported GitHub activity (refreshed weekly); null when not shared. */
+  activity: { lastActiveAt: string | null; activeLast90Days: boolean; languages: string[]; repositories: number } | null;
   /** User-provided only (collaborationInterests / aiSpecializations). */
   intents: string[];
   interests: string[];
@@ -70,6 +72,7 @@ export function sourceHashOf(m: MemberProfile): string {
     imported: (m.importedProfile?.skills || []).map((s) => [s.name, s.verified]),
     interests: m.collaborationInterests,
     spec: m.aiSpecializations,
+    activity: (m.importedProfile?.activity?.recentRepositories || []).map((r) => [r.name, r.lastCommitAt, r.languages]),
     headline: m.headline,
     about: m.about,
   };
@@ -115,6 +118,22 @@ export function buildProfileIntelligence(m: MemberProfile, hash = sourceHashOf(m
     }
   }
 
+  // GitHub repositories with a commit in the last 90 days, by language (evidence, never a fact).
+  const act = m.importedProfile?.activity ?? null;
+  const ninetyDaysAgo = Date.now() - 90 * 86400000;
+  const recentByLanguage = new Map<string, string>();
+  let lastActiveAt: string | null = null;
+  const activeLanguages = new Set<string>();
+  for (const r of act?.recentRepositories ?? []) {
+    if (r.lastCommitAt && (!lastActiveAt || r.lastCommitAt > lastActiveAt)) lastActiveAt = r.lastCommitAt;
+    if (!r.lastCommitAt || Date.parse(r.lastCommitAt) < ninetyDaysAgo) continue;
+    for (const lang of r.languages) {
+      const c = normalizeSkill(lang);
+      activeLanguages.add(lang);
+      if (!recentByLanguage.has(c)) recentByLanguage.set(c, r.name);
+    }
+  }
+
   const seen = new Set<string>();
   const skills: SkillInsight[] = [];
   for (const name of m.skills || []) {
@@ -133,8 +152,14 @@ export function buildProfileIntelligence(m: MemberProfile, hash = sourceHashOf(m
     }
     const usedIn = techMap.get(canonical)?.projects ?? [];
     for (const t of usedIn.slice(0, 3)) evidence.push(`Used in project "${t}"`);
+    const recentRepo = recentByLanguage.get(canonical);
+    if (recentRepo) evidence.push(`Recent GitHub work: "${recentRepo}" (last 90 days)`);
     const confidence: Confidence =
-      provenance === 'ai_tathastu_verified' || usedIn.length >= 2 ? 'high' : usedIn.length === 1 || provenance === 'ai_tathastu' ? 'medium' : 'low';
+      provenance === 'ai_tathastu_verified' || usedIn.length >= 2 || (recentRepo && usedIn.length >= 1)
+        ? 'high'
+        : usedIn.length === 1 || recentRepo || provenance === 'ai_tathastu'
+          ? 'medium'
+          : 'low';
     skills.push({ name, canonical, provenance, evidence, confidence });
   }
 
@@ -177,6 +202,14 @@ export function buildProfileIntelligence(m: MemberProfile, hash = sourceHashOf(m
     projects: projects.map((p) => ({ id: p.id, title: p.title, technologies: p.tags || [], provenance: provenanceOf(p.sourceOrigin) })),
     experience: (m.experience || []).map((e) => ({ role: e.role, company: e.company, provenance: provenanceOf(e.sourceOrigin) })),
     education: (m.education || []).map((e) => ({ institution: e.institution, degree: e.degree, provenance: provenanceOf(e.sourceOrigin) })),
+    activity: act
+      ? {
+          lastActiveAt,
+          activeLast90Days: Boolean(lastActiveAt && Date.parse(lastActiveAt) >= ninetyDaysAgo),
+          languages: [...activeLanguages],
+          repositories: act.githubRepositories,
+        }
+      : null,
     intents: [...(m.collaborationInterests || [])],
     interests: [...(m.aiSpecializations || [])],
     completeness: { score: Math.round((present.length / (present.length + missing.length)) * 100) / 100, present, missing },

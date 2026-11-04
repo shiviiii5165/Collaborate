@@ -21,6 +21,7 @@ export function projectionV1({
   experience, // array of { organization, role, dates?, description? }
   education, // array of { institution, degree, fieldOfStudy?, dates?, grade? }
   achievements, // array of { type, title, issuer?, date?, url? }
+  activity, // { repositories?, recent: [{ name, url?, stars?, languages?, lastCommitAt? }], connectedSources? }
 } = {}) {
   const shared = {
     skills: skills !== undefined,
@@ -29,7 +30,7 @@ export function projectionV1({
     education: education !== undefined,
     achievements: achievements !== undefined,
     eris: eris !== undefined,
-    activity: false,
+    activity: activity !== undefined,
   };
   const p = {
     schema: 'ProfessionalProjectionV1',
@@ -78,7 +79,13 @@ export function projectionV1({
     achievements: shared.achievements
       ? achievements.map((a) => ({ type: a.type ?? 'achievement', title: a.title, issuer: a.issuer ?? null, date: a.date ?? null, description: null, url: a.url ?? null, sources: ['resume'] }))
       : null,
-    activity: null,
+    activity: shared.activity
+      ? {
+          connectedSources: activity.connectedSources ?? ['github'],
+          github: { repositories: activity.repositories ?? activity.recent.length, recent: activity.recent.map((r) => ({ name: r.name, url: r.url ?? null, stars: r.stars ?? 0, languages: r.languages ?? [], lastCommitAt: r.lastCommitAt ?? null })) },
+          profileUpdatedAt: generatedAt,
+        }
+      : null,
     privacy: { scopes: shared, masked: [], hiddenProjects: 0, consentUpdatedAt: generatedAt },
   };
   p.privacy.masked = [

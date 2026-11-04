@@ -6,8 +6,8 @@
  *
  * Validation is strict on structure and types. Unknown keys are stripped, so fields
  * AI Tathastu adds later can never leak into Collaborate storage without a contract change.
- * The `activity` section is deliberately not parsed: Collaborate does not request or
- * import GitHub activity (decided 2026-11-04).
+ * The `activity` section (recent GitHub repositories, connected sources) is imported when the
+ * member shares it (owner decision 2026-11-05; refreshed weekly by AI Tathastu).
  */
 import { z } from 'zod';
 
@@ -92,6 +92,30 @@ const AchievementSchema = z.object({
   sources,
 });
 
+const ActivitySchema = z.object({
+  connectedSources: z.array(z.string()).optional().default([]),
+  github: z
+    .object({
+      repositories: z.number().int().nonnegative().optional().default(0),
+      recent: z
+        .array(
+          z.object({
+            name: str.min(1),
+            url: nullableStr,
+            stars: z.number().nullable().optional().transform((v) => v ?? null),
+            languages: z.array(z.string()).optional().default([]),
+            lastCommitAt: nullableStr,
+          })
+        )
+        .optional()
+        .default([]),
+    })
+    .nullable()
+    .optional()
+    .transform((v) => v ?? null),
+  profileUpdatedAt: nullableStr,
+});
+
 const PrivacySchema = z.object({
   scopes: z.record(z.string(), z.boolean()),
   masked: z.array(z.string()),
@@ -114,6 +138,7 @@ export const ProfessionalProjectionV1Schema = z.object({
   projects: section(z.array(ProjectSchema)),
   experience: section(z.array(ExperienceSchema)),
   achievements: section(z.array(AchievementSchema)),
+  activity: section(ActivitySchema),
   privacy: PrivacySchema,
 });
 

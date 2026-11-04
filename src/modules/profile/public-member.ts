@@ -12,7 +12,10 @@
  * socialLinks (contact information) follow contactVisibility.
  */
 import type { MemberProfile } from '@collaborate/contracts';
-import { ensureOwnershipModel } from './ownership';
+import { ensureOwnershipModel, timeAgo } from './ownership';
+
+const freshActivity = (items: MemberProfile['recentActivity']) =>
+  (items || []).map((a) => (a.at ? { ...a, timeAgo: timeAgo(a.at) } : { ...a }));
 
 export interface ViewerContext {
   viewerId?: string | null;
@@ -84,7 +87,7 @@ export function toPublicMember(raw: MemberProfile, ctx: ViewerContext = {}) {
     projects: (m.projects || []).map((p) => ({ ...p })),
     experience: (m.experience || []).map((e) => ({ ...e })),
     education: (m.education || []).map((e) => ({ ...e })),
-    recentActivity: (m.recentActivity || []).map((a) => ({ ...a })),
+    recentActivity: freshActivity(m.recentActivity),
     aiSpecializations: [...(m.aiSpecializations || [])],
     collaborationInterests: [...(m.collaborationInterests || [])],
     discoverable: Boolean(m.discoverable),
@@ -98,9 +101,10 @@ export function toPublicMember(raw: MemberProfile, ctx: ViewerContext = {}) {
 /** The member's own record. Strips raw/internal bookkeeping only; the member may see their own data. */
 export function toSelfMember(raw: MemberProfile) {
   const m = withOwnership(raw);
-  const { tathastuProfile: _legacy, localProfile: _local, importedIdentity: _fills, ...rest } = m;
+  const { tathastuProfile: _legacy, localProfile: _local, importedIdentity: _fills, unlinkedTathastuSubjects: _gone, ...rest } = m;
   return {
     ...rest,
+    recentActivity: freshActivity(m.recentActivity),
     tathastuProfile: tathastuProfileView(m),
   };
 }

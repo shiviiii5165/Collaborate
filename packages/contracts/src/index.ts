@@ -110,6 +110,15 @@ export interface ImportedTathastuProfile {
   experience: ExperienceItem[] | null;
   education: EducationItem[] | null;
   achievements: ImportedAchievement[] | null;
+  /** Recent activity from connected sources (refreshed weekly by AI Tathastu). Optional for older rows. */
+  activity?: ImportedActivity | null;
+}
+
+export interface ImportedActivity {
+  connectedSources: string[];
+  githubRepositories: number;
+  recentRepositories: { name: string; url: string | null; stars: number | null; languages: string[]; lastCommitAt: string | null }[];
+  profileUpdatedAt: string | null;
 }
 
 export interface LocalProfileSections {
@@ -137,6 +146,10 @@ export interface ActivityItem {
   type: 'github' | 'leetcode' | 'project' | 'publication';
   title: string;
   timeAgo: string;
+  /** ISO timestamp of the activity; when present, timeAgo is recomputed on every read. */
+  at?: string;
+  url?: string;
+  sourceOrigin?: 'collaborate' | 'tathastu_core';
 }
 
 export interface MemberMetrics {
@@ -224,6 +237,10 @@ export interface MemberProfile {
   discoveryChoiceMade?: boolean;
   /** When the current AI Tathastu link was established; revocations sent before it are stale. */
   tathastuLinkedAt?: string;
+  /** Created automatically from AI Tathastu (private until the member turns on visibility). */
+  autoProvisioned?: boolean;
+  /** AI Tathastu subjects this member disconnected; automatic re-creation is refused for them. */
+  unlinkedTathastuSubjects?: string[];
   /** Collaborate-owned recommendation controls. */
   recommendationPreferences?: {
     /** Never show me in other members' recommendations (search/discovery follow `discoverable`). */
