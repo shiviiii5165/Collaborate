@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import {
   MemberProfile,
   ConnectionRecord,
@@ -10,7 +11,7 @@ import {
   AbuseReport,
   ProfileViewLedgerEntry,
 } from '@/lib/types';
-import { assertDatabaseAvailable, isNeonConfigured } from './neon';
+import { assertDatabaseAvailable, isNeonConfigured, getNeonPool } from './neon';
 import { MembersRepository } from './repositories/members';
 import { ConnectionsRepository } from './repositories/connections';
 import { MessagesRepository } from './repositories/messages';
@@ -63,9 +64,14 @@ interface DatabaseState {
   blockedUsers: string[]; // "blockerId:blockedId"
   notifications: AppNotification[];
   savedMembers?: Record<string, string[]>; // "userId -> [savedMemberId1, ...]"
+  webhookEvents?: Record<string, { provider: string; eventId: string; eventType: string; processedAt: string }>;
 }
 
-const DATA_FILE_PATH = path.join(process.cwd(), 'data', 'collaborate.db.json');
+// COLLABORATE_DATA_FILE lets automated tests use an isolated store instead of the tracked
+// data/collaborate.db.json. Default path is unchanged.
+const DATA_FILE_PATH = process.env.COLLABORATE_DATA_FILE
+  ? path.resolve(process.env.COLLABORATE_DATA_FILE)
+  : path.join(process.cwd(), 'data', 'collaborate.db.json');
 
 class DurableCollaborateDatabase {
   private state: DatabaseState;
@@ -85,6 +91,7 @@ class DurableCollaborateDatabase {
         const parsed = JSON.parse(raw);
         if (parsed && parsed.members && Object.keys(parsed.members).length > 0) {
           if (!parsed.savedMembers) parsed.savedMembers = {};
+          if (!parsed.webhookEvents) parsed.webhookEvents = {};
           return parsed;
         }
       }
@@ -501,6 +508,8 @@ class DurableCollaborateDatabase {
           createdAt: '2026-10-09T14:15:00Z',
         },
       ],
+      savedMembers: {},
+      webhookEvents: {},
     };
 
     const dir = path.dirname(DATA_FILE_PATH);
@@ -560,6 +569,18 @@ class DurableCollaborateDatabase {
     const cleanEmail = email.toLowerCase().trim();
     for (const m of Object.values(this.state.members)) {
       if (m.email.toLowerCase() === cleanEmail) return m;
+    }
+    return null;
+  }
+
+  public getMemberByTathastuUserId(tathastuUserId: string): MemberProfile | null {
+    if (!tathastuUserId) return null;
+    for (const m of Object.values(this.state.members)) {
+      if (m.tathastu_user_id === tathastuUserId) return m;
+    }
+    const mapping = this.getMappingByExternalSub('aitathastu_oidc', tathastuUserId);
+    if (mapping) {
+      return this.getMemberById(mapping.memberId);
     }
     return null;
   }
@@ -624,6 +645,102 @@ class DurableCollaborateDatabase {
 
   public removeMapping(mappingId: string): void {
     delete this.state.identityMappings[mappingId];
+    this.persistToDisk();
+  }
+
+  // --- Webhook Events (Durable Idempotency & Replay Protection) ---
+  public async isWebhookProcessedAsync(provider: string, eventId: string): Promise<boolean> {
+    if (isNeonConfigured()) {
+      try {
+        const pool = getNeonPool();
+        if (pool) {
+          const res = await pool.query(
+            'SELECT id FROM webhook_events WHERE provider = $1 AND event_id = $2',
+            [provider, eventId]
+          );
+          if (res.rows && res.rows.length > 0) return true;
+        }
+      } catch (err) {
+        console.warn('[DurableDB] Postgres webhook query failed, checking local state:', err);
+      }
+    }
+    return this.isWebhookProcessed(provider, eventId);
+  }
+
+  public isWebhookProcessed(provider: string, eventId: string): boolean {
+    if (!this.state.webhookEvents) this.state.webhookEvents = {};
+    const key = `${provider}:${eventId}`;
+    return Boolean(this.state.webhookEvents[key]);
+  }
+
+  public async recordWebhookEventAsync(
+    provider: string,
+    eventId: string,
+    eventType: string = 'webhook',
+    payload: any = {}
+  ): Promise<void> {
+    this.recordWebhookEvent(provider, eventId, eventType);
+
+    if (isNeonConfigured()) {
+      try {
+        const pool = getNeonPool();
+        if (pool) {
+          const hookId = `wh_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
+          await pool.query(
+            `INSERT INTO webhook_events (id, provider, event_id, event_type, payload, processed_at)
+             VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+             ON CONFLICT (provider, event_id) DO NOTHING`,
+            [hookId, provider, eventId, eventType, JSON.stringify(payload)]
+          );
+        }
+      } catch (err) {
+        console.warn('[DurableDB] Postgres webhook record failed:', err);
+      }
+    }
+  }
+
+  /**
+   * Atomically claims a webhook event ID. Returns true exactly once per (provider, eventId).
+   * - Postgres: INSERT ... ON CONFLICT DO NOTHING RETURNING relies on UNIQUE(provider, event_id),
+   *   so concurrent deliveries across instances cannot both win. DB errors propagate
+   *   (callers must fail closed).
+   * - Local store: synchronous check-and-set (atomic within this single-threaded process).
+   */
+  public async claimWebhookEventAsync(
+    provider: string,
+    eventId: string,
+    eventType: string = 'webhook',
+    payload: any = {}
+  ): Promise<boolean> {
+    if (isNeonConfigured()) {
+      const pool = getNeonPool();
+      if (!pool) throw new Error('WEBHOOK_STORE_UNAVAILABLE');
+      const hookId = `wh_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+      const res = await pool.query(
+        `INSERT INTO webhook_events (id, provider, event_id, event_type, payload, processed_at)
+         VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+         ON CONFLICT (provider, event_id) DO NOTHING
+         RETURNING id`,
+        [hookId, provider, eventId, eventType, JSON.stringify(payload)]
+      );
+      const claimed = Boolean(res.rows && res.rows.length > 0);
+      if (claimed) this.recordWebhookEvent(provider, eventId, eventType);
+      return claimed;
+    }
+    if (this.isWebhookProcessed(provider, eventId)) return false;
+    this.recordWebhookEvent(provider, eventId, eventType);
+    return true;
+  }
+
+  public recordWebhookEvent(provider: string, eventId: string, eventType: string = 'generic'): void {
+    if (!this.state.webhookEvents) this.state.webhookEvents = {};
+    const key = `${provider}:${eventId}`;
+    this.state.webhookEvents[key] = {
+      provider,
+      eventId,
+      eventType,
+      processedAt: new Date().toISOString(),
+    };
     this.persistToDisk();
   }
 

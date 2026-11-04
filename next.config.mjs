@@ -9,17 +9,11 @@ const nextConfig = {
       },
     ],
   },
+  // API routing is handled exclusively by the Unified Vercel API Gateway
+  // at src/app/api/[[...path]]/route.ts to preserve host-only session cookies,
+  // SSE streaming propagation, and cold-start 503 fallback handling.
+  // Conflicting duplicate Next.js rewrites are disabled.
   async rewrites() {
-    const backendUrl = process.env.COLLABORATE_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL;
-    if (backendUrl) {
-      const target = backendUrl.replace(/\/$/, '');
-      return [
-        {
-          source: '/api/:path*',
-          destination: `${target}/api/:path*`,
-        },
-      ];
-    }
     return [];
   },
 };

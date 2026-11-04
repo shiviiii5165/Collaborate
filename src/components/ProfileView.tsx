@@ -80,6 +80,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'skills' | 'experience' | 'education' | 'activity'>('overview');
   const [isSaved, setIsSaved] = useState(false);
+  const [syncStatusText, setSyncStatusText] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.search.includes('auth_success=true')) {
+      setSyncStatusText('Synced just now');
+      const timer = setTimeout(() => setSyncStatusText(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   useEffect(() => {
     if (!isSelf && member?.id) {
@@ -140,9 +149,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           <div className="profile-action-btns">
             {isSelf ? (
               <>
-                <button className="btn-secondary" onClick={onOpenFederationSync}>
+                <button
+                  className="btn-secondary"
+                  onClick={() => {
+                    window.location.href = '/api/auth/tathastu/start';
+                  }}
+                  title="Synchronize profile from AI Tathastu"
+                >
                   <Sparkles size={16} color="#6366F1" />
-                  <span>AI Tathastu Sync</span>
+                  <span>{syncStatusText || 'AI Tathastu Sync'}</span>
                 </button>
                 <button className="btn-primary" onClick={onEditProfile}>
                   <Edit3 size={16} />
@@ -256,7 +271,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               <Folder size={18} />
             </div>
             <div>
-              <div className="metric-val">{member.metrics.projects}</div>
+              <div
+                className="metric-val"
+                title={member.tathastuProfile?.projects === null ? 'Not shared from AI Tathastu' : undefined}
+              >
+                {member.tathastuProfile?.projects === null ? '—' : member.metrics.projects}
+              </div>
               <div className="metric-lbl">Projects</div>
             </div>
           </div>
@@ -266,7 +286,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               <Code2 size={18} />
             </div>
             <div>
-              <div className="metric-val">{member.metrics.skills}</div>
+              <div
+                className="metric-val"
+                title={member.tathastuProfile?.skills === null ? 'Not shared from AI Tathastu' : undefined}
+              >
+                {member.tathastuProfile?.skills === null ? '—' : member.metrics.skills}
+              </div>
               <div className="metric-lbl">Skills</div>
             </div>
           </div>
@@ -276,7 +301,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               <Trophy size={18} />
             </div>
             <div>
-              <div className="metric-val">{member.metrics.achievements}</div>
+              <div
+                className="metric-val"
+                title={member.tathastuProfile?.achievements === null ? 'Not shared from AI Tathastu' : undefined}
+              >
+                {member.tathastuProfile?.achievements === null ? '—' : member.metrics.achievements}
+              </div>
               <div className="metric-lbl">Achievements</div>
             </div>
           </div>
@@ -286,7 +316,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               <GitBranch size={18} />
             </div>
             <div>
-              <div className="metric-val">{member.metrics.githubContributions}</div>
+              <div
+                className="metric-val"
+                title={member.tathastuProfile?.activity === null ? 'Not shared from AI Tathastu' : undefined}
+              >
+                {member.tathastuProfile?.activity === null || member.metrics.githubContributions === '—'
+                  ? '—'
+                  : member.metrics.githubContributions}
+              </div>
               <div className="metric-lbl">GitHub Contributions</div>
             </div>
           </div>
@@ -296,7 +333,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               <TrendingUp size={18} />
             </div>
             <div>
-              <div className="metric-val">{member.metrics.leetcodeProblems}</div>
+              <div
+                className="metric-val"
+                title={member.tathastuProfile?.achievements === null ? 'Not shared from AI Tathastu' : undefined}
+              >
+                {member.tathastuProfile?.achievements === null ? '—' : member.metrics.leetcodeProblems}
+              </div>
               <div className="metric-lbl">LeetCode Problems</div>
             </div>
           </div>
@@ -306,7 +348,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               <FileText size={18} />
             </div>
             <div>
-              <div className="metric-val">{member.metrics.publications}</div>
+              <div
+                className="metric-val"
+                title={member.tathastuProfile?.achievements === null ? 'Not shared from AI Tathastu' : undefined}
+              >
+                {member.tathastuProfile?.achievements === null ? '—' : member.metrics.publications}
+              </div>
               <div className="metric-lbl">Publications</div>
             </div>
           </div>
@@ -444,52 +491,65 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   <Sparkles size={18} color="#7C3AED" />
                   <span>AI Tathastu Insights</span>
                 </div>
-                <a
-                  href="#insights"
-                  className="info-card-action"
-                  style={{ color: '#6D28D9' }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    alert('Full AI Tathastu Career & Competency Matrix verified.');
-                  }}
-                >
-                  View Full Analysis →
-                </a>
+                {member.tathastuProfile?.skills?.erisReadiness ? (
+                  <span className="info-card-action" style={{ color: '#6D28D9', fontWeight: 600 }}>
+                    Score: {Math.round(member.tathastuProfile.skills.erisReadiness.score * 100) / 100}
+                  </span>
+                ) : null}
               </div>
 
-              <div className="insights-content">
-                <img
-                  src="/images/eora_avatar.jpg"
-                  alt="EORA AI Guide"
-                  className="insights-avatar"
-                />
-                <div className="insights-bubble">
-                  You have strong project work in Generative AI and RAG. Your next step could be
-                  improving evaluation and deployment evidence to align with your{' '}
-                  <strong>GenAI Engineer</strong> goal.
+              {member.tathastuProfile?.skills?.erisReadiness ? (
+                <div className="insights-content">
+                  <img
+                    src="/images/eora_avatar.jpg"
+                    alt="EORA AI Guide"
+                    className="insights-avatar"
+                  />
+                  <div className="insights-bubble">
+                    <div style={{ marginBottom: 4 }}>
+                      <strong>Target Role:</strong> {member.tathastuProfile.skills.erisReadiness.role} &bull;{' '}
+                      <strong>Readiness Score:</strong>{' '}
+                      {Math.round(member.tathastuProfile.skills.erisReadiness.score * 100) / 100}
+                    </div>
+                    {Array.isArray(member.tathastuProfile.skills.erisReadiness.gaps) &&
+                      member.tathastuProfile.skills.erisReadiness.gaps.length > 0 && (
+                        <div style={{ marginTop: 6 }}>
+                          <strong style={{ fontSize: '13px', color: '#4338CA' }}>Top Competency Gaps:</strong>
+                          <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
+                            {member.tathastuProfile.skills.erisReadiness.gaps.slice(0, 3).map((g: any, idx: number) => (
+                              <li key={idx}>
+                                {g.skill} (Readiness: {Math.round((g.readiness || 0) * 100)}%)
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                  </div>
                 </div>
-              </div>
-
-              <div className="insights-actions-row">
-                <button
-                  className="btn-insight"
-                  onClick={() => alert('Opening project evaluation benchmark template...')}
-                >
-                  Improve Project
-                </button>
-                <button
-                  className="btn-insight"
-                  onClick={() => alert('Matching open research tracks and internships...')}
-                >
-                  Explore Opportunities
-                </button>
-                <button
-                  className="btn-insight"
-                  onClick={() => alert('GenAI Engineer Roadmap: Milestone 3 of 5 completed.')}
-                >
-                  View Roadmap
-                </button>
-              </div>
+              ) : (
+                <div className="insights-content" style={{ padding: '8px 0' }}>
+                  <div className="insights-bubble" style={{ width: '100%' }}>
+                    <p style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#475569' }}>
+                      Share your ERIS readiness from AI Tathastu to see insights.
+                    </p>
+                    <a
+                      href="/api/auth/tathastu/start?prompt=consent"
+                      className="btn-insight"
+                      style={{
+                        display: 'inline-block',
+                        textDecoration: 'none',
+                        background: '#6366F1',
+                        color: '#FFFFFF',
+                        fontWeight: 500,
+                        padding: '6px 14px',
+                        borderRadius: '6px',
+                      }}
+                    >
+                      Connect ERIS Readiness &rarr;
+                    </a>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Skills Card */}
@@ -504,18 +564,31 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 </button>
               </div>
               <div className="skills-tags-wrap">
-                {member.skills.slice(0, 14).map((skill, i) => (
-                  <span
-                    key={i}
-                    className={`skill-tag-pill ${
-                      ['GenAI', 'RAG', 'LangChain', 'Pinecone'].includes(skill)
-                        ? 'special'
-                        : ''
-                    }`}
-                  >
-                    {skill}
-                  </span>
-                ))}
+                {member.skills.slice(0, 14).map((skill, i) => {
+                  const verifiedItem = (member.tathastuProfile?.skills?.items as any[])?.find(
+                    (it: any) => (it.name || it).toLowerCase() === skill.toLowerCase() && it.verified
+                  );
+                  return (
+                    <span
+                      key={i}
+                      className={`skill-tag-pill ${
+                        ['GenAI', 'RAG', 'LangChain', 'Pinecone'].includes(skill)
+                          ? 'special'
+                          : ''
+                      }`}
+                    >
+                      {skill}
+                      {verifiedItem && (
+                        <span title="Verified Skill from AI Tathastu" style={{ display: 'inline-flex', verticalAlign: 'middle', marginLeft: 4 }}>
+                          <CheckCircle2
+                            size={12}
+                            color="#10B981"
+                          />
+                        </span>
+                      )}
+                    </span>
+                  );
+                })}
                 {member.skills.length > 14 && (
                   <span
                     className="skill-tag-pill"

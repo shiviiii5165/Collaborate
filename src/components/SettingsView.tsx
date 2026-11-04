@@ -711,12 +711,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   }}
                 />
                 <span style={{ fontWeight: 800, fontSize: '0.94rem', color: '#0F172A' }}>
-                  {currentUser.isLinkedWithTathastu ? 'Linked & Synchronized' : 'Not Linked to AI Tathastu'}
+                  {currentUser.isLinkedWithTathastu ? 'Profile data shared from AI Tathastu' : 'No AI Tathastu profile data'}
                 </span>
               </div>
               <div style={{ fontSize: '0.82rem', color: '#475569', marginTop: 4 }}>
-                Status: <strong>{currentUser.tathastuSyncStatus}</strong> • Mode:{' '}
-                <strong>{process.env.TATHASTU_INTEGRATION_MODE || 'Mock Core (Contract-Ready)'}</strong>
+                AI Tathastu sign-in:{' '}
+                <strong>{currentUser.tathastu_user_id ? 'Linked' : 'Not linked'}</strong> • Profile sync:{' '}
+                <strong>{currentUser.tathastuSyncStatus}</strong>
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#64748B', marginTop: 4 }}>
+                Profile sync only copies approved professional fields. It does not sign you in, and private chats,
+                passwords, documents and academic records are never imported.
               </div>
             </div>
 

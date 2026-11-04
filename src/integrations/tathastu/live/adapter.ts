@@ -18,28 +18,41 @@ export class LiveTathastuAdapter implements ITathastuIntegrationAdapter {
   }
 
   public async fetchProjection(sourcePersonId: string): Promise<ProfessionalProjectionV1> {
-    if (!this.serviceToken) {
+    const token = this.serviceToken || process.env.AI_TATHASTU_CLIENT_SECRET;
+    if (!token) {
       throw new Error(
-        'LIVE_CORE_NOT_CONFIGURED: TATHASTU_CORE_SERVICE_TOKEN is required for LiveTathastuAdapter. Core service integration is not yet live.'
+        'LIVE_CORE_NOT_CONFIGURED: TATHASTU_CORE_SERVICE_TOKEN or AI_TATHASTU_CLIENT_SECRET is required for LiveTathastuAdapter.'
       );
     }
 
-    const response = await fetch(`${this.baseUrl}/v1/federation/projections/${encodeURIComponent(sourcePersonId)}`, {
+    const endpoint = process.env.AI_TATHASTU_PROFILE_URL || `${this.baseUrl}/api/integrations/v1/profile`;
+    const response = await fetch(endpoint, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${this.serviceToken}`,
+        'Authorization': `Bearer ${token}`,
         'Accept': 'application/json',
         'X-Collaborate-Contract-Version': '1.0',
+        'X-Source-Person-Id': sourcePersonId,
       },
     });
 
     if (!response.ok) {
+      // Try federation fallback if v1 endpoint returned 404
+      const fallbackUrl = `${this.baseUrl}/v1/federation/projections/${encodeURIComponent(sourcePersonId)}`;
+      const fbRes = await fetch(fallbackUrl, {
+        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+      });
+      if (fbRes.ok) {
+        const rawFb = await fbRes.json();
+        return validateProfessionalProjection(rawFb);
+      }
       throw new Error(`Live Tathastu Core projection fetch failed: ${response.status} ${response.statusText}`);
     }
 
     const raw = await response.json();
     return validateProfessionalProjection(raw);
   }
+
 
   public async getEligibleDiscoveryMembers(): Promise<ProfessionalProjectionV1[]> {
     if (!this.serviceToken) {

@@ -35,19 +35,14 @@ jobs:
       - name: Security audit
         run: npm audit --audit-level=high || true
 
-      - name: Start Next.js Server
-        run: |
-          npx next start -p 3001 &
-          sleep 4
+      - name: API typecheck
+        run: npx tsc --noEmit -p apps/api/tsconfig.json
+
+      # In-process Fastify suites with isolated fixtures (fresh users, in-process admin
+      # fixture). No demo credentials, no network, no external services.
+      # The former steps ran `next start` (a gateway that needs COLLABORATE_BACKEND_URL)
+      # and logged in with hardcoded demo passwords, which production now rejects.
+      - name: Authorization, SSO and integration regression tests
+        run: npm test
         env:
           COLLABORATE_ALLOW_LOCAL_STORAGE: 'true'
-          COLLABORATE_ENABLE_FIXTURES: 'true'
-
-      - name: Run E2E & security regression tests
-        run: node tests/e2e_verification.mjs
-
-      - name: Run Staging Acceptance Journey
-        run: node tests/staging_acceptance_journey.mjs
-
-      - name: Run Concurrent Quota Transaction Race Test
-        run: node tests/concurrent_quota_test.mjs

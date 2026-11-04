@@ -14,6 +14,7 @@ import { QuotaPaywallModal } from '@/components/QuotaPaywallModal';
 import { ProfileEditModal } from '@/components/ProfileEditModal';
 import { SettingsView } from '@/components/SettingsView';
 import { AuthModal } from '@/components/AuthModal';
+import { getSsoErrorMessage } from '@/lib/auth/sso-errors';
 import { MemberProfile, RecommendationMatch } from '@/lib/types';
 import {
   Sparkles,
@@ -59,6 +60,13 @@ export default function CollaborateApp() {
   const [portalIsUnder18, setPortalIsUnder18] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
   const [portalError, setPortalError] = useState('');
+
+  // AI Tathastu SSO (login page)
+  const [ssoAvailable, setSsoAvailable] = useState<boolean | null>(null);
+  const [ssoRedirecting, setSsoRedirecting] = useState(false);
+  const [linkRequired, setLinkRequired] = useState(false);
+  const [linkPassword, setLinkPassword] = useState('');
+  const [linkLoading, setLinkLoading] = useState(false);
 
   // Modals state
   const [isFederationOpen, setIsFederationOpen] = useState(false);
@@ -252,6 +260,81 @@ export default function CollaborateApp() {
   useEffect(() => {
     fetchCurrentUserData();
   }, []);
+
+  // AI Tathastu OAuth return: show a SAFE message for ?auth_error=<code> (unknown values
+  // map to a generic message, so arbitrary text in the URL is never rendered), then
+  // strip the query string so a refresh does not repeat it.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const authError = params.get('auth_error');
+    const authSuccess = params.get('auth_success');
+    if (authError) {
+      if (authError === 'account_link_required') {
+        setLinkRequired(true);
+        setAuthPortalMode('login');
+      }
+      // Set after fetchCurrentUserData() clears portalError on mount.
+      setTimeout(() => setPortalError(getSsoErrorMessage(authError)), 0);
+    }
+    if (authError || authSuccess) {
+      params.delete('auth_error');
+      params.delete('auth_success');
+      const qs = params.toString();
+      window.history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`);
+    }
+
+    // Value-free availability check; if it fails the button still works and the
+    // server answers with a safe auth_error.
+    fetch('/api/auth/tathastu/status', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setSsoAvailable(d ? Boolean(d.enabled) : null))
+      .catch(() => setSsoAvailable(null));
+
+    // Back/forward cache: reset the loading state if the user returns to this page.
+    const onPageShow = () => setSsoRedirecting(false);
+    window.addEventListener('pageshow', onPageShow);
+    return () => window.removeEventListener('pageshow', onPageShow);
+  }, []);
+
+  const handleTathastuSso = () => {
+    if (ssoRedirecting) return;
+    setPortalError('');
+    if (ssoAvailable === false) {
+      setPortalError(getSsoErrorMessage('sso_unavailable'));
+      return;
+    }
+    setSsoRedirecting(true);
+    // Full-page navigation: the server sets the HttpOnly state/PKCE cookie and redirects.
+    window.location.assign('/api/auth/tathastu/start');
+  };
+
+  const handleConfirmLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLinkLoading(true);
+    setPortalError('');
+    try {
+      const res = await fetch('/api/auth/tathastu/link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: linkPassword }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.member) {
+        setLinkPassword('');
+        setLinkRequired(false);
+        setCurrentUser(data.member);
+        setAuthState('AUTHENTICATED');
+      } else {
+        if (data.error && data.error !== 'link_password_invalid') setLinkRequired(false);
+        setPortalError(getSsoErrorMessage(data.error));
+      }
+    } catch {
+      setPortalError(getSsoErrorMessage('provider_unavailable'));
+    } finally {
+      setLinkLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (currentUser) {
@@ -595,6 +678,8 @@ export default function CollaborateApp() {
           {/* Error Banner */}
           {portalError && (
             <div
+              role="alert"
+              aria-live="assertive"
               style={{
                 background: '#FEF2F2',
                 border: '1px solid #FCA5A5',
@@ -608,10 +693,136 @@ export default function CollaborateApp() {
                 gap: 8,
               }}
             >
-              <AlertCircle size={16} />
+              <AlertCircle size={16} style={{ flexShrink: 0 }} aria-hidden="true" />
               <span>{portalError}</span>
             </div>
           )}
+
+          {/* Existing-account link confirmation (after a verified AI Tathastu sign-in) */}
+          {linkRequired && (
+            <form
+              onSubmit={handleConfirmLink}
+              aria-labelledby="link-confirm-heading"
+              style={{
+                background: '#F0FDFA',
+                border: '1px solid #99F6E4',
+                borderRadius: 10,
+                padding: 16,
+                marginBottom: 20,
+              }}
+            >
+              <h2 id="link-confirm-heading" style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0F172A', margin: '0 0 6px' }}>
+                Link your AI Tathastu account
+              </h2>
+              <p style={{ fontSize: '0.8rem', color: '#475569', margin: '0 0 12px', lineHeight: 1.45 }}>
+                For your security we never merge accounts by email alone. Enter your existing Collaborate password to
+                link it. Your password, connections and messages are kept unchanged.
+              </p>
+              <label htmlFor="link-password" style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: 6 }}>
+                Collaborate password
+              </label>
+              <input
+                id="link-password"
+                type="password"
+                required
+                autoComplete="current-password"
+                value={linkPassword}
+                onChange={(e) => setLinkPassword(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: 8,
+                  border: '1px solid #CBD5E1',
+                  fontSize: '1rem',
+                  boxSizing: 'border-box',
+                  marginBottom: 10,
+                }}
+              />
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button
+                  type="submit"
+                  disabled={linkLoading}
+                  aria-busy={linkLoading}
+                  style={{
+                    flex: '1 1 160px',
+                    minHeight: 44,
+                    background: linkLoading ? '#94A3B8' : '#0F766E',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: 8,
+                    fontWeight: 600,
+                    cursor: linkLoading ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {linkLoading ? 'Linking…' : 'Confirm & link account'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLinkRequired(false);
+                    setLinkPassword('');
+                    setPortalError('');
+                  }}
+                  style={{
+                    flex: '1 1 100px',
+                    minHeight: 44,
+                    background: '#FFFFFF',
+                    color: '#334155',
+                    border: '1px solid #CBD5E1',
+                    borderRadius: 8,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Continue with AI Tathastu (central SSO) */}
+          <button
+            type="button"
+            onClick={handleTathastuSso}
+            disabled={ssoRedirecting}
+            aria-busy={ssoRedirecting}
+            aria-describedby={ssoAvailable === false ? 'sso-unavailable-hint' : undefined}
+            style={{
+              width: '100%',
+              minHeight: 48,
+              background: ssoRedirecting ? '#5EAAA2' : '#0F766E',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: 8,
+              padding: '12px 16px',
+              fontSize: '0.94rem',
+              fontWeight: 600,
+              cursor: ssoRedirecting ? 'wait' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              opacity: ssoAvailable === false ? 0.75 : 1,
+              touchAction: 'manipulation',
+            }}
+          >
+            <Sparkles size={16} aria-hidden="true" />
+            <span>{ssoRedirecting ? 'Redirecting to AI Tathastu…' : 'Continue with AI Tathastu'}</span>
+          </button>
+          {ssoAvailable === false && (
+            <p id="sso-unavailable-hint" style={{ fontSize: '0.74rem', color: '#64748B', textAlign: 'center', margin: '6px 0 0' }}>
+              AI Tathastu sign-in is not enabled on this environment yet.
+            </p>
+          )}
+
+          <div
+            aria-hidden="true"
+            style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '18px 0', color: '#94A3B8', fontSize: '0.74rem' }}
+          >
+            <div style={{ flex: 1, height: 1, background: '#E2E8F0' }} />
+            <span>{authPortalMode === 'login' ? 'OR SIGN IN WITH EMAIL' : 'OR CREATE A COLLABORATE ACCOUNT'}</span>
+            <div style={{ flex: 1, height: 1, background: '#E2E8F0' }} />
+          </div>
 
           {/* Form */}
           <form onSubmit={authPortalMode === 'login' ? handlePortalLogin : handlePortalRegister}>
@@ -778,66 +989,68 @@ export default function CollaborateApp() {
             </button>
           </form>
 
-          {/* Quick Demo Credentials Helper */}
-          <div
-            style={{
-              marginTop: 24,
-              paddingTop: 18,
-              borderTop: '1px dashed #E2E8F0',
-              textAlign: 'center',
-            }}
-          >
-            <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748B', marginBottom: 8 }}>
-              BETA REVIEW QUICK-LOGIN
+          {/* Quick Demo Credentials Helper (Only visible if fixtures enabled) */}
+          {process.env.NEXT_PUBLIC_ENABLE_FIXTURES === 'true' && (
+            <div
+              style={{
+                marginTop: 24,
+                paddingTop: 18,
+                borderTop: '1px dashed #E2E8F0',
+                textAlign: 'center',
+              }}
+            >
+              <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#64748B', marginBottom: 8 }}>
+                BETA REVIEW QUICK-LOGIN
+              </div>
+              <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoFill('rahulsharma@gmail.com', 'password123')}
+                  style={{
+                    background: '#F1F5F9',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: 6,
+                    padding: '4px 10px',
+                    fontSize: '0.76rem',
+                    color: '#334155',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Rahul Sharma (LPU)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoFill('devika@test.collaborate.internal', 'SecureBeta123!')}
+                  style={{
+                    background: '#F1F5F9',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: 6,
+                    padding: '4px 10px',
+                    fontSize: '0.76rem',
+                    color: '#334155',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Devika Sen
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoFill('amanverma@gmail.com', 'password123')}
+                  style={{
+                    background: '#F1F5F9',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: 6,
+                    padding: '4px 10px',
+                    fontSize: '0.76rem',
+                    color: '#334155',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Aman Verma
+                </button>
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                onClick={() => handleQuickDemoFill('rahulsharma@gmail.com', 'password123')}
-                style={{
-                  background: '#F1F5F9',
-                  border: '1px solid #E2E8F0',
-                  borderRadius: 6,
-                  padding: '4px 10px',
-                  fontSize: '0.76rem',
-                  color: '#334155',
-                  cursor: 'pointer',
-                }}
-              >
-                Rahul Sharma (LPU)
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDemoFill('devika@test.collaborate.internal', 'SecureBeta123!')}
-                style={{
-                  background: '#F1F5F9',
-                  border: '1px solid #E2E8F0',
-                  borderRadius: 6,
-                  padding: '4px 10px',
-                  fontSize: '0.76rem',
-                  color: '#334155',
-                  cursor: 'pointer',
-                }}
-              >
-                Devika Sen
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDemoFill('amanverma@gmail.com', 'password123')}
-                style={{
-                  background: '#F1F5F9',
-                  border: '1px solid #E2E8F0',
-                  borderRadius: 6,
-                  padding: '4px 10px',
-                  fontSize: '0.76rem',
-                  color: '#334155',
-                  cursor: 'pointer',
-                }}
-              >
-                Aman Verma
-              </button>
-            </div>
-          </div>
+          )}
 
           {/* Footer Security Badges */}
           <div
@@ -861,37 +1074,41 @@ export default function CollaborateApp() {
   }
 
   return (
-    <div className="app-container">
-      {/* Top Navigation */}
-      <Header
+    <div className="app-shell">
+      {/* Full-Viewport Left Sidebar: Starts at x=0, y=0, height 100dvh */}
+      <Sidebar
         currentTab={currentTab}
         onNavigate={(tab) => {
           setViewingTargetUser(null);
           setCurrentTab(tab);
         }}
         currentUser={currentUser}
-        quotaRemaining={quotaRemaining}
         unreadMessagesCount={unreadMessagesCount}
-        unreadNotificationsCount={unreadNotificationsCount}
-        onOpenUpgradeModal={() => setIsUpgradeOpen(true)}
-        onOpenFederationModal={() => setIsFederationOpen(true)}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
+        onOpenAdmin={() => setCurrentTab('admin')}
       />
 
-      {/* Main 3-Column Layout Grid */}
-      <div className="main-layout">
-        {/* Left Sidebar */}
-        <Sidebar
+      {/* Right Application Workspace: Fixed Top Header + Independently Scrollable Workspace */}
+      <div className="app-workspace">
+        {/* Top Header: Sticky at top of workspace */}
+        <Header
           currentTab={currentTab}
           onNavigate={(tab) => {
             setViewingTargetUser(null);
             setCurrentTab(tab);
           }}
           currentUser={currentUser}
+          quotaRemaining={quotaRemaining}
           unreadMessagesCount={unreadMessagesCount}
-          onOpenAdmin={() => setCurrentTab('admin')}
+          unreadNotificationsCount={unreadNotificationsCount}
+          onOpenUpgradeModal={() => setIsUpgradeOpen(true)}
+          onOpenFederationModal={() => setIsFederationOpen(true)}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
         />
+
+        {/* Workspace Scroll Container: Independent vertical scrolling */}
+        <div className="workspace-scroll-area">
+          <div className="main-layout">
 
         {/* Center Content Area */}
         <main className="center-content">
@@ -1293,6 +1510,8 @@ export default function CollaborateApp() {
             setCurrentTab('discover');
           }}
         />
+          </div>
+        </div>
       </div>
 
       {/* Modals */}

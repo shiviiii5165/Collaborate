@@ -104,8 +104,8 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={onOpenFederationModal}
               title={
                 currentUser.isLinkedWithTathastu
-                  ? 'Tathastu Core Profile: Linked & Synced'
-                  : 'Link with AI Tathastu Core'
+                  ? `AI Tathastu profile data shared • Sign-in ${currentUser.tathastu_user_id ? 'linked' : 'not linked'}`
+                  : 'Share profile data from AI Tathastu'
               }
             >
               <div

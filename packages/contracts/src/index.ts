@@ -126,6 +126,9 @@ export interface MemberProfile {
   role?: 'member' | 'admin';
   isRestricted?: boolean;
   deactivated?: boolean;
+  tathastu_user_id?: string;
+  tathastuProfile?: any;
+  tathastuLastSyncedAt?: string;
 }
 
 export interface ConnectionRecord {

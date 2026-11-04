@@ -13,45 +13,55 @@ import cookie from '@fastify/cookie';
 import { durableDb, getKolkataDateKey } from '@/lib/db/index';
 import { isNeonConfigured } from '@/lib/db/neon';
 import { IdentityService } from '@/modules/identity/service';
-import { verifySessionToken, COOKIE_NAME, SessionPayload, buildSessionCookie } from '@/lib/auth/session';
+import { TathastuSsoService } from '@/modules/identity/tathastu-sso';
+import { TathastuClient } from '@/integrations/tathastu/client';
+import {
+  verifySessionToken,
+  COOKIE_NAME,
+  SessionPayload,
+  buildSessionCookie,
+  PENDING_LINK_COOKIE_NAME,
+  signPendingLinkToken,
+  verifyPendingLinkToken,
+} from '@/lib/auth/session';
+import { classifySsoError, getSsoErrorMessage, SsoErrorCode } from '@/lib/auth/sso-errors';
+import { getConfigDiagnostics, isSsoEnabled, isTestHarnessEnabled } from '@/integrations/tathastu/config';
+import { assertProductionSecrets, resolveServerSecret } from '@/lib/auth/secrets';
+import {
+  getPaymentWebhookSecret,
+  verifyPaymentWebhookSignature,
+  PAYMENT_WEBHOOK_PROVIDER,
+} from '@/modules/billing/payment-webhook';
+import { isOriginAllowed } from '@/lib/http/cors-policy';
 import { canInitiateContact } from '@collaborate/domain';
 import type { MemberProfile } from '@collaborate/contracts';
 import { getRecommendationsForMember } from '@/lib/recommendations';
 import { FederationService } from '@/modules/federation/client';
 import { TathastuSyncSimulator } from '@/integrations/tathastu/sync/simulator';
 
-// Extend FastifyRequest with authenticated user
+// Extend FastifyRequest with authenticated user and rawBody
 declare module 'fastify' {
   interface FastifyRequest {
     user?: SessionPayload;
+    rawBody?: Buffer;
   }
 }
 
 export function buildServer(): FastifyInstance {
+  // Fail safe: refuse to start in production without real AUTH_SECRET / SESSION_SECRET.
+  assertProductionSecrets();
+
   const fastify = Fastify({
     logger: false,
     trustProxy: true,
   });
 
-  // 1. CORS Configuration (Permits Vercel frontend, custom domains, and local preview)
+  // 1. CORS: exact origins only (see src/lib/http/cors-policy.ts). No wildcards.
+  //    Requests without an Origin header (server-to-server, webhooks) are unaffected.
   fastify.register(cors, {
     origin: (origin, cb) => {
       if (!origin) return cb(null, true);
-      const allowedOrigins = [
-        'https://collaborate.aitathastu.com',
-        'https://collaborate-umber.vercel.app',
-        'http://localhost:3000',
-        'http://localhost:3001',
-        'http://localhost:4000',
-      ];
-      if (
-        allowedOrigins.includes(origin) ||
-        origin.endsWith('.vercel.app') ||
-        origin.endsWith('.aitathastu.com')
-      ) {
-        return cb(null, true);
-      }
-      return cb(null, true);
+      return cb(null, isOriginAllowed(origin));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -59,11 +69,45 @@ export function buildServer(): FastifyInstance {
     exposedHeaders: ['Set-Cookie'],
   });
 
+  // 1b. CSRF defence-in-depth: a browser request carrying a disallowed Origin may not
+  //     change state, even though CORS would already hide the response from it.
+  fastify.addHook('onRequest', async (req, reply) => {
+    const origin = req.headers.origin;
+    if (!origin || ['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return;
+    if (!isOriginAllowed(origin)) {
+      return reply.status(403).send({ error: 'ORIGIN_NOT_ALLOWED' });
+    }
+  });
+
   // 2. Cookie Support
   fastify.register(cookie, {
-    secret: process.env.SESSION_SECRET || 'collaborate_session_cookie_secret_2026',
+    secret: resolveServerSecret('SESSION_SECRET'),
     parseOptions: {},
   });
+
+  // Retain raw request body Buffer for webhook HMAC-SHA256 signature verification
+  fastify.addContentTypeParser(
+    ['application/json', 'application/x-www-form-urlencoded', 'text/plain'],
+    { parseAs: 'buffer' },
+    (req, body, done) => {
+      try {
+        (req as any).rawBody = body;
+        if (!body || body.length === 0) {
+          return done(null, {});
+        }
+        const str = body.toString('utf8');
+        try {
+          const json = JSON.parse(str);
+          done(null, json);
+        } catch {
+          done(null, {});
+        }
+      } catch {
+        done(null, {});
+      }
+    }
+  );
+
 
   // 3. Auth Helpers
   const authenticate = async (req: FastifyRequest, reply: FastifyReply) => {
@@ -84,7 +128,26 @@ export function buildServer(): FastifyInstance {
       return reply.status(401).send({ error: 'INVALID_SESSION', message: 'Session expired or invalid' });
     }
 
+    // The account behind a still-valid token must exist and be active.
+    const member = durableDb.getMemberById(payload.userId);
+    if (!member || member.deactivated) {
+      return reply.status(401).send({ error: 'INVALID_SESSION', message: 'Session expired or invalid' });
+    }
+
     req.user = payload;
+  };
+
+  /**
+   * Admin = verified session AND the stored member record is admin. Role is never read
+   * from request parameters, and a demoted admin's older token stops working.
+   */
+  const requireAdmin = async (req: FastifyRequest, reply: FastifyReply) => {
+    await authenticate(req, reply);
+    if (reply.sent) return;
+    const member = durableDb.getMemberById(req.user!.userId);
+    if (req.user!.role !== 'admin' || member?.role !== 'admin') {
+      return reply.status(403).send({ error: 'ADMIN_ONLY', message: 'Admin role required' });
+    }
   };
 
   const optionalAuth = async (req: FastifyRequest) => {
@@ -169,7 +232,10 @@ export function buildServer(): FastifyInstance {
   });
 
   fastify.post('/api/auth/logout', async (_req, reply) => {
+    reply.header('Cache-Control', 'no-store');
     reply.clearCookie(COOKIE_NAME, { path: '/' });
+    reply.clearCookie(PENDING_LINK_COOKIE_NAME, { path: '/' });
+    reply.clearCookie('tathastu_oauth_flow', { path: '/' });
     return reply.send({ success: true, message: 'Logged out' });
   });
 
@@ -186,12 +252,20 @@ export function buildServer(): FastifyInstance {
   // ============================================================================
   fastify.get('/api/profiles', async (req: FastifyRequest<{ Querystring: { id?: string; email?: string; viewerId?: string } }>, reply) => {
     await optionalAuth(req);
-    const { id, email, viewerId: queryViewerId } = req.query;
-    const viewerId = req.user?.userId || queryViewerId || '';
+    // Viewer identity comes ONLY from the verified session; ?viewerId= is ignored.
+    const { id, email } = req.query;
+    const viewerId = req.user?.userId || '';
 
     if (id) {
       const member = durableDb.getMemberById(id);
-      if (!member) return reply.status(404).send({ error: 'Profile not found' });
+      if (!member || (member.deactivated && viewerId !== id && req.user?.role !== 'admin')) {
+        return reply.status(404).send({ error: 'Profile not found' });
+      }
+
+      // Guests may only see public profiles.
+      if (!viewerId && member.profileVisibility !== 'public') {
+        return reply.status(401).send({ error: 'UNAUTHORIZED', message: 'Sign in to view this profile' });
+      }
 
       // If viewing another member's profile
       if (viewerId && viewerId !== id) {
@@ -244,19 +318,34 @@ export function buildServer(): FastifyInstance {
     }
 
     if (email) {
+      // Email lookup is for the account owner or admins only (prevents enumeration).
+      if (!req.user) return reply.status(401).send({ error: 'UNAUTHORIZED', message: 'Authentication required' });
       const member = durableDb.getMemberByEmail(email);
-      if (!member) return reply.status(404).send({ error: 'Profile not found' });
+      if (!member || (member.id !== req.user.userId && req.user.role !== 'admin')) {
+        return reply.status(404).send({ error: 'Profile not found' });
+      }
       return reply.send({ member });
     }
 
-    const members = durableDb.getAllMembers().filter((m) => !m.deactivated);
+    const members = durableDb
+      .getAllMembers()
+      .filter((m) => !m.deactivated && !m.isRestricted && m.profileVisibility === 'public');
     return reply.send(members);
   });
 
+  /** Fields a member can never set through profile edits (identity, role, billing, trust). */
+  const PROTECTED_PROFILE_FIELDS = [
+    'id', 'email', 'role', 'plan', 'planExpiresAt', 'isVerified', 'verifiedCategory', 'verifiedAt',
+    'tathastu_user_id', 'isLinkedWithTathastu', 'tathastuSyncStatus', 'tathastuProfile', 'tathastuLastSyncedAt',
+    'isRestricted', 'deactivated', 'safeguardingApproved', 'isUnder18', 'statusBadges',
+  ];
+
   fastify.put('/api/profiles', { preHandler: authenticate }, async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
     const body = req.body || {};
-    const updates = body.updates || body;
-    const targetUserId = body.id || updates.id || req.user!.userId;
+    const rawUpdates = (body.updates || body) as Record<string, any>;
+    const targetUserId = body.id || rawUpdates.id || req.user!.userId;
+    const updates: Record<string, any> = { ...rawUpdates };
+    for (const field of PROTECTED_PROFILE_FIELDS) delete updates[field];
 
     if (targetUserId !== req.user!.userId && req.user!.role !== 'admin') {
       return reply.status(403).send({ error: 'Unauthorized to edit this profile' });
@@ -281,8 +370,8 @@ export function buildServer(): FastifyInstance {
 
   fastify.get('/api/discover', async (req: FastifyRequest<{ Querystring: { q?: string; tag?: string; skill?: string; viewerId?: string } }>, reply) => {
     await optionalAuth(req);
-    const { q, tag, skill, viewerId: queryViewerId } = req.query;
-    const currentUserId = req.user?.userId || queryViewerId || '';
+    const { q, tag, skill } = req.query;
+    const currentUserId = req.user?.userId || ''; // never from ?viewerId=
 
     const recommendations = currentUserId ? getRecommendationsForMember(currentUserId, 6) : [];
 
@@ -408,6 +497,10 @@ export function buildServer(): FastifyInstance {
     }
 
     if (conversationId) {
+      const conv = durableDb.getConversationById(conversationId);
+      if (!conv || !conv.participantIds.includes(userId)) {
+        return reply.status(404).send({ error: 'Conversation not found' });
+      }
       const messages = durableDb.getMessagesForConversation(conversationId);
       return reply.send({ messages });
     }
@@ -622,14 +715,15 @@ export function buildServer(): FastifyInstance {
     return reply.send({ success: true, requestId: reqId });
   });
 
-  fastify.post('/api/verification/review', { preHandler: authenticate }, async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
-    if (req.user?.role !== 'admin') {
-      return reply.status(403).send({ error: 'ADMIN_ONLY', message: 'Admin role required' });
-    }
+  fastify.post('/api/verification/review', { preHandler: requireAdmin }, async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
     const { requestId, action, notes } = req.body || {};
     const decision: 'approved' | 'rejected' = action === 'approved' ? 'approved' : 'rejected';
-    const updated = durableDb.reviewVerification(requestId, req.user.userId, decision, notes || '');
-    return reply.send({ success: true, request: updated });
+    try {
+      const updated = durableDb.reviewVerification(requestId, req.user!.userId, decision, notes || '');
+      return reply.send({ success: true, request: updated });
+    } catch {
+      return reply.status(404).send({ error: 'Verification request not found' });
+    }
   });
 
   fastify.post('/api/reports', { preHandler: authenticate }, async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
@@ -643,20 +737,18 @@ export function buildServer(): FastifyInstance {
   // ============================================================================
   // NOTIFICATIONS
   // ============================================================================
-  fastify.get('/api/notifications', async (req: FastifyRequest<{ Querystring: { userId?: string } }>, reply) => {
-    await optionalAuth(req);
-    const userId = req.user?.userId || req.query.userId;
-    if (!userId) {
-      return reply.send({ notifications: [], unreadCount: 0 });
-    }
-    const notifications = durableDb.getNotificationsForUser(userId);
+  // Session user only; ?userId= is ignored.
+  fastify.get('/api/notifications', { preHandler: authenticate }, async (req: FastifyRequest, reply) => {
+    const notifications = durableDb.getNotificationsForUser(req.user!.userId);
     const unreadCount = notifications.filter((n) => !n.isRead).length;
     return reply.send({ notifications, unreadCount });
   });
 
-  fastify.post('/api/notifications', async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
+  fastify.post('/api/notifications', { preHandler: authenticate }, async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
     const { notifId } = req.body || {};
     if (notifId) {
+      const owned = durableDb.getNotificationsForUser(req.user!.userId).some((n) => n.id === notifId);
+      if (!owned) return reply.status(404).send({ error: 'Notification not found' });
       durableDb.markNotificationRead(notifId);
     }
     return reply.send({ success: true });
@@ -665,12 +757,54 @@ export function buildServer(): FastifyInstance {
   // ============================================================================
   // BILLING & SUBSCRIPTIONS
   // ============================================================================
-  const WEBHOOK_SECRET = process.env.PAYMENT_WEBHOOK_SECRET || 'collaborate_webhook_secret_sandbox_sig_2026';
+  /**
+   * Payment webhook (contract: src/modules/billing/payment-webhook.ts).
+   * Order: config -> signature+timestamp over raw body -> payload validation ->
+   * atomic event-id claim -> effect. Fails closed at every step.
+   */
+  const handlePaymentWebhook = async (req: FastifyRequest, reply: FastifyReply) => {
+    const secret = getPaymentWebhookSecret();
+    if (!secret) return reply.status(503).send({ error: 'PAYMENT_WEBHOOK_NOT_CONFIGURED' });
 
-  fastify.get('/api/billing', async (req: FastifyRequest<{ Querystring: { userId?: string } }>, reply) => {
-    await optionalAuth(req);
-    const targetUserId = req.user?.userId || req.query.userId || 'usr_rahul';
-    const member = durableDb.getMemberById(targetUserId);
+    const rawBody: Buffer | undefined = (req as any).rawBody;
+    if (!rawBody || rawBody.length === 0) return reply.status(400).send({ error: 'EMPTY_BODY' });
+
+    const sig = verifyPaymentWebhookSignature(rawBody, req.headers['x-payment-signature'] as string | undefined, secret);
+    if (!sig.valid) return reply.status(401).send({ error: sig.error });
+
+    let event: any;
+    try {
+      event = JSON.parse(rawBody.toString('utf8'));
+    } catch {
+      return reply.status(400).send({ error: 'INVALID_JSON' });
+    }
+    const eventId = typeof event?.id === 'string' ? event.id.trim() : '';
+    const memberId = event?.data?.memberId;
+    if (!eventId || eventId.length > 255 || event?.type !== 'payment.succeeded' || typeof memberId !== 'string') {
+      return reply.status(400).send({ error: 'INVALID_EVENT' });
+    }
+    const member = durableDb.getMemberById(memberId);
+    if (!member) return reply.status(404).send({ error: 'Member not found' });
+
+    let claimed: boolean;
+    try {
+      claimed = await durableDb.claimWebhookEventAsync(PAYMENT_WEBHOOK_PROVIDER, eventId, event.type, { memberId });
+    } catch {
+      return reply.status(503).send({ error: 'WEBHOOK_STORE_UNAVAILABLE' });
+    }
+    if (!claimed) return reply.status(409).send({ error: 'REPLAYED_EVENT', eventId });
+
+    member.plan = 'premium';
+    member.planExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    await durableDb.saveMemberAsync(member);
+    return reply.send({ success: true, verified: true, eventId, plan: member.plan });
+  };
+
+  fastify.post('/api/webhooks/payments', handlePaymentWebhook);
+
+  // Session user only; ?userId= is ignored.
+  fastify.get('/api/billing', { preHandler: authenticate }, async (req: FastifyRequest, reply) => {
+    const member = durableDb.getMemberById(req.user!.userId);
     if (!member) return reply.status(404).send({ error: 'Member not found' });
 
     return reply.send({
@@ -693,40 +827,26 @@ export function buildServer(): FastifyInstance {
   });
 
   fastify.post('/api/billing', async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
-    await optionalAuth(req);
     const body = req.body || {};
-    const { action, userId, webhookSignature } = body;
+    const { action } = body; // body.userId is never trusted
 
-    // 1. Verified Webhook Handler
-    if (webhookSignature) {
-      const computedSig = crypto
-        .createHmac('sha256', WEBHOOK_SECRET)
-        .update(JSON.stringify(body.payload || {}))
-        .digest('hex');
-
-      const sigBuf = Buffer.from(String(webhookSignature));
-      const compBuf = Buffer.from(computedSig);
-
-      if (sigBuf.length !== compBuf.length || !crypto.timingSafeEqual(sigBuf, compBuf)) {
-        return reply.status(401).send({ error: 'Invalid cryptographic webhook signature' });
-      }
-
-      const targetMemberId = body.payload?.memberId || userId;
-      const member = durableDb.getMemberById(targetMemberId);
-      if (!member) return reply.status(404).send({ error: 'Member not found' });
-
-      member.plan = 'premium';
-      member.planExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-      await durableDb.saveMemberAsync(member);
-
-      return reply.send({ success: true, verified: true, plan: member.plan });
+    // 1. Signed payment webhook (service-to-service; HMAC + timestamp + replay protection)
+    if (req.headers['x-payment-signature']) {
+      return handlePaymentWebhook(req, reply);
+    }
+    // Legacy body-signature format had no signed timestamp/event id -> rejected.
+    if (body.webhookSignature) {
+      return reply.status(400).send({
+        error: 'UNSUPPORTED_WEBHOOK_FORMAT',
+        message: 'Send X-Payment-Signature: t=<unix>,v1=<hmac> to /api/webhooks/payments.',
+      });
     }
 
-    if (!req.user) {
-      return reply.status(401).send({ error: 'Authentication required' });
-    }
+    // User-initiated billing actions need a full, active session.
+    await authenticate(req, reply);
+    if (reply.sent) return reply;
 
-    const currentUserId = req.user.userId;
+    const currentUserId = req.user!.userId;
     const member = durableDb.getMemberById(currentUserId);
     if (!member) return reply.status(404).send({ error: 'Member not found' });
 
@@ -770,8 +890,240 @@ export function buildServer(): FastifyInstance {
   });
 
   // ============================================================================
-  // OIDC & SSO FEDERATION (Mock Tathastu Core Integration)
+  // PRODUCTION AI TATHASTU INTEGRATION & SSO FEDERATION
   // ============================================================================
+
+  // ============================================================================
+  // PRODUCTION AI TATHASTU INTEGRATION & SSO FEDERATION
+  // ============================================================================
+  const OAUTH_FLOW_COOKIE = 'tathastu_oauth_flow';
+  const OAUTH_FLOW_TTL_MS = 10 * 60 * 1000;
+  const isProd = process.env.NODE_ENV === 'production';
+  const ssoCookieOptions = {
+    path: '/',
+    httpOnly: true,
+    secure: isProd,
+    sameSite: 'lax' as const, // must survive the top-level redirect back from AI Tathastu
+  };
+
+  const redirectWithAuthError = (reply: FastifyReply, code: SsoErrorCode) =>
+    reply.redirect(`/?auth_error=${encodeURIComponent(code)}`);
+
+  /** Server-side log only. Never includes codes, verifiers, tokens or secrets. */
+  const logSsoFailure = (stage: string, err: unknown) => {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`[Tathastu SSO] ${stage} failed: ${msg.split(':')[0]} (${classifySsoError(err)})`);
+  };
+
+  // 0. Public, value-free status for the login page
+  fastify.get('/api/auth/tathastu/status', async (_req, reply) => {
+    const d = getConfigDiagnostics();
+    reply.header('Cache-Control', 'no-store');
+    return reply.send({ enabled: d.ssoEnabled, mode: d.mode });
+  });
+
+  // 1. Initiate AI Tathastu SSO Authorization Flow (OAuth 2.0 PKCE + State)
+  const handleTathastuStart = async (
+    req: FastifyRequest<{
+      Querystring: { format?: string; prompt?: string; reconsent?: string };
+    }>,
+    reply: FastifyReply
+  ) => {
+    reply.header('Cache-Control', 'no-store');
+
+    // Fail closed and visibly: mock mode or incomplete configuration never redirects
+    // the user to AI Tathastu (and never pretends to authenticate them).
+    if (!isSsoEnabled()) {
+      if (req.query.format === 'json') {
+        return reply.status(503).send({ error: 'sso_unavailable', message: getSsoErrorMessage('sso_unavailable') });
+      }
+      return redirectWithAuthError(reply, 'sso_unavailable');
+    }
+
+    const promptParam =
+      req.query.prompt === 'consent' || req.query.reconsent === 'true' ? 'consent' : undefined;
+    // redirect_uri is always the configured callback; it is never taken from the request.
+    const { authUrl, state, codeVerifier, codeChallenge, redirectUri } = TathastuSsoService.initiateLogin({
+      prompt: promptParam,
+    });
+
+    // Store state & PKCE code_verifier in an HttpOnly flow cookie (10 min TTL)
+    const flowData = JSON.stringify({ state, codeVerifier, redirectUri, createdAt: Date.now() });
+    reply.setCookie(OAUTH_FLOW_COOKIE, flowData, { ...ssoCookieOptions, maxAge: OAUTH_FLOW_TTL_MS / 1000 });
+
+    if (req.query.format === 'json') {
+      return reply.send({ authUrl, state, codeChallenge, redirectUri });
+    }
+
+    return reply.redirect(authUrl);
+  };
+
+  // Both /start and /authorize supported
+  fastify.get('/api/auth/tathastu/start', handleTathastuStart);
+  fastify.get('/api/auth/tathastu/authorize', handleTathastuStart);
+
+  // 2. Browser Redirect Callback from AI Tathastu Central System
+  fastify.get(
+    '/api/auth/tathastu/callback',
+    async (
+      req: FastifyRequest<{
+        Querystring: { code?: string; state?: string; error?: string; error_description?: string };
+      }>,
+      reply
+    ) => {
+      const { code, state, error } = req.query;
+      reply.header('Cache-Control', 'no-store');
+
+      // The flow cookie is single-use: clear it on every outcome.
+      const flowCookieRaw = req.cookies[OAUTH_FLOW_COOKIE];
+      reply.clearCookie(OAUTH_FLOW_COOKIE, { path: '/' });
+
+      if (error) {
+        // Provider-supplied text (error_description) is never reflected to the user.
+        logSsoFailure('authorize', new Error(`PROVIDER_ERROR: ${String(error).slice(0, 64)}`));
+        return redirectWithAuthError(reply, error === 'access_denied' ? 'access_denied' : 'sso_failed');
+      }
+
+      if (!code) {
+        return redirectWithAuthError(reply, 'missing_code');
+      }
+
+      if (!isSsoEnabled()) {
+        return redirectWithAuthError(reply, 'sso_unavailable');
+      }
+
+      // State + PKCE verifier MUST come from the flow cookie set by /start.
+      let flow: { state?: string; codeVerifier?: string; redirectUri?: string; createdAt?: number } | null = null;
+      if (flowCookieRaw) {
+        try {
+          flow = JSON.parse(flowCookieRaw);
+        } catch {
+          flow = null;
+        }
+      }
+      if (!flow || typeof flow.state !== 'string' || typeof flow.codeVerifier !== 'string') {
+        logSsoFailure('callback', new Error('OAUTH_FLOW_MISSING'));
+        return redirectWithAuthError(reply, 'flow_expired');
+      }
+      if (typeof flow.createdAt !== 'number' || Date.now() - flow.createdAt > OAUTH_FLOW_TTL_MS) {
+        logSsoFailure('callback', new Error('OAUTH_FLOW_EXPIRED'));
+        return redirectWithAuthError(reply, 'flow_expired');
+      }
+
+      try {
+        const { token } = await TathastuSsoService.processCallback({
+          code,
+          codeVerifier: flow.codeVerifier,
+          state: state || '',
+          expectedState: flow.state,
+          redirectUri: TathastuClient.getRedirectUri(),
+        });
+
+        reply.header('Set-Cookie', buildSessionCookie(token));
+        return reply.redirect('/?auth_success=true');
+      } catch (err: any) {
+        const safeCode = classifySsoError(err);
+        logSsoFailure('callback', err);
+
+        // Existing password account: hold the VERIFIED identity in a short-lived signed
+        // cookie and ask for the Collaborate password. Never merge on email alone.
+        if (safeCode === 'account_link_required' && err?.pendingLink) {
+          const pendingToken = await signPendingLinkToken(err.pendingLink);
+          reply.setCookie(PENDING_LINK_COOKIE_NAME, pendingToken, { ...ssoCookieOptions, maxAge: 600 });
+        }
+        return redirectWithAuthError(reply, safeCode);
+      }
+    }
+  );
+
+  // 3. Programmatic callback. Simulated claims are accepted ONLY by the explicit
+  //    non-production test harness; otherwise this route is disabled.
+  fastify.post('/api/auth/tathastu/callback', async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
+    if (!isTestHarnessEnabled()) {
+      return reply.status(404).send({ error: 'NOT_FOUND' });
+    }
+    const { code, codeVerifier, state, expectedState, linkConfirmationPassword, claimsOverride } = req.body || {};
+    try {
+      const { member, token, isNewUser } = await TathastuSsoService.processCallback({
+        code: code || 'mock_code',
+        codeVerifier: codeVerifier || 'mock_verifier',
+        state: state || 'mock_state',
+        expectedState,
+        linkConfirmationPassword,
+        claimsOverride,
+      });
+
+      reply.header('Set-Cookie', buildSessionCookie(token));
+      return reply.send({
+        success: true,
+        member,
+        isNewUser,
+        message: isNewUser
+          ? 'Account successfully generated from AI Tathastu Single Sign-On.'
+          : 'Logged in with AI Tathastu Single Sign-On.',
+      });
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message || 'Tathastu SSO callback failed' });
+    }
+  });
+
+  // 3b. Confirm existing Collaborate password to finish a paused AI Tathastu link
+  fastify.post('/api/auth/tathastu/link', async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    const raw = req.cookies[PENDING_LINK_COOKIE_NAME];
+    const pending = raw ? await verifyPendingLinkToken(raw) : null;
+    if (!pending) {
+      reply.clearCookie(PENDING_LINK_COOKIE_NAME, { path: '/' });
+      return reply.status(400).send({ error: 'link_expired', message: getSsoErrorMessage('link_expired') });
+    }
+
+    const password = typeof req.body?.password === 'string' ? req.body.password : '';
+    try {
+      const { member, token } = await TathastuSsoService.completePendingLink({ ...pending, password });
+      reply.clearCookie(PENDING_LINK_COOKIE_NAME, { path: '/' });
+      reply.header('Set-Cookie', buildSessionCookie(token));
+      return reply.send({ success: true, member });
+    } catch (err) {
+      const safeCode = classifySsoError(err);
+      logSsoFailure('link', err);
+      if (safeCode !== 'link_password_invalid' && safeCode !== 'account_link_required') {
+        reply.clearCookie(PENDING_LINK_COOKIE_NAME, { path: '/' });
+      }
+      return reply.status(safeCode === 'link_password_invalid' ? 401 : 400).send({
+        error: safeCode,
+        message: getSsoErrorMessage(safeCode),
+      });
+    }
+  });
+
+  // 4. Secure Webhook Receiver (HMAC-SHA256 Signed & Timestamp Validated)
+  fastify.post('/api/webhooks/tathastu', async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
+    const sigHeader = (
+      req.headers['x-ait-signature'] ||
+      req.headers['x-tathastu-signature'] ||
+      req.headers['x-signature'] ||
+      req.headers['x-hub-signature-256']
+    ) as string;
+
+    const timestampHeader = (
+      req.headers['x-tathastu-timestamp'] ||
+      req.headers['x-timestamp']
+    ) as string;
+
+    const rawBody = (req as any).rawBody || JSON.stringify(req.body || {});
+
+    // Cryptographic signature & replay freshness check (rejects missing/invalid signature with 401)
+    const sigResult = TathastuClient.verifyWebhookSignature(rawBody, sigHeader, timestampHeader);
+    if (!sigResult.valid) {
+      return reply.status(401).send({ error: 'INVALID_SIGNATURE', message: sigResult.error });
+    }
+
+    const event = req.body as any;
+    const result = await TathastuSsoService.processWebhook(event, req.headers as Record<string, string>);
+    return reply.status(200).send({ success: true, result });
+  });
+
+  // Backward-compatible OIDC Aliases
   fastify.get('/api/auth/oidc/authorize', async (_req, reply) => {
     const oidcData = IdentityService.createOidcAuthUrl();
     return reply.send({
@@ -781,33 +1133,25 @@ export function buildServer(): FastifyInstance {
     });
   });
 
-  fastify.get('/api/auth/oidc/callback', async (req: FastifyRequest<{ Querystring: { code?: string; state?: string; error?: string } }>, reply) => {
-    const { code, state, error } = req.query;
-    if (error) {
-      return reply.redirect(`/?auth_error=${encodeURIComponent(error)}`);
-    }
-    if (!code) {
-      return reply.status(400).send({ error: 'Missing authorization code' });
-    }
-    try {
-      const { token } = await IdentityService.processOidcCallback(code, 'pkce_verifier_from_cookie', state || '');
-      reply.header('Set-Cookie', buildSessionCookie(token));
-      return reply.redirect('/');
-    } catch (err: any) {
-      return reply.redirect(`/?auth_error=${encodeURIComponent(err.message)}`);
-    }
+  // Legacy simulated OIDC callback: it never verified a real identity, so it is retired.
+  // Real browser callbacks use /api/auth/tathastu/callback.
+  fastify.get('/api/auth/oidc/callback', async (_req, reply) => {
+    return redirectWithAuthError(reply, 'sso_unavailable');
   });
 
   fastify.post('/api/auth/oidc/callback', async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
+    if (!isTestHarnessEnabled()) {
+      return reply.status(404).send({ error: 'NOT_FOUND' });
+    }
     const { code, codeVerifier, state, linkConfirmationPassword, mockClaims } = req.body || {};
     try {
-      const { member, token, isNewUser } = await IdentityService.processOidcCallback(
-        code || 'mock_code_tathastu_99',
-        codeVerifier || 'mock_verifier_tathastu',
-        state || 'mock_state',
+      const { member, token, isNewUser } = await TathastuSsoService.processCallback({
+        code: code || 'mock_code_tathastu_99',
+        codeVerifier: codeVerifier || 'mock_verifier_tathastu',
+        state: state || 'mock_state',
         linkConfirmationPassword,
-        mockClaims
-      );
+        claimsOverride: mockClaims,
+      });
 
       reply.header('Set-Cookie', buildSessionCookie(token));
       return reply.send({
@@ -823,14 +1167,13 @@ export function buildServer(): FastifyInstance {
     }
   });
 
+
   // ============================================================================
   // EORA AI ASSISTANT
   // ============================================================================
-  fastify.post('/api/eora', async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
-    await optionalAuth(req);
-    const { prompt, userId } = req.body || {};
-    const targetId = req.user?.userId || userId || 'usr_rahul';
-    const member = durableDb.getMemberById(targetId);
+  fastify.post('/api/eora', { preHandler: authenticate }, async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
+    const { prompt } = req.body || {}; // body.userId is ignored
+    const member = durableDb.getMemberById(req.user!.userId);
     if (!member) return reply.status(404).send({ error: 'User not found' });
 
     const cleanPrompt = (prompt || '').toLowerCase().trim();
@@ -866,13 +1209,28 @@ export function buildServer(): FastifyInstance {
   // ============================================================================
   // TATHASTU CORE FEDERATION (Mock Adapter)
   // ============================================================================
-  fastify.get('/api/federation', async (req: FastifyRequest<{ Querystring: { action?: string; sourcePersonId?: string; userId?: string } }>, reply) => {
-    await optionalAuth(req);
+  /**
+   * The AI Tathastu person whose projection the session user may read/import: their own
+   * verified mapping. Any other sourcePersonId is accepted only by the explicit
+   * non-production test harness.
+   */
+  const resolveOwnPersonId = (userId: string, requested?: string): string | null => {
+    const mapping = durableDb.getMappingByMemberId('aitathastu_oidc', userId);
+    const own = mapping?.externalSubjectId || durableDb.getMemberById(userId)?.tathastu_user_id || null;
+    if (requested && requested !== own) {
+      return isTestHarnessEnabled() ? requested : null;
+    }
+    return own || (isTestHarnessEnabled() ? requested || null : null);
+  };
+
+  // Session user only; ?userId= is ignored.
+  fastify.get('/api/federation', { preHandler: authenticate }, async (req: FastifyRequest<{ Querystring: { action?: string; sourcePersonId?: string } }>, reply) => {
     const { action, sourcePersonId } = req.query;
-    const userId = req.user?.userId || req.query.userId || 'usr_rahul';
+    const userId = req.user!.userId;
 
     if (action === 'get_projection') {
-      const personId = sourcePersonId || 'core_person_rahul';
+      const personId = resolveOwnPersonId(userId, sourcePersonId);
+      if (!personId) return reply.status(404).send({ error: 'NOT_LINKED', message: 'No linked AI Tathastu profile for this account' });
       const projection = await FederationService.fetchApprovedProjection(personId);
       return reply.send(projection);
     }
@@ -887,12 +1245,14 @@ export function buildServer(): FastifyInstance {
     });
   });
 
-  fastify.post('/api/federation', async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
-    await optionalAuth(req);
+  // Session user only; body.userId is ignored.
+  fastify.post('/api/federation', { preHandler: authenticate }, async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
     const { action, syncSettings, sourcePersonId, eventType, payload } = req.body || {};
-    const userId = req.user?.userId || req.body?.userId || 'usr_rahul';
+    const userId = req.user!.userId;
 
     if (action === 'simulate_sync_event') {
+      // Simulates upstream events for arbitrary people: test harness only.
+      if (!isTestHarnessEnabled()) return reply.status(404).send({ error: 'NOT_FOUND' });
       const report = await TathastuSyncSimulator.simulateEvent(
         eventType || 'profile_updated',
         sourcePersonId || 'core_person_rahul',
@@ -904,13 +1264,17 @@ export function buildServer(): FastifyInstance {
     const member = durableDb.getMemberById(userId);
     if (!member) return reply.status(404).send({ error: 'Member not found' });
 
-    if (action === 'one_click_import') {
-      const personId = sourcePersonId || 'core_person_rahul';
+    if (action === 'one_click_import' || action === 'sync_profile') {
+      const personId = resolveOwnPersonId(userId, sourcePersonId);
+      if (!personId) return reply.status(404).send({ error: 'NOT_LINKED', message: 'Link your AI Tathastu account first' });
       const projection = await FederationService.fetchApprovedProjection(personId);
       const updated = await FederationService.syncProjectionToMember(userId, projection, syncSettings);
       return reply.send({
         success: true,
-        message: 'Successfully generated profile draft from AI Tathastu Core',
+        message:
+          action === 'sync_profile'
+            ? 'Profile refreshed from AI Tathastu successfully'
+            : 'Successfully generated profile draft from AI Tathastu Core',
         member: updated,
       });
     }
