@@ -63,6 +63,12 @@ async function runSuite() {
 
   // Allow local memory persistence for isolated testing
   process.env.COLLABORATE_ALLOW_LOCAL_STORAGE = 'true';
+  // Simulated claims (claimsOverride) are a non-production test harness facility.
+  process.env.COLLABORATE_ENABLE_FIXTURES = 'true';
+  // /start only redirects when live SSO is enabled with complete configuration.
+  process.env.TATHASTU_INTEGRATION_MODE = 'live';
+  process.env.AIT_CLIENT_SECRET = 'test_only_client_secret_not_real';
+  process.env.AIT_REDIRECT_URI = 'https://collaborate.aitathastu.com/api/auth/tathastu/callback';
   process.env.AI_TATHASTU_CLIENT_ID = 'collaborate';
   process.env.AI_TATHASTU_BASE_URL = 'https://www.aitathastu.com';
   process.env.AI_TATHASTU_WEBHOOK_SECRET = 'test_webhook_signing_secret_9941';

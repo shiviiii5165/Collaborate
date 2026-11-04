@@ -67,7 +67,11 @@ interface DatabaseState {
   webhookEvents?: Record<string, { provider: string; eventId: string; eventType: string; processedAt: string }>;
 }
 
-const DATA_FILE_PATH = path.join(process.cwd(), 'data', 'collaborate.db.json');
+// COLLABORATE_DATA_FILE lets automated tests use an isolated store instead of the tracked
+// data/collaborate.db.json. Default path is unchanged.
+const DATA_FILE_PATH = process.env.COLLABORATE_DATA_FILE
+  ? path.resolve(process.env.COLLABORATE_DATA_FILE)
+  : path.join(process.cwd(), 'data', 'collaborate.db.json');
 
 class DurableCollaborateDatabase {
   private state: DatabaseState;
@@ -693,6 +697,39 @@ class DurableCollaborateDatabase {
         console.warn('[DurableDB] Postgres webhook record failed:', err);
       }
     }
+  }
+
+  /**
+   * Atomically claims a webhook event ID. Returns true exactly once per (provider, eventId).
+   * - Postgres: INSERT ... ON CONFLICT DO NOTHING RETURNING relies on UNIQUE(provider, event_id),
+   *   so concurrent deliveries across instances cannot both win. DB errors propagate
+   *   (callers must fail closed).
+   * - Local store: synchronous check-and-set (atomic within this single-threaded process).
+   */
+  public async claimWebhookEventAsync(
+    provider: string,
+    eventId: string,
+    eventType: string = 'webhook',
+    payload: any = {}
+  ): Promise<boolean> {
+    if (isNeonConfigured()) {
+      const pool = getNeonPool();
+      if (!pool) throw new Error('WEBHOOK_STORE_UNAVAILABLE');
+      const hookId = `wh_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+      const res = await pool.query(
+        `INSERT INTO webhook_events (id, provider, event_id, event_type, payload, processed_at)
+         VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+         ON CONFLICT (provider, event_id) DO NOTHING
+         RETURNING id`,
+        [hookId, provider, eventId, eventType, JSON.stringify(payload)]
+      );
+      const claimed = Boolean(res.rows && res.rows.length > 0);
+      if (claimed) this.recordWebhookEvent(provider, eventId, eventType);
+      return claimed;
+    }
+    if (this.isWebhookProcessed(provider, eventId)) return false;
+    this.recordWebhookEvent(provider, eventId, eventType);
+    return true;
   }
 
   public recordWebhookEvent(provider: string, eventId: string, eventType: string = 'generic'): void {

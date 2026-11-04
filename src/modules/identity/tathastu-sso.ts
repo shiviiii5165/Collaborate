@@ -4,7 +4,8 @@ import { verifyPassword } from '@/lib/auth/password';
 import { MemberProfile, ProjectItem } from '@/lib/types';
 import { signSessionToken } from '@/lib/auth/session';
 import { TathastuClient } from '@/integrations/tathastu/client';
-import { ProfessionalProjectionV1, TathastuWebhookEvent } from '@/integrations/tathastu/contract/types';
+import { ProfessionalProjectionV1 } from '@/integrations/tathastu/contract/types';
+import { isSsoEnabled, isTestHarnessEnabled } from '@/integrations/tathastu/config';
 
 export class TathastuSsoService {
   private static usedAuthorizationCodes = new Set<string>();
@@ -48,6 +49,16 @@ export class TathastuSsoService {
     };
   }): Promise<{ member: MemberProfile; token: string; isNewUser: boolean }> {
     const { code, codeVerifier, state, expectedState, linkConfirmationPassword, redirectUri, claimsOverride } = params;
+    const harness = isTestHarnessEnabled();
+
+    // 0. Simulated identity claims are a test-only facility. They are never honoured
+    //    in production or unless COLLABORATE_ENABLE_FIXTURES=true is explicitly set.
+    if (claimsOverride && !harness) {
+      throw new Error('TEST_HARNESS_DISABLED: Simulated identity claims are not accepted in this environment.');
+    }
+    if (!claimsOverride && !isSsoEnabled()) {
+      throw new Error('SSO_NOT_CONFIGURED: AI Tathastu SSO is not enabled (requires live mode and complete configuration).');
+    }
 
     if (!code || !codeVerifier) {
       throw new Error('MISSING_PARAMETERS: Missing authorization code or PKCE code verifier.');
@@ -59,13 +70,17 @@ export class TathastuSsoService {
         'REPLAYED_AUTHORIZATION_CODE: This authorization code has already been redeemed. Authorization codes are single-use.'
       );
     }
-    if (code && code !== 'mock_code') {
+    if (!(harness && code === 'mock_code')) {
       this.usedAuthorizationCodes.add(code);
     }
 
     // B. State Parameter Validation (CSRF Protection) with constant-time equality
     if (state === 'invalid_oauth_state' || state === 'tampered_state') {
       throw new Error('INVALID_OAUTH_STATE: OAuth state parameter mismatch or CSRF attempt detected.');
+    }
+    // Real authorization codes must always be bound to a stored state.
+    if (!claimsOverride && (!expectedState || !state)) {
+      throw new Error('INVALID_OAUTH_STATE: Stored OAuth state is missing.');
     }
     if (expectedState) {
       const stateBuf = Buffer.from(state);
@@ -121,12 +136,64 @@ export class TathastuSsoService {
       }
     }
 
+    return this.resolveIdentity({
+      externalSubjectId,
+      externalEmail,
+      fullName,
+      projection,
+      linkConfirmationPassword,
+    });
+  }
+
+  /**
+   * Completes a link that was paused for password confirmation. The claims come from a
+   * server-signed pending-link token created only after a verified SSO callback.
+   */
+  public static async completePendingLink(params: {
+    externalSubjectId: string;
+    email: string;
+    fullName: string;
+    password: string;
+  }): Promise<{ member: MemberProfile; token: string; isNewUser: boolean }> {
+    if (!params.password) {
+      throw new Error('ACCOUNT_EXISTS_REQUIRES_CONFIRMATION: Collaborate password is required to link accounts.');
+    }
+    return this.resolveIdentity({
+      externalSubjectId: params.externalSubjectId,
+      externalEmail: params.email.toLowerCase().trim(),
+      fullName: params.fullName || 'AI Tathastu Member',
+      projection: null,
+      linkConfirmationPassword: params.password,
+    });
+  }
+
+  /**
+   * D-F. Identity resolution, anti-takeover boundary, projection merge and session issue.
+   * Only call with VERIFIED external claims.
+   */
+  private static async resolveIdentity(params: {
+    externalSubjectId: string;
+    externalEmail: string;
+    fullName: string;
+    projection: ProfessionalProjectionV1 | null;
+    linkConfirmationPassword?: string;
+  }): Promise<{ member: MemberProfile; token: string; isNewUser: boolean }> {
+    const { externalSubjectId, externalEmail, fullName, projection, linkConfirmationPassword } = params;
+
     if (!externalSubjectId) {
       throw new Error('INVALID_IDENTITY_CLAIMS: External subject ID (sub) is missing from identity claims.');
+    }
+    if (!externalEmail || !externalEmail.includes('@')) {
+      throw new Error('INVALID_IDENTITY_CLAIMS: A verified email is missing from identity claims.');
     }
 
     // D. Identity Resolution & Anti-Takeover Boundary
     let member = durableDb.getMemberByTathastuUserId(externalSubjectId);
+    if (!member) {
+      // Stable subject mapping is authoritative even if tathastu_user_id was not projected.
+      const existingMapping = durableDb.getMappingByExternalSub('aitathastu_oidc', externalSubjectId);
+      if (existingMapping) member = durableDb.getMemberById(existingMapping.memberId) || null;
+    }
     let isNewUser = false;
 
     if (!member) {
@@ -143,14 +210,22 @@ export class TathastuSsoService {
         const cred = durableDb.getCredential(existingByEmail.id);
         if (cred) {
           if (!linkConfirmationPassword) {
-            throw new Error(
+            const linkErr = new Error(
               'ACCOUNT_EXISTS_REQUIRES_CONFIRMATION: An existing Collaborate account was found with this email. To prevent unauthorized takeover, please provide your Collaborate account password to link your profile.'
-            );
+            ) as Error & { pendingLink?: { externalSubjectId: string; email: string; fullName: string } };
+            // Verified external claims, so the caller can resume after password confirmation.
+            linkErr.pendingLink = { externalSubjectId, email: externalEmail, fullName };
+            throw linkErr;
           }
           const valid = verifyPassword(linkConfirmationPassword, cred.passwordHash, cred.salt);
           if (!valid) {
             throw new Error('INVALID_PASSWORD: Invalid Collaborate password for account linking confirmation.');
           }
+        } else {
+          // No password to confirm ownership with: never merge on matching email alone.
+          throw new Error(
+            'IDENTITY_MISMATCH: An existing Collaborate account uses this email but cannot be verified for linking.'
+          );
         }
 
         member = existingByEmail;

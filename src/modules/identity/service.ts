@@ -2,7 +2,8 @@ import crypto from 'crypto';
 import { durableDb } from '@/lib/db/index';
 import { hashPassword, verifyPassword } from '@/lib/auth/password';
 import { MemberProfile } from '@/lib/types';
-import { signSessionToken, SessionPayload } from '@/lib/auth/session';
+import { signSessionToken } from '@/lib/auth/session';
+import { isTestHarnessEnabled } from '@/integrations/tathastu/config';
 
 export class IdentityService {
   // Mode B: Direct Standalone Registration
@@ -101,7 +102,11 @@ export class IdentityService {
 
     const credential = durableDb.getCredential(member.id);
     if (!credential) {
-      // Check if this was a seeded mock or OIDC-only account
+      // Seeded demo personas without stored credentials. Test harness ONLY: never in
+      // production and never unless COLLABORATE_ENABLE_FIXTURES=true is set explicitly.
+      if (!isTestHarnessEnabled()) {
+        throw new Error('Invalid email or password');
+      }
       if (cleanEmail === 'rahulsharma@gmail.com' && password === 'rahul1234') {
         const token = await signSessionToken({
           userId: member.id,
@@ -178,6 +183,13 @@ export class IdentityService {
       redirectUri?: string;
     }
   ): Promise<{ member: MemberProfile; token: string; isNewUser: boolean }> {
+    // Legacy simulated OIDC flow. It never verified a real identity (it falls back to a
+    // fixed demo identity), so it is restricted to the explicit test harness. Real SSO
+    // is handled by TathastuSsoService via /api/auth/tathastu/*.
+    if (!isTestHarnessEnabled() || !claimsOverride) {
+      throw new Error('SSO_NOT_CONFIGURED: Legacy OIDC flow is disabled. Use /api/auth/tathastu/start.');
+    }
+
     if (!code || !codeVerifier) {
       throw new Error('Missing authorization code or PKCE code verifier');
     }

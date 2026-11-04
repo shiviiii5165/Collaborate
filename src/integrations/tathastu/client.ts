@@ -7,6 +7,7 @@ import {
 } from './contract/types';
 import { validateProfessionalProjection } from './contract/validator';
 import { durableDb } from '@/lib/db/index';
+import { getConfigDiagnostics } from './config';
 
 /**
  * Enterprise AI Tathastu Integration Client
@@ -21,17 +22,10 @@ export class TathastuClient {
    * Validate all required integration environment variables at startup
    */
   public static validateStartupConfig(): { valid: boolean; missing: string[] } {
-    const required = [
-      { name: 'AIT_ISSUER', value: process.env.AIT_ISSUER || process.env.AI_TATHASTU_BASE_URL },
-      { name: 'AIT_CLIENT_ID', value: process.env.AIT_CLIENT_ID || process.env.AI_TATHASTU_CLIENT_ID },
-      { name: 'AIT_CLIENT_SECRET', value: process.env.AIT_CLIENT_SECRET || process.env.AI_TATHASTU_CLIENT_SECRET },
-      { name: 'AIT_REDIRECT_URI', value: process.env.AIT_REDIRECT_URI || process.env.AI_TATHASTU_REDIRECT_URI },
-      { name: 'AIT_WEBHOOK_SECRET', value: process.env.AIT_WEBHOOK_SECRET || process.env.AI_TATHASTU_WEBHOOK_SECRET },
-    ];
-    const missing = required.filter((r) => !r.value || r.value.trim() === '').map((r) => r.name);
-    if (missing.length > 0 && process.env.NODE_ENV === 'production') {
-      throw new Error(`Missing required AI Tathastu integration environment variables: ${missing.join(', ')}`);
-    }
+    // Names only; values are never returned. Does not throw: live SSO is disabled
+    // (fail closed) at request time when anything is missing. See ./config.ts.
+    const d = getConfigDiagnostics();
+    const missing = [...d.missingSsoVariables, ...d.missingWebhookVariables];
     return { valid: missing.length === 0, missing };
   }
 
@@ -300,7 +294,7 @@ export class TathastuClient {
 
     const expectedAudience = options?.expectedAudience || this.getClientId();
     const expectedIssuer = options?.expectedIssuer || this.getBaseUrl();
-    const jwksUrl = options?.jwksUrl || process.env.AI_TATHASTU_JWKS_URL || `${this.getBaseUrl()}/api/integrations/jwks`;
+    const jwksUrl = options?.jwksUrl || this.getJwksUrl();
 
     // 2. Resolve JWKS
     let keySet: any = options?.customKeySet;
@@ -345,8 +339,7 @@ export class TathastuClient {
     accessToken: string,
     profileUrl?: string
   ): Promise<ProfessionalProjectionV1> {
-    const baseUrl = this.getBaseUrl();
-    const targetUrl = profileUrl || process.env.AI_TATHASTU_PROFILE_URL || `${baseUrl}/api/integrations/v1/profile`;
+    const targetUrl = profileUrl || this.getProfileUrl();
 
     let res: Response;
     try {

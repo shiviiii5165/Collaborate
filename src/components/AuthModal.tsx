@@ -150,7 +150,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
                 disabled={loading}
               >
                 <Sparkles size={18} />
-                <span>One-Click Sign In with AI Tathastu (OIDC)</span>
+                <span>Continue with AI Tathastu</span>
               </button>
 
               {process.env.NEXT_PUBLIC_ENABLE_FIXTURES === 'true' && (
