@@ -50,6 +50,27 @@ const SkillItemSchema = z.object({
   verified: z.boolean().optional().default(false),
   verificationStatus: nullableStr,
   sources,
+  // Additive (2026-11): AI Tathastu's evidence-based assessment; null = not assessed, never a default.
+  proficiency: z.number().min(0).max(100).nullable().optional().transform((v) => v ?? null),
+  level: nullableStr,
+});
+
+const GoalsSchema = z.object({
+  targetRole: z.object({ id: str, label: str }).nullable().optional().transform((v) => v ?? null),
+  needs: z
+    .array(
+      z.object({
+        skill: str.min(1),
+        priority: z.enum(['High', 'Medium', 'Low']),
+        state: str,
+        expectedLevel: nullableStr,
+      })
+    )
+    .max(50)
+    .optional()
+    .default([]),
+  assessed: z.boolean().optional().default(false),
+  collaborationIntents: z.array(z.string()).max(20).optional().default([]),
 });
 
 const ErisSchema = z.object({
@@ -139,6 +160,8 @@ export const ProfessionalProjectionV1Schema = z.object({
   experience: section(z.array(ExperienceSchema)),
   achievements: section(z.array(AchievementSchema)),
   activity: section(ActivitySchema),
+  // Additive (2026-11), shared under AI Tathastu's "eris" scope. Older payloads omit it (= withheld).
+  goals: section(GoalsSchema),
   privacy: PrivacySchema,
 });
 

@@ -1114,6 +1114,7 @@ export default function CollaborateApp() {
         <main className="center-content">
           {/* Identity & Session Banner */}
           <div
+            className="identity-banner"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -1135,7 +1136,7 @@ export default function CollaborateApp() {
                     background: currentUser.role === 'admin' ? '#F59E0B' : '#10B981',
                   }}
                 />
-                <span style={{ fontSize: '0.82rem', color: '#475569' }}>
+                <span className="identity-banner-text" style={{ fontSize: '0.82rem', color: '#475569' }}>
                   Active Identity: <strong>{currentUser.fullName}</strong> ({currentUser.email})
                   {currentUser.role === 'admin' && ' • [ADMIN]'}
                 </span>

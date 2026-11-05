@@ -441,7 +441,7 @@ export function buildServer(): FastifyInstance {
     return reply.send({ success: true, member: self, profile: self });
   });
 
-  fastify.get('/api/discover', async (req: FastifyRequest<{ Querystring: { q?: string; tag?: string; skill?: string; viewerId?: string } }>, reply) => {
+  fastify.get('/api/discover', async (req: FastifyRequest<{ Querystring: { q?: string; tag?: string; skill?: string; viewerId?: string; page?: string; pageSize?: string } }>, reply) => {
     await optionalAuth(req);
     const { q, tag, skill } = req.query;
     const currentUserId = req.user?.userId || ''; // never from ?viewerId=
@@ -451,7 +451,7 @@ export function buildServer(): FastifyInstance {
       Boolean(currentUserId) && durableDb.getConnectionState(currentUserId, otherId)?.status === 'accepted';
 
     const recommendations = currentUserId
-      ? getRecommendationsForMember(currentUserId, 6).map((r) => ({
+      ? getRecommendationsForMember(currentUserId, 10).map((r) => ({
           ...r,
           member: toPublicMember(r.member, { viewerId: currentUserId, isConnected: isConnected(r.member.id) }),
         }))
@@ -482,20 +482,60 @@ export function buildServer(): FastifyInstance {
       members = members.filter((m) => m.skills?.includes(skill));
     }
 
-    const results = members.map((m) => {
-      const conn = currentUserId ? durableDb.getConnectionState(currentUserId, m.id) : null;
-      return {
-        ...toPublicMember(m, { viewerId: currentUserId, isConnected: conn?.status === 'accepted' }),
-        connectionStatus: conn ? conn.status : 'not_connected',
-        connectionId: conn ? conn.id : null,
-      };
-    });
+    // One directory, one stable order, no duplicates:
+    //   1. recommended  strongest matches (explainable), in rank order
+    //   2. other        every other eligible member, pending requests included, by name then id
+    //   3. connected    accepted connections last (already in your network)
+    // Everyone eligible is listed; a low match score never hides anyone.
+    const recommendedRank = new Map(recommendations.map((r, i) => [r.member.id, i]));
+    const sectionOf = (status: string | undefined, id: string) =>
+      status === 'accepted' ? 'connected' : recommendedRank.has(id) ? 'recommended' : status === 'request_sent' ? 'pending' : 'other';
+    const SECTION_ORDER: Record<string, number> = { recommended: 0, pending: 1, other: 1, connected: 2 };
+
+    const ordered = members
+      .map((m) => {
+        const conn = currentUserId ? durableDb.getConnectionState(currentUserId, m.id) : null;
+        return { m, conn, section: sectionOf(conn?.status, m.id) };
+      })
+      .sort(
+        (a, b) =>
+          SECTION_ORDER[a.section] - SECTION_ORDER[b.section] ||
+          (recommendedRank.get(a.m.id) ?? 0) - (recommendedRank.get(b.m.id) ?? 0) ||
+          a.m.fullName.localeCompare(b.m.fullName) ||
+          a.m.id.localeCompare(b.m.id)
+      );
+
+    // Pagination is opt-in (?page / ?pageSize); without them the full ordered list is returned,
+    // which is what the current UI expects.
+    const paged = req.query.page !== undefined || req.query.pageSize !== undefined;
+    const pageSize = paged ? Math.max(1, Math.min(Number(req.query.pageSize) || 20, 50)) : Math.max(1, ordered.length);
+    const page = paged ? Math.max(1, Math.floor(Number(req.query.page) || 1)) : 1;
+    const slice = ordered.slice((page - 1) * pageSize, page * pageSize);
+
+    const results = slice.map(({ m, conn, section }) => ({
+      ...toPublicMember(m, { viewerId: currentUserId, isConnected: conn?.status === 'accepted' }),
+      connectionStatus: conn ? conn.status : 'not_connected',
+      connectionId: conn ? conn.id : null,
+      // Pending is split by direction so the UI can show "respond" vs "sent".
+      pendingDirection: conn?.status === 'request_sent' ? (conn.requesterId === currentUserId ? 'outgoing' : 'incoming') : null,
+      section,
+    }));
 
     return reply.send({
-      count: results.length,
+      count: ordered.length,
+      total: ordered.length,
+      page,
+      pageSize,
+      hasMore: page * pageSize < ordered.length,
+      sections: {
+        recommended: ordered.filter((o) => o.section === 'recommended').length,
+        pending: ordered.filter((o) => o.section === 'pending').length,
+        other: ordered.filter((o) => o.section === 'other').length,
+        connected: ordered.filter((o) => o.section === 'connected').length,
+      },
       members: results,
       results,
-      recommendations,
+      recommendations: page === 1 ? recommendations : [],
       viewerPlan: currentUserId ? durableDb.getMemberById(currentUserId)?.plan || 'free' : 'free',
     });
   });
@@ -568,7 +608,20 @@ export function buildServer(): FastifyInstance {
     const userId = req.user!.userId;
     const all = durableDb.getAllConnections();
     const connections = all.filter((c) => c.requesterId === userId || c.recipientId === userId);
-    return reply.send({ connections });
+    // Additive, for the Connections view: each list carries the other member in the public shape.
+    // `connections` (raw records) is unchanged for existing callers.
+    const withMember = (c: (typeof connections)[number]) => {
+      const otherId = c.requesterId === userId ? c.recipientId : c.requesterId;
+      const other = durableDb.getMemberById(otherId);
+      if (!other || other.deactivated) return [];
+      return [{ ...c, connectionId: c.id, member: toPublicMember(other, { viewerId: userId, isConnected: c.status === 'accepted' }) }];
+    };
+    return reply.send({
+      connections,
+      accepted: connections.filter((c) => c.status === 'accepted').flatMap(withMember),
+      pendingReceived: connections.filter((c) => c.status === 'request_sent' && c.recipientId === userId).flatMap(withMember),
+      pendingSent: connections.filter((c) => c.status === 'request_sent' && c.requesterId === userId).flatMap(withMember),
+    });
   });
 
   fastify.post('/api/connections', { preHandler: authenticate }, async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
@@ -576,11 +629,26 @@ export function buildServer(): FastifyInstance {
     const userId = req.user!.userId;
     const targetId = targetUserId || toId || targetMemberId || recipientId;
 
+    // Store rule violations become 4xx with a stable code, never a 500.
+    const STORE_ERRORS: [RegExp, number, string][] = [
+      [/yourself/i, 409, 'CONNECTION_CONFLICT'],
+      [/not found/i, 404, 'NOT_FOUND'],
+      [/unauthorized responder|only sender/i, 403, 'FORBIDDEN'],
+      [/blocked|cannot connect/i, 403, 'CONNECTION_NOT_ALLOWED'],
+      [/already|pending|yourself/i, 409, 'CONNECTION_CONFLICT'],
+    ];
+    const storeError = (err: unknown) => {
+      const message = err instanceof Error ? err.message : String(err);
+      const hit = STORE_ERRORS.find(([re]) => re.test(message));
+      if (!hit) throw err;
+      return reply.status(hit[1]).send({ error: hit[2], message });
+    };
+
     if (action === 'send' || action === 'request' || action === 'send_request') {
       if (!targetId) return reply.status(400).send({ error: 'targetUserId or toId required' });
 
       const target = durableDb.getMemberById(targetId);
-      if (!target) return reply.status(404).send({ error: 'Target member not found' });
+      if (!target || target.deactivated) return reply.status(404).send({ error: 'Target member not found' });
 
       const sender = durableDb.getMemberById(userId);
       const contactGate = canInitiateContact(
@@ -591,15 +659,32 @@ export function buildServer(): FastifyInstance {
         return reply.status(403).send({ error: 'SAFEGUARDING_RESTRICTION', message: contactGate.reason });
       }
 
-      const conn = await durableDb.sendConnectionRequestAsync(userId, targetId, introMessage);
-      return reply.status(201).send({ success: true, connection: conn });
+      try {
+        const conn = await durableDb.sendConnectionRequestAsync(userId, targetId, introMessage);
+        return reply.status(201).send({ success: true, connection: conn });
+      } catch (err) {
+        return storeError(err);
+      }
     }
 
-    if (action === 'accept' || action === 'decline' || action === 'reject') {
+    if (action === 'accept' || action === 'decline' || action === 'reject' || action === 'withdraw') {
       if (!connectionId) return reply.status(400).send({ error: 'connectionId required' });
-      const status = action === 'accept' ? 'accept' : 'reject';
-      const updated = await durableDb.respondToConnectionAsync(connectionId, userId, status);
-      return reply.send({ success: true, connection: updated });
+      const status = action === 'accept' ? 'accept' : action === 'withdraw' ? 'withdraw' : 'reject';
+      try {
+        const updated = await durableDb.respondToConnectionAsync(connectionId, userId, status);
+        return reply.send({ success: true, connection: updated });
+      } catch (err) {
+        return storeError(err);
+      }
+    }
+
+    // Disconnect: either side of an accepted connection may end it.
+    if (action === 'remove' || action === 'disconnect') {
+      if (!targetId) return reply.status(400).send({ error: 'targetUserId required' });
+      const conn = durableDb.getConnectionState(userId, targetId);
+      if (!conn || conn.status !== 'accepted') return reply.status(404).send({ error: 'NOT_CONNECTED' });
+      durableDb.removeConnection(userId, targetId);
+      return reply.send({ success: true, removed: true });
     }
 
     if (action === 'block') {
@@ -647,7 +732,23 @@ export function buildServer(): FastifyInstance {
       return reply.send({ messages });
     }
 
-    const conversations = durableDb.getAllConversations().filter((c) => c.participantIds.includes(userId));
+    // The chat list needs the other participant, the last message and the unread count. Without them
+    // the Messages view crashed for anyone with a conversation. The other member goes out through
+    // the same public allow-list as everywhere else (no email or internal fields).
+    const conversations = durableDb
+      .getAllConversations()
+      .filter((c) => c.participantIds.includes(userId))
+      .flatMap((c) => {
+        const otherId = c.participantIds.find((id) => id !== userId) ?? '';
+        const other = durableDb.getMemberById(otherId);
+        if (!other || durableDb.isBlocked(userId, otherId)) return [];
+        const messages = durableDb.getMessagesForConversation(c.id);
+        const lastMessage = messages[messages.length - 1] ?? null;
+        const unreadCount = messages.filter((m) => m.recipientId === userId && m.status !== 'read').length;
+        const isConnected = durableDb.getConnectionState(userId, otherId)?.status === 'accepted';
+        return [{ ...c, otherMember: toPublicMember(other, { viewerId: userId, isConnected }), lastMessage, unreadCount }];
+      })
+      .sort((a, b) => (b.lastMessage?.timestamp ?? '').localeCompare(a.lastMessage?.timestamp ?? ''));
     return reply.send({ conversations });
   });
 

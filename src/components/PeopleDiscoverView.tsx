@@ -70,7 +70,7 @@ export const PeopleDiscoverView: React.FC<PeopleDiscoverViewProps> = ({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* Search Header Banner */}
       <div className="info-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="discover-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#0F172A' }}>
               Discover People & Potential Collaborators
@@ -152,7 +152,7 @@ export const PeopleDiscoverView: React.FC<PeopleDiscoverViewProps> = ({
           </h3>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div className="discover-rec-grid">
           {recommendations.map((rec) => (
             <div
               key={rec.member.id}
@@ -312,7 +312,7 @@ export const PeopleDiscoverView: React.FC<PeopleDiscoverViewProps> = ({
             filteredResults.map((m) => (
               <div
                 key={m.id}
-                className="info-card"
+                className="info-card directory-row"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -321,7 +321,8 @@ export const PeopleDiscoverView: React.FC<PeopleDiscoverViewProps> = ({
                 }}
               >
                 <div
-                  style={{ display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer' }}
+                  className="directory-row-person"
+                  style={{ display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer', minWidth: 0 }}
                   onClick={() => onViewProfile(m.id)}
                 >
                   <img
@@ -346,7 +347,7 @@ export const PeopleDiscoverView: React.FC<PeopleDiscoverViewProps> = ({
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div className="directory-row-actions" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <button
                     className="btn-secondary"
                     style={{ fontSize: '0.8rem', padding: '7px 14px' }}

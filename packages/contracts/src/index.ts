@@ -69,6 +69,19 @@ export interface ImportedSkill {
   verified: boolean;
   verificationStatus: string | null;
   sources: string[];
+  /** AI Tathastu's evidence-based 0-100 assessment; null/absent = not assessed (older rows lack it). */
+  proficiency?: number | null;
+  level?: string | null;
+}
+
+/** What the member is working towards (AI Tathastu "eris" scope). Used to find people who can help. */
+export interface ImportedGoals {
+  targetRole: { id: string; label: string } | null;
+  /** Skills the target role still needs from the member's evidence, highest priority first. */
+  needs: { skill: string; priority: 'High' | 'Medium' | 'Low'; state: string; expectedLevel: string | null }[];
+  /** False when AI Tathastu had too little evidence to assess; needs is then empty (not "no gaps"). */
+  assessed: boolean;
+  collaborationIntents: string[];
 }
 
 export interface ImportedAchievement {
@@ -102,7 +115,11 @@ export interface ImportedTathastuProfile {
     avatarUrl: string | null;
     location: string | null;
     careerRoleLabel: string | null;
+    /** AI Tathastu career-direction id (e.g. "ml_engineer"); absent on older rows. */
+    careerRoleId?: string | null;
   };
+  /** Goals (target role, open needs, intents); null/absent = not shared. */
+  goals?: ImportedGoals | null;
   /** null = section not shared by the member. */
   skills: ImportedSkill[] | null;
   erisReadiness: ImportedErisReadiness | null;

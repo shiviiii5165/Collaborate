@@ -22,6 +22,7 @@ export function projectionV1({
   education, // array of { institution, degree, fieldOfStudy?, dates?, grade? }
   achievements, // array of { type, title, issuer?, date?, url? }
   activity, // { repositories?, recent: [{ name, url?, stars?, languages?, lastCommitAt? }], connectedSources? }
+  goals, // { needs: [{ skill, priority, state, expectedLevel }], assessed?, collaborationIntents? } (needs eris)
 } = {}) {
   const shared = {
     skills: skills !== undefined,
@@ -66,6 +67,7 @@ export function projectionV1({
             verified: Boolean(s.verified),
             verificationStatus: s.verified ? 'verified' : 'self_reported',
             sources: ['github'],
+            ...(s.proficiency !== undefined ? { proficiency: s.proficiency, level: s.level ?? null } : {}),
           })),
           erisReadiness: shared.eris ? { score: eris.score, role: eris.role ?? null, byRole: {}, gaps: eris.gaps ?? [], computedAt: generatedAt } : null,
         }
@@ -88,8 +90,14 @@ export function projectionV1({
       : null,
     privacy: { scopes: shared, masked: [], hiddenProjects: 0, consentUpdatedAt: generatedAt },
   };
+  // Goals (additive field, shared under the "eris" scope). Omitted entirely unless requested,
+  // which is also what an older AI Tathastu build sends.
+  if (goals !== undefined) {
+    p.goals = shared.eris ? { targetRole: careerRole, needs: goals.needs ?? [], assessed: goals.assessed ?? true, collaborationIntents: goals.collaborationIntents ?? [] } : null;
+  }
   p.privacy.masked = [
     ...SECTIONS.filter((s) => p[s] === null),
+    ...(p.goals === null ? ['goals'] : []),
     ...(p.skills && !p.skills.erisReadiness ? ['skills.erisReadiness'] : []),
   ];
   return p;

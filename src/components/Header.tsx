@@ -44,7 +44,16 @@ export const Header: React.FC<HeaderProps> = ({
         <div
           className="brand-badge"
           style={{ cursor: 'pointer' }}
+          role="button"
+          tabIndex={0}
+          aria-label="Collaborate home"
           onClick={() => onNavigate('home')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onNavigate('home');
+            }
+          }}
         >
           <div className="brand-title">
             Collaborate<span className="dot">.</span>
@@ -92,7 +101,8 @@ export const Header: React.FC<HeaderProps> = ({
                 title="Free tier daily full-profile views quota"
               >
                 <Sparkles size={14} />
-                <span>{quotaRemaining}/3 views left today</span>
+                <span className="quota-text-long">{quotaRemaining}/3 views left today</span>
+                <span className="quota-text-short">{quotaRemaining}/3</span>
               </button>
             ) : (
               <span className="premium-badge-tag">PREMIUM UNLIMITED</span>
@@ -139,7 +149,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Home */}
         <button
-          className={`nav-icon-btn ${currentTab === 'home' ? 'active' : ''}`}
+          className={`nav-icon-btn nav-home-btn ${currentTab === 'home' ? 'active' : ''}`}
           onClick={() => onNavigate('home')}
           title="Home"
         >

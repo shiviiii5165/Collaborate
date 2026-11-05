@@ -1178,6 +1178,7 @@ export class DurableCollaborateDatabase {
     toId: string,
     introMessage?: string
   ): ConnectionRecord {
+    if (fromId === toId) throw new Error('Cannot connect with yourself');
     if (this.isBlocked(fromId, toId)) {
       throw new Error('Action blocked due to safety settings');
     }
@@ -1186,6 +1187,20 @@ export class DurableCollaborateDatabase {
       if (existing.status === 'blocked') throw new Error('Cannot connect with this member');
       if (existing.status === 'accepted') throw new Error('Already connected');
       if (existing.status === 'request_sent') throw new Error('Request already pending');
+      // Rejected / withdrawn / removed: reuse the one record for this pair (a second record would
+      // leave two states for the same two people, and lookups could return the stale one).
+      existing.requesterId = fromId;
+      existing.recipientId = toId;
+      existing.status = 'request_sent';
+      existing.introMessage = introMessage?.trim();
+      existing.updatedAt = new Date().toISOString();
+      this.persistToDisk();
+      if (isNeonConfigured()) {
+        ConnectionsRepository.setStatus(fromId, toId, 'request_sent', introMessage).catch((err) => {
+          console.error('Failed to sync connection request to Neon:', err);
+        });
+      }
+      return existing;
     }
 
     const record: ConnectionRecord = {
@@ -1214,6 +1229,8 @@ export class DurableCollaborateDatabase {
   ): ConnectionRecord {
     const conn = this.state.connections[connectionId];
     if (!conn) throw new Error('Connection request not found');
+    // Only a pending request can be answered or withdrawn (no reviving a rejected/withdrawn one).
+    if (conn.status !== 'request_sent') throw new Error('Request is no longer pending');
 
     if (action === 'withdraw') {
       if (conn.requesterId !== responderId) throw new Error('Only sender can withdraw');

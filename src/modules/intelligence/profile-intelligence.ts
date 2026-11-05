@@ -69,7 +69,7 @@ export function sourceHashOf(m: MemberProfile): string {
     projects: (m.projects || []).map((p) => [p.id, p.title, p.tags, p.sourceOrigin]),
     experience: (m.experience || []).map((e) => [e.role, e.company, e.sourceOrigin]),
     education: (m.education || []).map((e) => [e.institution, e.degree, e.sourceOrigin]),
-    imported: (m.importedProfile?.skills || []).map((s) => [s.name, s.verified]),
+    imported: (m.importedProfile?.skills || []).map((s) => [s.name, s.verified, s.proficiency ?? null]),
     interests: m.collaborationInterests,
     spec: m.aiSpecializations,
     activity: (m.importedProfile?.activity?.recentRepositories || []).map((r) => [r.name, r.lastCommitAt, r.languages]),

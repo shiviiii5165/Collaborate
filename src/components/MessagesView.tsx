@@ -12,6 +12,7 @@ import {
   Smile,
   CheckCircle2,
   Lock,
+  ArrowLeft,
 } from 'lucide-react';
 import { DirectMessage, Conversation, MemberProfile } from '@/lib/types';
 
@@ -26,6 +27,8 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
 }) => {
   const [conversations, setConversations] = useState<any[]>([]);
   const [activeConv, setActiveConv] = useState<any | null>(null);
+  // Phones show one pane at a time: the list, or the thread the member opened (CSS, ≤640px only).
+  const [threadOpen, setThreadOpen] = useState(false);
   const [messages, setMessages] = useState<DirectMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [searchFilter, setSearchFilter] = useState('');
@@ -43,8 +46,10 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
             const found = data.conversations.find((c: any) =>
               c.participantIds.includes(initialRecipientId)
             );
-            if (found) setActiveConv(found);
-            else setActiveConv(data.conversations[0]);
+            if (found) {
+              setActiveConv(found);
+              setThreadOpen(true); // opened from a profile: go straight to that thread on phones
+            } else setActiveConv(data.conversations[0]);
           } else {
             setActiveConv(data.conversations[0]);
           }
@@ -149,7 +154,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
   );
 
   return (
-    <div className="messaging-workspace">
+    <div className={`messaging-workspace ${threadOpen && activeConv ? 'thread-open' : ''}`}>
       {/* Left Conversations Sidebar */}
       <div className="conversations-sidebar">
         <div className="conversations-header">
@@ -182,7 +187,19 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
                 <div
                   key={c.id}
                   className={`conv-item ${isActive ? 'active' : ''}`}
-                  onClick={() => setActiveConv(c)}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    setActiveConv(c);
+                    setThreadOpen(true);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setActiveConv(c);
+                      setThreadOpen(true);
+                    }
+                  }}
                 >
                   <img
                     src={c.otherMember.avatarUrl}
@@ -215,7 +232,10 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
         <div className="chat-panel">
           {/* Chat Header */}
           <div className="chat-header">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+              <button type="button" className="nav-icon-btn chat-back-btn" aria-label="Back to chats" onClick={() => setThreadOpen(false)}>
+                <ArrowLeft size={18} />
+              </button>
               <img
                 src={activeConv.otherMember.avatarUrl}
                 alt={activeConv.otherMember.fullName}
@@ -327,6 +347,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
         </div>
       ) : (
         <div
+          className="chat-empty-panel"
           style={{
             flex: 1,
             display: 'flex',

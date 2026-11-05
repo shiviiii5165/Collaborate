@@ -33,9 +33,10 @@ export const ConnectionsView: React.FC<ConnectionsViewProps> = ({
   const fetchConnectionsData = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/connections?userId=${currentUser.id}`);
+      const res = await fetch('/api/connections');
       const data = await res.json();
-      if (data.connections) setConnections(data.connections);
+      // `accepted` carries the other member; raw `connections` also holds pending/rejected records.
+      if (data.accepted) setConnections(data.accepted);
       if (data.pendingReceived) setPendingReceived(data.pendingReceived);
       if (data.pendingSent) setPendingSent(data.pendingSent);
     } catch (err) {
@@ -54,12 +55,8 @@ export const ConnectionsView: React.FC<ConnectionsViewProps> = ({
       const res = await fetch('/api/connections', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'respond',
-          fromId: currentUser.id,
-          connectionId,
-          decision,
-        }),
+        // The API's actions are accept / reject / withdraw ('respond' was rejected as invalid).
+        body: JSON.stringify({ action: decision, connectionId }),
       });
       const data = await res.json();
       if (data.success) {
@@ -111,7 +108,7 @@ export const ConnectionsView: React.FC<ConnectionsViewProps> = ({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* Subtab selection */}
       <div className="info-card" style={{ padding: '12px 20px' }}>
-        <div style={{ display: 'flex', gap: 12 }}>
+        <div className="subtab-scroller" style={{ display: 'flex', gap: 12 }}>
           <button
             className={`btn-secondary ${activeSubTab === 'connected' ? 'active' : ''}`}
             style={{
@@ -187,7 +184,11 @@ export const ConnectionsView: React.FC<ConnectionsViewProps> = ({
                     </div>
                     <div style={{ fontSize: '0.82rem', color: '#64748B' }}>{c.member.headline}</div>
                     <div style={{ fontSize: '0.74rem', color: '#94A3B8' }}>
-                      Connected since {new Date(c.connectedSince).toLocaleDateString()}
+                      {/* Records carry updatedAt (when the request was accepted); never show "Invalid Date". */}
+                      {(() => {
+                        const at = new Date(c.connectedSince ?? c.updatedAt ?? c.createdAt);
+                        return Number.isNaN(at.getTime()) ? 'Connected' : `Connected since ${at.toLocaleDateString()}`;
+                      })()}
                     </div>
                   </div>
                 </div>

@@ -33,6 +33,23 @@ const ALIASES: Record<string, string> = {
   gcp: 'google cloud',
   'ui/ux': 'ux design',
   ux: 'ux design',
+  // AI Tathastu canonical names (worker/skills_catalog.py) → the keys used here.
+  'retrieval-augmented generation': 'rag',
+  'retrieval augmented generation': 'rag',
+  'reinforcement learning': 'rl',
+  'hugging face transformers': 'hugging face',
+  huggingface: 'hugging face',
+  'robot operating system': 'ros',
+  ros2: 'ros',
+  'graph neural networks': 'gnn',
+  gnns: 'gnn',
+  'vector databases': 'vector database',
+  'ci/cd': 'ci cd',
+  'speech recognition': 'asr',
+  'automatic speech recognition': 'asr',
+  'ai agents': 'agents',
+  'agentic ai': 'agents',
+  'llm agents': 'agents',
 };
 
 /** Canonical key used for comparison. Display names are kept as the member wrote them. */

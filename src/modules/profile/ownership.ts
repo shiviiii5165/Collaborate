@@ -150,6 +150,7 @@ export function normalizeProjection(p: ProfessionalProjectionV1, now = new Date(
       avatarUrl: safeUrl(p.identity.avatarUrl),
       location,
       careerRoleLabel: p.identity.careerRole?.label ?? p.identity.careerRoleOther ?? null,
+      careerRoleId: p.identity.careerRole?.id ?? null,
     },
     skills: skillsShared
       ? p.skills!.items.map((s) => ({
@@ -159,8 +160,19 @@ export function normalizeProjection(p: ProfessionalProjectionV1, now = new Date(
           verified: s.verified,
           verificationStatus: s.verificationStatus,
           sources: s.sources,
+          proficiency: s.proficiency,
+          level: s.level,
         }))
       : null,
+    goals:
+      shared('goals', 'eris') && p.goals
+        ? {
+            targetRole: p.goals.targetRole,
+            needs: p.goals.needs.slice(0, 20),
+            assessed: p.goals.assessed,
+            collaborationIntents: p.goals.collaborationIntents.slice(0, 10),
+          }
+        : null,
     erisReadiness:
       skillsShared && shared('skills.erisReadiness', 'eris') && p.skills!.erisReadiness
         ? {

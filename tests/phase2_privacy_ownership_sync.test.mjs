@@ -214,7 +214,11 @@ await test('Independent members appear in discovery and recommendations', async 
   const me = await independent('me', { skills: ['Kubernetes'], collaborationInterests: ['open source'] });
   const r = await get('/api/discover', me.token);
   assert.ok(r.json.members.some((m) => m.id === peer.member.id));
-  assert.ok(r.json.recommendations.some((x) => x.member.id === peer.member.id), 'independent profile is recommended');
+  // Matching v2 ranks complementary help above plain similarity, so a same-skill peer may sit
+  // below the discover shortlist; what matters here is that an independent profile is eligible
+  // and recommended, never excluded for lacking AI Tathastu data.
+  const recs = await get('/api/recommendations?limit=20', me.token);
+  assert.ok(recs.json.recommendations.some((x) => x.member.id === peer.member.id), 'independent profile is recommended');
 });
 
 // ---------------------------------------------------------------------------

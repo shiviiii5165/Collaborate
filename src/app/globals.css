@@ -1838,12 +1838,14 @@ input, textarea, select {
 
   .app-shell {
     height: auto;
+    max-height: none; /* the desktop frame's 100dvh cap cut off everything below the first screen */
     min-height: 100vh;
     overflow: visible;
   }
 
   .app-workspace {
     height: auto;
+    max-height: none;
     overflow: visible;
   }
 
@@ -1884,7 +1886,7 @@ input, textarea, select {
     display: none;
   }
   .main-layout {
-    padding: 14px 16px;
+    padding: 14px 16px 88px; /* bottom room so the floating menu button never covers the last card */
     gap: 16px;
   }
   .tab-content-grid {
@@ -1893,5 +1895,196 @@ input, textarea, select {
   .metrics-row {
     flex-wrap: wrap;
     gap: 12px;
+  }
+}
+
+/* Discover: recommendation cards in two columns that can shrink (minmax 0), one column on phones. */
+.discover-rec-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.directory-row {
+  gap: 12px;
+}
+.directory-row-actions {
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .discover-rec-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .discover-head {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  /* Directory row: person on top, actions as a full-width pair underneath. */
+  .directory-row {
+    flex-wrap: wrap;
+    padding: 14px 16px !important;
+  }
+  .directory-row-person {
+    flex: 1 1 100%;
+  }
+  .directory-row-actions {
+    flex: 1 1 100%;
+  }
+  .directory-row-actions > button {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+/* Sub-tab pills (e.g. Connections): single-line pills; on narrow screens the row scrolls sideways
+   inside its card instead of wrapping each label onto three lines and overflowing the page. */
+.subtab-scroller > button {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+@media (max-width: 640px) {
+  .subtab-scroller {
+    overflow-x: auto;
+    scrollbar-width: none;
+    gap: 8px !important;
+    margin: 0 -4px;
+    padding: 2px 4px;
+  }
+  .subtab-scroller::-webkit-scrollbar {
+    display: none;
+  }
+  .subtab-scroller > button {
+    font-size: 0.8rem;
+    padding: 7px 12px;
+  }
+}
+
+/* Messages: back button only exists for the phone single-pane layout. */
+.chat-back-btn {
+  display: none !important;
+}
+@media (max-width: 640px) {
+  .messaging-workspace {
+    /* The phone header wraps to two rows and sits above the identity banner. */
+    height: calc(100dvh - 250px);
+    min-height: 440px;
+  }
+  .messaging-workspace .conversations-sidebar {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    border-right: none;
+  }
+  .messaging-workspace .chat-panel,
+  .messaging-workspace .chat-empty-panel {
+    display: none !important; /* inline display:flex on the empty panel */
+  }
+  .messaging-workspace.thread-open .conversations-sidebar {
+    display: none;
+  }
+  .messaging-workspace.thread-open .chat-panel {
+    display: flex !important;
+    flex: 1;
+    min-width: 0;
+  }
+  .chat-back-btn {
+    display: flex !important;
+    flex-shrink: 0;
+  }
+  .chat-header {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+}
+
+/* Short quota label: only on narrow headers (see the media block below). */
+.quota-text-short {
+  display: none;
+}
+
+/* ── Phones and small tablets (≤ 860px): fit the header, banner and profile header to the viewport ── */
+@media (max-width: 860px) {
+  /* Header: brand + actions on the first row, full-width search on the second. Nothing is clipped. */
+  .top-navbar {
+    height: auto;
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    row-gap: 8px;
+  }
+  .nav-left {
+    width: auto;
+    gap: 12px;
+    min-width: 0;
+  }
+  .nav-center {
+    order: 3;
+    flex: 1 1 100%;
+    max-width: none;
+    margin: 0;
+  }
+  .search-input {
+    min-width: 0;
+    font-size: 16px; /* below 16px iOS zooms the page on focus */
+  }
+  .nav-right {
+    gap: 4px;
+    min-width: 0;
+    margin-left: auto;
+  }
+  .quota-banner-btn {
+    padding: 6px 10px;
+  }
+  .quota-text-long {
+    display: none;
+  }
+  .quota-text-short {
+    display: inline;
+  }
+
+  /* Identity banner: wraps instead of pushing its button off-screen. */
+  .identity-banner {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 14px !important;
+  }
+  .identity-banner-text {
+    overflow-wrap: anywhere;
+  }
+
+  /* Profile header: compact single-line action pills that wrap as a group. */
+  .profile-avatar-row {
+    gap: 12px;
+  }
+  .profile-action-btns {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .profile-action-btns .btn-primary,
+  .profile-action-btns .btn-secondary {
+    white-space: nowrap;
+    font-size: 0.8rem;
+    padding: 7px 12px;
+  }
+
+  /* Metrics: an even two-column grid instead of ragged wrapping. */
+  .metrics-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 12px 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .brand-sub {
+    display: none;
+  }
+  .brand-title {
+    font-size: 1.15rem;
+  }
+  /* Home is reachable from the brand and the menu; drop the duplicate icon to make room. */
+  .nav-home-btn {
+    display: none !important;
   }
 }

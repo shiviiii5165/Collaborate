@@ -16,6 +16,7 @@
 import type { MemberProfile } from '@collaborate/contracts';
 import { isVisibleInDiscovery } from '@/modules/profile/public-member';
 import { getProfileIntelligence, type ProfileIntelligence } from './profile-intelligence';
+import { candidateStrength, skillRarity, viewerGoals } from './goals';
 import { domainsForSkill, normalizeSkill } from './skills';
 
 export type MatchCategory =
@@ -38,6 +39,7 @@ export const MATCH_CATEGORIES: MatchCategory[] = [
 ];
 
 export type DimensionKey =
+  | 'goal_help'
   | 'shared_expertise'
   | 'complementary_skills'
   | 'project_technology'
@@ -48,8 +50,11 @@ export type DimensionKey =
   | 'skill_evidence'
   | 'mutual_connections';
 
+// v2 (2026-11): help with the member's own goals leads; plain similarity counts much less, so a
+// "same skills, same title" member no longer outranks someone who can actually help.
 const WEIGHTS: Record<DimensionKey, number> = {
-  shared_expertise: 3,
+  goal_help: 5,
+  shared_expertise: 1,
   complementary_skills: 3,
   project_technology: 2.5,
   domain: 1.5,
@@ -73,7 +78,12 @@ export interface MatchExplanation {
   complementarySkills: string[];
   possibleCollaboration: string | null;
   unknowns: string[];
+  /** How much evidence the ranking rests on (number of dimensions both profiles had data for). */
   confidence: 'low' | 'medium' | 'high';
+  /** Collaboration compatibility (shared interests, stated intent, mutual connections), kept apart from relevance. */
+  compatibility: 'unknown' | 'low' | 'medium' | 'high';
+  /** Skills from your goals this member has credible evidence for, strongest first. */
+  helpsWith: { skill: string; evidence: string }[];
   scoreMeaning: 'relative ranking within your results, not a probability';
 }
 
@@ -91,6 +101,8 @@ export interface MatchContext {
   isBlocked: (a: string, b: string) => boolean;
   isConnected: (a: string, b: string) => boolean;
   acceptedConnectionIds: (id: string) => string[];
+  /** How many members list each canonical skill (filled by recommend() for rarity weighting). */
+  skillFrequency?: { df: Map<string, number>; total: number };
 }
 
 const lc = (s: string) => s.trim().toLowerCase();
@@ -129,13 +141,41 @@ export function scoreCandidate(viewer: MemberProfile, candidate: MemberProfile, 
   const cSkills = skillMap(ci);
   const dims: DimensionResult[] = [];
   const unknowns: string[] = [];
+  const freq = ctx.skillFrequency;
+  const rarity = (k: string) => (freq ? skillRarity(freq.df, freq.total, k) : 1);
 
-  // A. Shared expertise
+  // 0. Help with your goals: credible evidence in skills your target role still needs from you.
+  const goals = viewerGoals(viewer, vi);
+  const helpsWith: { skill: string; evidence: string; points: number }[] = [];
+  if (goals.needs.length) {
+    const totalNeed = goals.needs.slice(0, 5).reduce((s, n) => s + n.weight, 0);
+    let got = 0;
+    for (const need of goals.needs) {
+      const s = cSkills.get(need.canonical);
+      if (!s) continue;
+      const strength = candidateStrength(candidate, s);
+      const points = need.weight * strength.value * rarity(need.canonical);
+      got += points;
+      helpsWith.push({ skill: s.name, evidence: strength.label, points });
+    }
+    helpsWith.sort((a, b) => b.points - a.points);
+    const forRole = goals.roleLabel ? ` your ${goals.roleLabel} goal needs` : ' you are working on';
+    if (cSkills.size) {
+      dims.push({
+        key: 'goal_help',
+        value: Math.min(1, got / Math.max(0.0001, totalNeed * 0.6)),
+        evidence: helpsWith.slice(0, 3).map((h) => `Strong evidence in ${h.skill} (${h.evidence}), a skill${forRole}`),
+      });
+    }
+  }
+
+  // A. Shared expertise (rarity-weighted: sharing a skill everyone has says little)
   const shared = [...cSkills.keys()].filter((k) => vSkills.has(k));
   if (vSkills.size && cSkills.size) {
+    const sharedPoints = shared.reduce((s, k) => s + rarity(k), 0);
     dims.push({
       key: 'shared_expertise',
-      value: Math.min(1, shared.length / 3),
+      value: Math.min(1, sharedPoints / 3),
       evidence: shared.length ? [`Both list ${top(shared.map((k) => cSkills.get(k)!.name)).join(', ')}`] : [],
     });
   } else unknowns.push(cSkills.size ? 'You have not listed skills yet' : 'This member has not listed skills');
@@ -156,7 +196,8 @@ export function scoreCandidate(viewer: MemberProfile, candidate: MemberProfile, 
     compEvidence.push(projectGap ? `${s.name}: used in your projects but not in your skills (${proof})` : `${s.name} adds to your ${domainHit} work (${proof})`);
   }
   if ((vDomains.size || vProjectTech.size) && cSkills.size) {
-    dims.push({ key: 'complementary_skills', value: Math.min(1, complementary.length / 3), evidence: top(compEvidence) });
+    const compPoints = complementary.reduce((s, n) => s + rarity(normalizeSkill(n)), 0);
+    dims.push({ key: 'complementary_skills', value: Math.min(1, compPoints / 3), evidence: top(compEvidence) });
   }
 
   // C. Project & technology compatibility
@@ -223,11 +264,15 @@ export function scoreCandidate(viewer: MemberProfile, candidate: MemberProfile, 
   const raw = weightSum ? assessed.reduce((s, d) => s + WEIGHTS[d.key] * d.value, 0) / weightSum : 0;
   const score = Math.round(raw * 100);
   const confidence = assessed.length >= 5 ? 'high' : assessed.length >= 3 ? 'medium' : 'low';
+  const compat = dims.filter((d) => d.key === 'interests' || d.key === 'collaboration_intent' || d.key === 'mutual_connections');
+  const compatValue = compat.length ? compat.reduce((s, d) => s + d.value, 0) / compat.length : null;
+  const compatibility = compatValue === null ? 'unknown' : compatValue >= 0.66 ? 'high' : compatValue >= 0.33 ? 'medium' : 'low';
 
   // Categories (only when evidence supports them)
   const categories: MatchCategory[] = ['all'];
+  if (helpsWith.length) categories.push('complementary_expertise');
   if (shared.length || dims.find((d) => d.key === 'domain' && d.value > 0)) categories.push('similar_expertise');
-  if (complementary.length) categories.push('complementary_expertise');
+  if (complementary.length && !categories.includes('complementary_expertise')) categories.push('complementary_expertise');
   if (dims.find((d) => d.key === 'project_technology' && d.value > 0) || complementary.some((s) => vProjectTech.has(normalizeSkill(s)))) categories.push('project_collaborators');
   if (ci.domains.some((d) => d.confidence === 'high' && vDomains.has(d.domain))) categories.push('domain_specialists');
   if (has(ci.intents, MENTOR_OFFER) && has(vi.intents, MENTOR_SEEK)) categories.push('mentors');
@@ -256,6 +301,8 @@ export function scoreCandidate(viewer: MemberProfile, candidate: MemberProfile, 
       possibleCollaboration,
       unknowns,
       confidence,
+      compatibility,
+      helpsWith: helpsWith.slice(0, 5).map(({ skill, evidence }) => ({ skill, evidence })),
       scoreMeaning: 'relative ranking within your results, not a probability',
     },
   };
@@ -275,12 +322,18 @@ export function recommend(
   const category = opts.category ?? 'all';
   const limit = Math.max(1, Math.min(opts.limit ?? 6, 50));
   const vi = getProfileIntelligence(viewer);
-  const coldStart = vi.skills.length === 0 && vi.projects.length === 0 && vi.intents.length === 0 && vi.interests.length === 0;
+  // A member with a goal but no skills yet is not cold: their goal is exactly what to match on.
+  const coldStart = vi.skills.length === 0 && vi.projects.length === 0 && vi.intents.length === 0 && vi.interests.length === 0 && viewerGoals(viewer, vi).needs.length === 0;
+
+  // Skill frequency over everyone the viewer could be shown, for rarity weighting.
+  const eligible = ctx.allMembers().filter((c) => isEligibleCandidate(viewer, c, ctx, { excludeConnected: opts.excludeConnected }));
+  const df = new Map<string, number>();
+  for (const c of eligible) for (const s of getProfileIntelligence(c).skills) df.set(s.canonical, (df.get(s.canonical) ?? 0) + 1);
+  const scored: MatchContext = { ...ctx, skillFrequency: { df, total: eligible.length } };
 
   const results: MatchResult[] = [];
-  for (const c of ctx.allMembers()) {
-    if (!isEligibleCandidate(viewer, c, ctx, { excludeConnected: opts.excludeConnected })) continue;
-    const r = scoreCandidate(viewer, c, ctx);
+  for (const c of eligible) {
+    const r = scoreCandidate(viewer, c, scored);
     if (coldStart) {
       const ci = getProfileIntelligence(c);
       r.score = Math.round(ci.completeness.score * 100);
