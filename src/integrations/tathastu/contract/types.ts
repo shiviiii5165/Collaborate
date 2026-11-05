@@ -1,5 +1,10 @@
-// Versioned Integration Contract: ProfessionalProjectionV1
-// Collaborate by AI Tathastu <-> AI Tathastu Core Integration Boundary
+// LegacyHarnessProjection: the shape used by the mock adapter, fixtures and sync simulator
+// (test harness only, COLLABORATE_ENABLE_FIXTURES=true).
+//
+// This is NOT what AI Tathastu sends. The production contract is ProfessionalProjectionV1
+// in ./projection-v1.ts, which mirrors ai-tathastu/src/lib/integrations/projection.ts.
+// Harness data is converted to that contract (legacyHarnessToV1) before import, so
+// every import goes through one validated pipeline.
 
 export interface EducationRecord {
   id: string;
@@ -58,7 +63,7 @@ export interface ProjectionPermissions {
   consentGrantedAt: string;
 }
 
-export interface ProfessionalProjectionV1 {
+export interface LegacyHarnessProjection {
   schemaVersion: "1.0";
   source: "ai-tathastu";
   sourcePersonId: string;
@@ -108,7 +113,7 @@ export interface TathastuSyncEvent {
   eventType: TathastuSyncEventType;
   sourcePersonId: string;
   timestamp: string;
-  payload?: Partial<ProfessionalProjectionV1>;
+  payload?: Partial<LegacyHarnessProjection>;
   details?: Record<string, any>;
 }
 
@@ -147,8 +152,8 @@ export interface TathastuTokenResponse {
 
 export interface ITathastuIntegrationAdapter {
   readonly mode: 'mock' | 'live';
-  fetchProjection(sourcePersonId: string): Promise<ProfessionalProjectionV1>;
-  getEligibleDiscoveryMembers(): Promise<ProfessionalProjectionV1[]>;
+  fetchProjection(sourcePersonId: string): Promise<LegacyHarnessProjection>;
+  getEligibleDiscoveryMembers(): Promise<LegacyHarnessProjection[]>;
   processSyncEvent(event: TathastuSyncEvent): Promise<{
     handled: boolean;
     actionTaken: string;

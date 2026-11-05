@@ -45,7 +45,7 @@ export class IdentityService {
       statusBadges: ['New Member'],
       location: 'India',
       about: 'Professional profile on Collaborate.',
-      contextTags: [cleanEmail],
+      contextTags: [],
       socialLinks: {},
       metrics: {
         projects: 0,
@@ -62,6 +62,16 @@ export class IdentityService {
       recentActivity: [],
       aiSpecializations: [],
       collaborationInterests: [],
+      localProfile: {
+        skills: [],
+        projects: [],
+        experience: [],
+        education: [],
+        hiddenImported: { skills: [], projects: [], experience: [], education: [] },
+        importedOverrides: { projects: {}, experience: {}, education: {} },
+        metrics: {},
+      },
+      importedProfile: null,
       discoverable: isUnder18 ? false : true,
       profileVisibility: isUnder18 ? 'private' : 'public',
       contactVisibility: isUnder18 ? 'hidden' : 'connections_only',
@@ -381,18 +391,14 @@ export class IdentityService {
     durableDb.saveMember(member);
   }
 
-  // Mode D: Revoke Linking
+  // Mode D: Revoke Linking. Removes the mapping, the stored subject (so later webhooks for it
+  // are ignored) and every imported section. Collaborate-authored data is preserved.
   public static async unlinkAccount(memberId: string): Promise<void> {
     const member = durableDb.getMemberById(memberId);
     if (!member) throw new Error('Member not found');
 
-    const mapping = durableDb.getMappingByMemberId('aitathastu_oidc', memberId);
-    if (mapping) {
-      durableDb.removeMapping(mapping.id);
-    }
-
-    member.isLinkedWithTathastu = false;
-    member.tathastuSyncStatus = 'unlinked';
-    durableDb.saveMember(member);
+    const { TathastuSsoService } = await import('./tathastu-sso');
+    TathastuSsoService.unlinkAndPurge(member);
+    await durableDb.saveMemberAsync(member);
   }
 }

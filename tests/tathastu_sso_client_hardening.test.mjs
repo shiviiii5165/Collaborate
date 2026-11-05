@@ -47,6 +47,7 @@ const { durableDb } = await import('../src/lib/db/index.ts');
 const { signPendingLinkToken } = await import('../src/lib/auth/session.ts');
 const { formatStartupDiagnostics, getConfigDiagnostics } = await import('../src/integrations/tathastu/config.ts');
 const { getSsoErrorMessage } = await import('../src/lib/auth/sso-errors.ts');
+const { projectionV1 } = await import('./helpers/projection-v1.mjs');
 
 // ---------------------------------------------------------------------------
 // Fake AI Tathastu provider
@@ -445,16 +446,14 @@ await test('Profile sync preserves local overrides and keeps private data out', 
   member.about = 'Written locally on Collaborate';
   await durableDb.saveMemberAsync(member);
 
-  // Shape enforced by validateProfessionalProjection() on the live profile fetch.
+  // The real AI Tathastu contract (ProfessionalProjectionV1), validated by parseProjectionV1().
+  // An unknown extra key stands in for data outside the contract: it must be stripped.
   provider.profile = {
-    schemaVersion: '1.0', source: 'ai-tathastu', sourcePersonId: id.sub, sourceVersion: '1.0',
-    updatedAt: new Date().toISOString(),
-    profile: {
-      displayName: id.name, headline: 'Upstream headline', about: 'Upstream about',
-      skills: [{ id: 'sk1', name: 'JAX', category: 'framework', confirmedByCore: true }],
-    },
-    permissions: { importApproved: true, discoverable: true, allowedFieldPaths: [], consentVersion: '1.0', consentGrantedAt: new Date().toISOString() },
-    quarantinedPrivateData: [{ category: 'private_chat', reason: 'not shared' }],
+    ...projectionV1({
+      sub: id.sub, email: id.email, name: id.name, headline: 'Upstream headline',
+      skills: [{ name: 'JAX', category: 'framework', verified: true }],
+    }),
+    privateChats: [{ category: 'private_chat', text: 'not shared' }],
   };
   const second = await callback(await startFlow(id));
   assert.strictEqual(second.headers.location, '/?auth_success=true', second.body);
@@ -462,8 +461,21 @@ await test('Profile sync preserves local overrides and keeps private data out', 
   assert.strictEqual(synced.headline, 'My custom Collaborate headline');
   assert.strictEqual(synced.about, 'Written locally on Collaborate');
   assert.ok(synced.skills.includes('JAX'));
-  // Quarantined private data is never copied into visible profile fields.
-  assert.ok(!JSON.stringify({ ...synced, tathastuProfile: undefined }).includes('private_chat'));
+  // Data outside the contract is never stored anywhere on the member.
+  assert.ok(!JSON.stringify(synced).includes('private_chat'));
+});
+
+await test('Fictional/unsupported projection schema is rejected but sign-in still succeeds', async () => {
+  const id = newIdentity('badschema');
+  provider.profile = {
+    schemaVersion: '1.0', source: 'ai-tathastu', sourcePersonId: id.sub,
+    profile: { displayName: id.name, skills: [{ id: 'x', name: 'Injected', category: 'tool', confirmedByCore: true }] },
+  };
+  const res = await callback(await startFlow(id));
+  assert.strictEqual(res.headers.location, '/?auth_success=true');
+  const m = durableDb.getMemberByEmail(id.email);
+  assert.ok(!m.skills.includes('Injected'), 'unsupported schema must not be imported');
+  assert.strictEqual(m.importedProfile ?? null, null);
 });
 
 // ---------------------------------------------------------------------------

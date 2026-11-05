@@ -1,5 +1,5 @@
-// Runtime Validator for ProfessionalProjectionV1
-import { ProfessionalProjectionV1 } from './types';
+// Runtime Validator for LegacyHarnessProjection
+import { LegacyHarnessProjection } from './types';
 
 export class ContractValidationError extends Error {
   public validationErrors: string[];
@@ -10,7 +10,7 @@ export class ContractValidationError extends Error {
   }
 }
 
-export function validateProfessionalProjection(data: any): ProfessionalProjectionV1 {
+export function validateProfessionalProjection(data: any): LegacyHarnessProjection {
   const errors: string[] = [];
 
   if (!data || typeof data !== 'object') {
@@ -86,5 +86,5 @@ export function validateProfessionalProjection(data: any): ProfessionalProjectio
     );
   }
 
-  return data as ProfessionalProjectionV1;
+  return data as LegacyHarnessProjection;
 }

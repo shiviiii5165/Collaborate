@@ -1,11 +1,30 @@
 import crypto from 'crypto';
 import { durableDb } from '@/lib/db/index';
 import { verifyPassword } from '@/lib/auth/password';
-import { MemberProfile, ProjectItem } from '@/lib/types';
+import { MemberProfile } from '@/lib/types';
 import { signSessionToken } from '@/lib/auth/session';
 import { TathastuClient } from '@/integrations/tathastu/client';
-import { ProfessionalProjectionV1 } from '@/integrations/tathastu/contract/types';
+import {
+  parseProjectionV1,
+  ProfessionalProjectionV1,
+  ProjectionContractError,
+} from '@/integrations/tathastu/contract/projection-v1';
 import { isSsoEnabled, isTestHarnessEnabled } from '@/integrations/tathastu/config';
+import {
+  applyImportedProjection,
+  clearImportedProfile,
+  ensureOwnershipModel,
+  isStaleProjection,
+} from '@/modules/profile/ownership';
+
+export const TATHASTU_WEBHOOK_PROVIDER = 'aitathastu';
+
+export type WebhookOutcome = {
+  status: 200 | 400 | 409 | 500;
+  handled: boolean;
+  action: string;
+  memberId?: string;
+};
 
 export class TathastuSsoService {
   private static usedAuthorizationCodes = new Set<string>();
@@ -45,7 +64,7 @@ export class TathastuSsoService {
       iss?: string;
       exp?: number;
       redirectUri?: string;
-      profile?: Partial<ProfessionalProjectionV1>;
+      profile?: unknown;
     };
   }): Promise<{ member: MemberProfile; token: string; isNewUser: boolean }> {
     const { code, codeVerifier, state, expectedState, linkConfirmationPassword, redirectUri, claimsOverride } = params;
@@ -93,7 +112,7 @@ export class TathastuSsoService {
     let externalSubjectId: string;
     let externalEmail: string;
     let fullName: string;
-    let projection: ProfessionalProjectionV1 | null = null;
+    let rawProjection: unknown = null;
 
     // C. Token Exchange & Validation
     if (claimsOverride) {
@@ -111,7 +130,7 @@ export class TathastuSsoService {
       externalSubjectId = claimsOverride.sub || 'urn:tathastu:person:sample-sub';
       externalEmail = (claimsOverride.email || 'builder@aitathastu.test').toLowerCase().trim();
       fullName = claimsOverride.fullName || 'Tathastu Student';
-      projection = claimsOverride.profile as any || null;
+      rawProjection = claimsOverride.profile ?? null;
     } else {
       // Live server-to-server exchange
       const tokenResp = await TathastuClient.exchangeCodeForToken(code, codeVerifier, redirectUri);
@@ -123,16 +142,30 @@ export class TathastuSsoService {
       externalEmail = ((payload.email as string) || (tokenResp.user?.email as string) || '').toLowerCase().trim();
       fullName = (payload.name as string) || (payload.fullName as string) || (tokenResp.user?.name as string) || 'AI Tathastu Member';
 
-      // Fetch authorized profile data
+      // Fetch authorized profile data. A failure here never blocks sign-in.
       try {
-        projection = await TathastuClient.fetchProfile(tokenResp.access_token);
-        if ((projection as any).identity?.name) {
-          fullName = (projection as any).identity.name;
-        } else if (projection.profile?.displayName) {
-          fullName = projection.profile.displayName;
-        }
+        rawProjection = await TathastuClient.fetchProfile(tokenResp.access_token);
       } catch (err: any) {
         console.warn('[Tathastu SSO] Profile projection fetch warning:', err.message);
+      }
+    }
+
+    // Strictly validate the projection. An invalid or unsupported payload is not imported,
+    // but the (already verified) sign-in continues.
+    let projection: ProfessionalProjectionV1 | null = null;
+    if (rawProjection) {
+      try {
+        projection = parseProjectionV1(rawProjection, claimsOverride ? undefined : TathastuClient.getClientId());
+        if (projection.identity.id !== externalSubjectId) {
+          console.warn('[Tathastu SSO] Projection subject does not match the token subject; not imported.');
+          projection = null;
+        } else if (projection.identity.name) {
+          fullName = projection.identity.name;
+        }
+      } catch (err: any) {
+        const code = err instanceof ProjectionContractError ? err.code : 'INVALID_PROJECTION';
+        console.warn(`[Tathastu SSO] Projection rejected (${code}); signing in without importing profile data.`);
+        projection = null;
       }
     }
 
@@ -194,6 +227,8 @@ export class TathastuSsoService {
       const existingMapping = durableDb.getMappingByExternalSub('aitathastu_oidc', externalSubjectId);
       if (existingMapping) member = durableDb.getMemberById(existingMapping.memberId) || null;
     }
+    // Changes are made on a copy and become visible only once saved (saveMemberAsync).
+    if (member) member = structuredClone(member);
     let isNewUser = false;
 
     if (!member) {
@@ -228,26 +263,26 @@ export class TathastuSsoService {
           );
         }
 
-        member = existingByEmail;
+        member = structuredClone(existingByEmail);
       } else {
-        // Brand new student registering via AI Tathastu SSO
+        // Brand new member registering via AI Tathastu SSO. Nothing is asserted that the
+        // member or a reviewer has not confirmed: no verification badge, no invented
+        // headline or location, and NOT discoverable until the member chooses to be.
         isNewUser = true;
         const newId = `usr_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
         member = {
           id: newId,
           email: externalEmail,
           fullName,
-          headline: 'AI/ML Builder | Tathastu Member',
-          avatarUrl: '/images/rahul_avatar.jpg',
+          headline: '',
+          avatarUrl: '/images/default_avatar.svg',
           bannerUrl: '/images/campus_banner.jpg',
-          isVerified: true,
-          verifiedCategory: 'institution',
-          verifiedAt: new Date().toISOString(),
+          isVerified: false,
           plan: 'free',
-          statusBadges: ['Tathastu Member', 'Verified Student'],
-          location: 'India',
-          about: 'Professional profile on Collaborate.',
-          contextTags: [externalEmail],
+          statusBadges: [],
+          location: '',
+          about: '',
+          contextTags: [],
           socialLinks: {},
           metrics: {
             projects: 0,
@@ -264,7 +299,8 @@ export class TathastuSsoService {
           recentActivity: [],
           aiSpecializations: [],
           collaborationInterests: [],
-          discoverable: true,
+          discoverable: false,
+          discoveryChoiceMade: false,
           profileVisibility: 'public',
           contactVisibility: 'connections_only',
           isLinkedWithTathastu: true,
@@ -277,6 +313,7 @@ export class TathastuSsoService {
           role: 'member',
           tathastu_user_id: externalSubjectId,
         };
+        ensureOwnershipModel(member);
       }
 
       // Record identity mapping
@@ -290,13 +327,17 @@ export class TathastuSsoService {
       });
     }
 
-    // E. Store tathastu_user_id, projection & merge consented data
+    // E. Store tathastu_user_id and import the consented projection (if newer than stored)
+    if (member.tathastu_user_id !== externalSubjectId || !member.tathastuLinkedAt) {
+      member.tathastuLinkedAt = new Date().toISOString();
+    }
     member.tathastu_user_id = externalSubjectId;
     member.isLinkedWithTathastu = true;
     member.tathastuSyncStatus = 'synced';
+    ensureOwnershipModel(member);
 
-    if (projection) {
-      this.mergeProjectionData(member, projection);
+    if (projection && !isStaleProjection(member, projection.generatedAt)) {
+      applyImportedProjection(member, projection);
     }
 
     await durableDb.saveMemberAsync(member);
@@ -313,219 +354,204 @@ export class TathastuSsoService {
   }
 
   /**
-   * 3. Merge Approved Projection into Member Profile Preserving Local Overrides
-   * Rules: null means unshared -> delete what was stored!
+   * 3. Import a projection for a linked member (OAuth sign-in, webhook, test harness).
+   * Validates strictly, checks subject and staleness, then stores it as imported data.
+   * Collaborate-authored data is never modified (src/modules/profile/ownership.ts).
    */
-  public static mergeProjectionData(
+  public static importProjection(
     member: MemberProfile,
-    projection: ProfessionalProjectionV1 | any
-  ): void {
-    if (!projection) return;
-    member.tathastuProfile = projection;
-    member.tathastuLastSyncedAt = new Date().toISOString();
+    raw: unknown,
+    options: { expectedAudience?: string } = {}
+  ): 'IMPORTED' | 'IGNORED_STALE' {
+    const projection = parseProjectionV1(raw, options.expectedAudience);
+    if (!member.tathastu_user_id || projection.identity.id !== member.tathastu_user_id) {
+      throw new Error('PROJECTION_SUBJECT_MISMATCH: projection does not belong to this member.');
+    }
+    ensureOwnershipModel(member);
+    if (isStaleProjection(member, projection.generatedAt)) return 'IGNORED_STALE';
+    applyImportedProjection(member, projection);
+    return 'IMPORTED';
+  }
 
-    const identity = projection.identity || projection.profile?.identity || (projection.profile ? {
-      headline: projection.profile.headline,
-      avatarUrl: projection.profile.avatarUrl,
-      location: projection.profile.location,
-    } : null);
+  /**
+   * Removes the AI Tathastu link and every imported section. Local data is preserved.
+   * Idempotent: running it on an unlinked member changes nothing.
+   */
+  public static unlinkAndPurge(member: MemberProfile): void {
+    const mapping = durableDb.getMappingByMemberId('aitathastu_oidc', member.id);
+    if (mapping) durableDb.removeMapping(mapping.id);
+    // Remember the subject: an automatic profile is never recreated for someone who disconnected.
+    const sub = member.tathastu_user_id || mapping?.externalSubjectId;
+    if (sub) member.unlinkedTathastuSubjects = [...new Set([...(member.unlinkedTathastuSubjects || []), sub])];
+    clearImportedProfile(member);
+    member.tathastu_user_id = undefined;
+    member.tathastuLinkedAt = undefined;
+    member.isLinkedWithTathastu = false;
+    member.tathastuSyncStatus = 'unlinked';
+  }
 
-    // 1. Identity & Local Override Rules
-    if (identity) {
-      if (!member.headline || member.headline.includes('New Member') || member.headline.includes('Tathastu Member')) {
-        if (identity.headline) member.headline = identity.headline;
-      }
-      if (identity.avatarUrl && (!member.avatarUrl || member.avatarUrl.includes('rahul_avatar'))) {
-        member.avatarUrl = identity.avatarUrl;
-      }
-      if (identity.location) {
-        member.location = typeof identity.location === 'object'
-          ? `${identity.location.city ? identity.location.city + ', ' : ''}${identity.location.country || ''}`.trim()
-          : identity.location;
-      }
-      const roleBadge = identity.careerRole?.label || identity.careerRoleOther;
-      if (roleBadge && !member.statusBadges.includes(roleBadge)) {
-        member.statusBadges = [roleBadge, ...member.statusBadges.filter((b) => b !== 'New Member')];
-      }
+  /**
+   * 4. Process a verified AI Tathastu webhook.
+   *
+   * The caller has already verified the HMAC over the raw body. The delivery id is read from
+   * the SIGNED body (`id`); an X-AIT-Delivery header that disagrees is rejected.
+   * The delivery is recorded as processed only after the change is durably saved. A failure
+   * leaves it retryable (HTTP 500), and AI Tathastu redelivers with backoff.
+   */
+  public static async processWebhook(event: any, headers: Record<string, string | undefined> = {}): Promise<WebhookOutcome> {
+    const deliveryId = typeof event?.id === 'string' ? event.id : '';
+    const eventType = typeof event?.type === 'string' ? event.type : '';
+    if (!deliveryId || !eventType) {
+      return { status: 400, handled: false, action: 'REJECTED_MISSING_DELIVERY_ID_OR_TYPE' };
+    }
+    const headerDelivery = headers['x-ait-delivery'];
+    if (headerDelivery && headerDelivery !== deliveryId) {
+      return { status: 400, handled: false, action: 'REJECTED_DELIVERY_ID_MISMATCH' };
+    }
+    const headerEvent = headers['x-ait-event'];
+    if (headerEvent && headerEvent !== eventType) {
+      return { status: 400, handled: false, action: 'REJECTED_EVENT_TYPE_MISMATCH' };
     }
 
-    // 2. Skills: null means unshared -> delete skills!
-    const skills = projection.skills !== undefined ? projection.skills : projection.profile?.skills;
-    if (skills === null) {
-      member.skills = [];
-      member.metrics.skills = 0;
-    } else if (skills) {
-      const items = Array.isArray(skills.items) ? skills.items : (Array.isArray(skills) ? skills : []);
-      const skillSet = new Set<string>();
-      for (const s of items) {
-        const name = typeof s === 'string' ? s : s.name;
-        if (name) skillSet.add(name);
-      }
-      member.skills = Array.from(skillSet);
-      member.metrics.skills = member.skills.length;
-    }
+    const claim = await durableDb.beginWebhookDelivery(TATHASTU_WEBHOOK_PROVIDER, deliveryId, eventType);
+    if (claim === 'processed') return { status: 200, handled: true, action: 'DUPLICATE_ACKNOWLEDGED' };
+    if (claim === 'in_progress') return { status: 409, handled: false, action: 'DELIVERY_IN_PROGRESS' };
 
-    // 3. Projects: null means unshared -> delete core-synced projects!
-    const projects = projection.projects !== undefined ? projection.projects : projection.profile?.projects;
-    if (projects === null) {
-      member.projects = member.projects.filter((p) => p.sourceOrigin !== 'tathastu_core');
-      member.metrics.projects = member.projects.length;
-    } else if (Array.isArray(projects)) {
-      const nonCoreProjects = member.projects.filter((p) => p.sourceOrigin !== 'tathastu_core');
-      const coreProjects: ProjectItem[] = projects.map((p: any) => ({
-        id: p.key || p.id || `proj_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        title: p.title,
-        description: p.description || '',
-        tags: Array.isArray(p.technologies) ? p.technologies : (Array.isArray(p.tags) ? p.tags : []),
-        featured: Boolean(p.featured || p.status === 'featured'),
-        demoUrl: Array.isArray(p.links) ? p.links[0]?.url || p.links[0] : p.demoUrl,
-        imageUrl: p.imageUrl,
-        stars: p.stars || 10,
-        forks: p.forks || 2,
-        sourceOrigin: 'tathastu_core',
-      }));
-      member.projects = [...nonCoreProjects, ...coreProjects];
-      member.metrics.projects = member.projects.length;
-    }
-
-    // 4. Education: null means unshared -> delete education!
-    const education = projection.education !== undefined ? projection.education : projection.profile?.education;
-    if (education === null) {
-      member.education = [];
-    } else if (Array.isArray(education)) {
-      member.education = education.map((e: any) => ({
-        id: e.id || `edu_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        institution: e.institution,
-        degree: e.degree,
-        period: e.dates || e.period || '',
-        score: e.grade || e.score || '',
-      }));
-    }
-
-    // 5. Experience: null means unshared -> delete experience!
-    const experience = projection.experience !== undefined ? projection.experience : projection.profile?.experience;
-    if (experience === null) {
-      member.experience = [];
-    } else if (Array.isArray(experience)) {
-      member.experience = experience.map((exp: any) => ({
-        id: exp.id || `exp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        role: exp.role,
-        company: exp.organization || exp.company,
-        period: exp.dates || exp.period || '',
-        bullets: exp.description ? [exp.description] : [],
-      }));
-    }
-
-    // 6. Achievements & Publications: null means unshared -> reset counts!
-    const achievements = projection.achievements !== undefined ? projection.achievements : projection.profile?.achievements;
-    if (achievements === null) {
-      member.metrics.achievements = 0;
-      member.metrics.publications = 0;
-    } else if (Array.isArray(achievements)) {
-      const nonPubs = achievements.filter((a: any) => a.type !== 'publication');
-      const pubs = achievements.filter((a: any) => a.type === 'publication');
-      member.metrics.achievements = nonPubs.length;
-      member.metrics.publications = pubs.length;
-
-      const leetcodeAch = achievements.find(
-        (a: any) =>
-          (Array.isArray(a.sources) && a.sources.includes('leetcode')) ||
-          (a.title && a.title.toLowerCase().includes('leetcode'))
-      );
-      if (leetcodeAch) {
-        const match = leetcodeAch.title.match(/(\d+[\+]?)/);
-        if (match) {
-          member.metrics.leetcodeProblems = match[1];
-        }
-      }
-    }
-
-    // 7. Activity
-    const activity = projection.activity !== undefined ? projection.activity : projection.profile?.activity;
-    if (activity === null) {
-      member.metrics.githubContributions = '—';
-    } else if (activity?.github) {
-      if (activity.github.repositories !== undefined) {
-        member.metrics.githubContributions = String(activity.github.repositories);
-      }
-      if (Array.isArray(activity.github.recent) && activity.github.recent.length > 0) {
-        member.recentActivity = activity.github.recent.map((r: any) => ({
-          id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-          type: 'github',
-          title: `Committed to ${r.name}`,
-          timeAgo: 'Recently',
-        }));
-      }
+    try {
+      const outcome = await this.handleWebhookEvent(eventType, event);
+      await durableDb.completeWebhookDelivery(TATHASTU_WEBHOOK_PROVIDER, deliveryId);
+      return outcome;
+    } catch (err: any) {
+      const message = err instanceof Error ? err.message : String(err);
+      await durableDb.failWebhookDelivery(TATHASTU_WEBHOOK_PROVIDER, deliveryId, message).catch(() => undefined);
+      console.error(`[Tathastu Webhook] Delivery ${deliveryId} failed and will be retried: ${message}`);
+      return { status: 500, handled: false, action: 'PROCESSING_FAILED_RETRYABLE' };
     }
   }
 
   /**
-   * 4. Process Webhook Events Transactionally
+   * Creates a PRIVATE Collaborate profile for an AI Tathastu user (owner decision 2026-11-05):
+   * not discoverable, profile page private, until the member turns visibility on. Never merges with
+   * an existing account by email, and never recreates a profile for a subject that disconnected here.
    */
-  public static async processWebhook(
-    eventOrReq: any,
-    headers?: Record<string, string>
-  ): Promise<{ handled: boolean; action: string; memberId?: string }> {
-    const deliveryId =
-      headers?.['x-ait-delivery'] ||
-      headers?.['x-delivery-id'] ||
-      eventOrReq.id ||
-      eventOrReq.eventId ||
-      crypto.randomUUID();
-
-    const eventType =
-      headers?.['x-ait-event'] ||
-      headers?.['x-event-type'] ||
-      eventOrReq.type ||
-      eventOrReq.eventType;
-
-    const { isDuplicate } = await TathastuClient.checkAndRecordWebhookEventAsync(
-      deliveryId,
-      eventType,
-      eventOrReq
-    );
-    if (isDuplicate) {
-      return { handled: true, action: 'DUPLICATE_ACKNOWLEDGED' };
+  private static async autoProvisionMember(externalSub: string, rawProfile: unknown): Promise<WebhookOutcome> {
+    let projection: ProfessionalProjectionV1;
+    try {
+      projection = parseProjectionV1(rawProfile, TathastuClient.getClientId());
+    } catch (err) {
+      console.warn(`[Tathastu Webhook] Auto-provision projection rejected: ${(err as Error).message}`);
+      return { status: 200, handled: true, action: 'REJECTED_INVALID_PROJECTION' };
+    }
+    if (projection.identity.id !== externalSub) return { status: 200, handled: true, action: 'REJECTED_INVALID_PROJECTION' };
+    if (durableDb.getAllMembers().some((m) => (m.unlinkedTathastuSubjects || []).includes(externalSub))) {
+      return { status: 200, handled: true, action: 'IGNORED_PREVIOUSLY_DISCONNECTED' };
+    }
+    if (durableDb.getMappingByExternalSub('aitathastu_oidc', externalSub)) {
+      return { status: 200, handled: true, action: 'IGNORED_ALREADY_LINKED' };
+    }
+    const email = (projection.identity.email || '').toLowerCase().trim();
+    if (!email || !email.includes('@')) return { status: 200, handled: true, action: 'IGNORED_NO_EMAIL' };
+    if (durableDb.getMemberByEmail(email)) {
+      // An independent Collaborate account uses this email: never merge by email. The owner can
+      // link it with their Collaborate password via "Continue with AI Tathastu".
+      return { status: 200, handled: true, action: 'IGNORED_EMAIL_BELONGS_TO_EXISTING_ACCOUNT' };
     }
 
-    const externalSub =
-      eventOrReq.data?.userId ||
-      eventOrReq.sourcePersonId ||
-      eventOrReq.userId;
+    const now = new Date().toISOString();
+    const member: MemberProfile = {
+      id: `usr_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
+      email,
+      fullName: projection.identity.name || 'AI Tathastu Member',
+      headline: '',
+      avatarUrl: '/images/default_avatar.svg',
+      bannerUrl: '/images/campus_banner.jpg',
+      isVerified: false,
+      plan: 'free',
+      statusBadges: [],
+      location: '',
+      about: '',
+      contextTags: [],
+      socialLinks: {},
+      metrics: { projects: 0, skills: 0, achievements: 0, githubContributions: '—', leetcodeProblems: '—', publications: 0 },
+      skills: [],
+      projects: [],
+      experience: [],
+      education: [],
+      recentActivity: [],
+      aiSpecializations: [],
+      collaborationInterests: [],
+      discoverable: false,
+      discoveryChoiceMade: false,
+      profileVisibility: 'private',
+      contactVisibility: 'connections_only',
+      isLinkedWithTathastu: true,
+      tathastuSyncStatus: 'synced',
+      tathastuSyncSettings: { autoSyncProjects: true, autoSyncSkills: true, autoSyncAchievements: true },
+      role: 'member',
+      tathastu_user_id: externalSub,
+      tathastuLinkedAt: now,
+      autoProvisioned: true,
+    };
+    ensureOwnershipModel(member);
+    applyImportedProjection(member, projection);
+    durableDb.setMapping({
+      id: `map_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
+      memberId: member.id,
+      provider: 'aitathastu_oidc',
+      externalSubjectId: externalSub,
+      externalEmail: email,
+      createdAt: now,
+    });
+    await durableDb.saveMemberAsync(member);
+    return { status: 200, handled: true, action: 'AUTO_PROVISIONED_PRIVATE', memberId: member.id };
+  }
 
-    if (!externalSub) {
-      return { handled: true, action: 'IGNORED_NO_USER_ID' };
-    }
+  private static async handleWebhookEvent(eventType: string, event: any): Promise<WebhookOutcome> {
+    const externalSub = typeof event?.data?.userId === 'string' ? event.data.userId : '';
+    if (!externalSub) return { status: 200, handled: true, action: 'IGNORED_NO_USER_ID' };
 
-    const member = durableDb.getMemberByTathastuUserId(externalSub);
-    if (!member) {
-      // Per contract: if unknown, return 200 and ignore it
-      return { handled: true, action: 'IGNORED_UNKNOWN_USER' };
+    // Only a member whose CURRENT link is this subject is affected (unlinked members are ignored).
+    const stored = durableDb.getMemberByTathastuUserId(externalSub);
+    if (!stored || stored.tathastu_user_id !== externalSub) {
+      // Automatic profile: only for AI Tathastu's explicit auto_provision event, never for an
+      // ordinary update (so a late update after a disconnect can never recreate a profile).
+      if (eventType === 'profile.updated' && event?.data?.reason === 'auto_provision') {
+        return this.autoProvisionMember(externalSub, event?.data?.profile);
+      }
+      return { status: 200, handled: true, action: 'IGNORED_UNKNOWN_USER' };
     }
+    // Work on a copy: if saving fails, the stored member is untouched and the retry starts clean.
+    const member: MemberProfile = structuredClone(stored);
 
     if (eventType === 'profile.updated') {
-      const profile = eventOrReq.data?.profile || eventOrReq.payload?.profile || eventOrReq.payload;
-      if (profile) {
-        this.mergeProjectionData(member, profile);
-        await durableDb.saveMemberAsync(member);
+      let result: 'IMPORTED' | 'IGNORED_STALE';
+      try {
+        result = this.importProjection(member, event?.data?.profile, { expectedAudience: TathastuClient.getClientId() });
+      } catch (err) {
+        if (err instanceof ProjectionContractError || (err instanceof Error && err.message.startsWith('PROJECTION_SUBJECT_MISMATCH'))) {
+          // Permanent: a retry carries the same payload. Acknowledge, never import.
+          console.warn(`[Tathastu Webhook] Projection rejected: ${(err as Error).message}`);
+          return { status: 200, handled: true, action: 'REJECTED_INVALID_PROJECTION', memberId: member.id };
+        }
+        throw err;
       }
-      return { handled: true, action: 'PROFILE_UPDATED', memberId: member.id };
+      if (result === 'IGNORED_STALE') return { status: 200, handled: true, action: 'IGNORED_STALE', memberId: member.id };
+      await durableDb.saveMemberAsync(member);
+      return { status: 200, handled: true, action: 'PROFILE_UPDATED', memberId: member.id };
     }
 
     if (eventType === 'integration.revoked') {
-      const mapping = durableDb.getMappingByMemberId('aitathastu_oidc', member.id);
-      if (mapping) {
-        durableDb.removeMapping(mapping.id);
+      // A revocation sent before the current link was established belongs to an older link.
+      const sentAt = Date.parse(event?.createdAt ?? '');
+      const linkedAt = Date.parse(member.tathastuLinkedAt ?? '');
+      if (!Number.isNaN(sentAt) && !Number.isNaN(linkedAt) && sentAt < linkedAt) {
+        return { status: 200, handled: true, action: 'IGNORED_STALE_REVOCATION', memberId: member.id };
       }
-      member.tathastu_user_id = undefined;
-      member.tathastuProfile = null;
-      member.isLinkedWithTathastu = false;
-      member.tathastuSyncStatus = 'unlinked';
-      member.projects = member.projects.filter((p) => p.sourceOrigin !== 'tathastu_core');
+      this.unlinkAndPurge(member);
       await durableDb.saveMemberAsync(member);
-      return { handled: true, action: 'INTEGRATION_REVOKED', memberId: member.id };
+      return { status: 200, handled: true, action: 'INTEGRATION_REVOKED', memberId: member.id };
     }
 
-    return { handled: true, action: `EVENT_${eventType}_PROCESSED`, memberId: member.id };
+    return { status: 200, handled: true, action: `IGNORED_EVENT_${eventType}`, memberId: member.id };
   }
 }

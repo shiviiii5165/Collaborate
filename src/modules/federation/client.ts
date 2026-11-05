@@ -1,134 +1,114 @@
 import { durableDb } from '@/lib/db/index';
 import { MemberProfile } from '@/lib/types';
 import { getTathastuAdapter } from '@/integrations/tathastu';
+import type { LegacyHarnessProjection } from '@/integrations/tathastu/contract/types';
+import { PROJECTION_SCHEMA } from '@/integrations/tathastu/contract/projection-v1';
+import { TathastuSsoService } from '@/modules/identity/tathastu-sso';
 
-export interface TathastuApprovedProjection {
-  sourcePersonId: string;
-  sourceVersion: string;
-  lastSyncedAt: string;
-  approvedFields: {
-    fullName: string;
-    avatarUrl: string;
-    headline: string;
-    statusBadges: string[];
-    location: string;
-    education: Array<{
-      id: string;
-      institution: string;
-      period: string;
-      degree: string;
-      score: string;
-    }>;
-    projects: Array<{
-      id: string;
-      title: string;
-      featured: boolean;
-      description: string;
-      tags: string[];
-      stars: number;
-      forks: number;
-      demoUrl?: string;
-      imageUrl?: string;
-      sourceOrigin: 'tathastu_core';
-    }>;
-    skills: string[];
-    aiSpecializations: string[];
-    collaborationInterests: string[];
+export class ReauthorizationRequiredError extends Error {
+  constructor() {
+    super(
+      'REAUTHORIZE_REQUIRED: AI Tathastu profile data can only be read with your consent in a fresh sign-in. ' +
+        'Use "Continue with AI Tathastu" to refresh; later changes arrive automatically by webhook.'
+    );
+    this.name = 'ReauthorizationRequiredError';
+  }
+}
+
+/**
+ * Converts the test-harness mock shape into the real ProfessionalProjectionV1 so harness
+ * imports go through exactly the same validation and ownership pipeline as production.
+ * Only fields that exist in the harness data are mapped; nothing is invented.
+ */
+export function legacyHarnessToV1(legacy: LegacyHarnessProjection, audience = 'collaborate') {
+  const p = legacy.profile;
+  return {
+    schema: PROJECTION_SCHEMA,
+    version: 1,
+    audience,
+    generatedAt: new Date(legacy.updatedAt || Date.now()).toISOString(),
+    identity: {
+      id: legacy.sourcePersonId,
+      email: null,
+      name: p.displayName ?? null,
+      headline: p.headline ?? null,
+      avatarUrl: p.avatarUrl ?? null,
+      careerRole: null,
+      careerRoleOther: null,
+      location: p.location ? { city: p.location, country: null } : null,
+    },
+    education: (p.education || []).map((e) => ({
+      institution: e.institution ?? null,
+      degree: e.degree ?? null,
+      fieldOfStudy: null,
+      dates: e.period ?? null,
+      grade: e.score ?? null,
+      sources: ['harness'],
+    })),
+    skills: {
+      items: (p.skills || []).map((s) => ({
+        name: s.name,
+        category: s.category ?? null,
+        evidenceStrength: null,
+        verified: Boolean(s.confirmedByCore),
+        verificationStatus: s.confirmedByCore ? 'verified' : 'self_reported',
+        sources: ['harness'],
+      })),
+      erisReadiness: null,
+    },
+    projects: (p.projects || []).map((pr) => ({
+      key: pr.id,
+      title: pr.title,
+      description: pr.description ?? null,
+      technologies: pr.tags || [],
+      links: [pr.repositoryUrl, pr.demoUrl].filter((l): l is string => Boolean(l)),
+      status: null,
+      sources: ['harness'],
+    })),
+    experience: null,
+    achievements: (p.achievements || []).map((a) => ({
+      type: 'achievement' as const,
+      title: a.title,
+      issuer: a.issuer ?? null,
+      date: a.issuedAt ?? null,
+      description: null,
+      url: null,
+      sources: ['harness'],
+    })),
+    privacy: {
+      scopes: { skills: true, projects: true, education: true, achievements: true, experience: false, eris: false, activity: false },
+      masked: ['experience', 'activity', 'skills.erisReadiness'],
+      hiddenProjects: 0,
+      consentUpdatedAt: null,
+    },
   };
-  quarantinedPrivateData: string[];
 }
 
 export class FederationService {
-  // Fetch authorized projection from Core API via the configured adapter
-  public static async fetchApprovedProjection(
-    corePersonId: string,
-    scopes: string[] = ['person360.read']
-  ): Promise<TathastuApprovedProjection> {
+  /**
+   * The member's authorized projection. Live mode has no stored user token (AI Tathastu
+   * access tokens last 15 minutes and are not persisted), so a manual refresh requires a
+   * fresh consented sign-in. The mock adapter is available only in the test harness.
+   */
+  public static async fetchApprovedProjection(corePersonId: string): Promise<unknown> {
     const adapter = getTathastuAdapter();
-    const projectionV1 = await adapter.fetchProjection(corePersonId);
-
-    return {
-      sourcePersonId: projectionV1.sourcePersonId,
-      sourceVersion: projectionV1.sourceVersion,
-      lastSyncedAt: projectionV1.updatedAt,
-      approvedFields: {
-        fullName: projectionV1.profile.displayName,
-        avatarUrl: projectionV1.profile.avatarUrl || '/images/rahul_avatar.jpg',
-        headline: projectionV1.profile.headline || 'Collaborate Member',
-        statusBadges: ['Tathastu Member', 'Verified Student'],
-        location: projectionV1.profile.location || 'India',
-        education: projectionV1.profile.education.map((e) => ({
-          id: e.id,
-          institution: e.institution,
-          period: e.period,
-          degree: e.degree,
-          score: e.score || '',
-        })),
-        projects: projectionV1.profile.projects.map((p) => ({
-          id: p.id,
-          title: p.title,
-          featured: Boolean(p.featured),
-          description: p.description,
-          tags: p.tags,
-          stars: p.stars || 0,
-          forks: p.forks || 0,
-          demoUrl: p.demoUrl,
-          imageUrl: p.imageUrl,
-          sourceOrigin: 'tathastu_core' as const,
-        })),
-        skills: projectionV1.profile.skills.map((s) => s.name),
-        aiSpecializations: projectionV1.profile.skills
-          .filter((s) => s.category === 'ml_ai' || s.category === 'theory')
-          .map((s) => s.name),
-        collaborationInterests: projectionV1.profile.interests,
-      },
-      quarantinedPrivateData: projectionV1.quarantinedPrivateData,
-    };
+    if (adapter.mode !== 'mock') throw new ReauthorizationRequiredError();
+    const legacy = await adapter.fetchProjection(corePersonId);
+    return legacyHarnessToV1(legacy);
   }
 
-  // Synchronize approved projection while preserving local overrides
+  /** Imports a projection through the shared, validated ownership pipeline. */
   public static async syncProjectionToMember(
     memberId: string,
-    projection: TathastuApprovedProjection,
+    projection: unknown,
     syncSettings?: { autoSyncProjects: boolean; autoSyncSkills: boolean; autoSyncAchievements: boolean }
   ): Promise<MemberProfile> {
     const member = durableDb.getMemberById(memberId);
     if (!member) throw new Error('Member not found');
-
-    // Update sync settings if provided
-    if (syncSettings) {
-      member.tathastuSyncSettings = syncSettings;
-    }
-
-    // Sync only approved fields that are enabled and not locally overridden
-    if (member.tathastuSyncSettings.autoSyncProjects) {
-      // Merge projects: keep local projects, add or update core projects
-      const existingCoreIds = new Set(
-        member.projects.filter((p) => p.sourceOrigin === 'tathastu_core').map((p) => p.id)
-      );
-      for (const coreProj of projection.approvedFields.projects) {
-        if (!existingCoreIds.has(coreProj.id)) {
-          member.projects.push(coreProj);
-        }
-      }
-    }
-
-    if (member.tathastuSyncSettings.autoSyncSkills) {
-      // Merge skills uniquely without overwriting custom skills
-      const skillSet = new Set(member.skills);
-      for (const s of projection.approvedFields.skills) {
-        skillSet.add(s);
-      }
-      member.skills = Array.from(skillSet);
-    }
-
-    // DO NOT overwrite member.headline or member.about if the user has custom Collaborate overrides!
-    // The prompt explicitly forbids silent overwrites of user-customized profile text.
-
+    if (syncSettings) member.tathastuSyncSettings = syncSettings;
+    TathastuSsoService.importProjection(member, projection);
     member.isLinkedWithTathastu = true;
-    member.tathastuSyncStatus = 'synced';
-    durableDb.saveMember(member);
-
+    await durableDb.saveMemberAsync(member);
     return member;
   }
 }

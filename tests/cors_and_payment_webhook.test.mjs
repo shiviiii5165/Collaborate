@@ -259,16 +259,38 @@ await test('Invalid events are rejected before the event id is consumed', async 
 
 await test('Durable store failure fails closed (503) and grants nothing', async () => {
   const { member } = await newMember('storefail');
-  const original = durableDb.claimWebhookEventAsync;
-  durableDb.claimWebhookEventAsync = async () => { throw new Error('db down'); };
+  const original = durableDb.beginWebhookDelivery;
+  durableDb.beginWebhookDelivery = async () => { throw new Error('db down'); };
   try {
     const raw = eventBody(member.id);
     const res = await deliver(raw, signPaymentWebhook(raw, SECRET, now()));
     assert.strictEqual(res.statusCode, 503);
     assert.strictEqual(durableDb.getMemberById(member.id).plan, 'free');
   } finally {
-    durableDb.claimWebhookEventAsync = original;
+    durableDb.beginWebhookDelivery = original;
   }
+});
+
+await test('Save failure after claim is retryable: the paid upgrade is applied on retry, not lost', async () => {
+  const { member } = await newMember('savefail');
+  const id = `evt_savefail_${runId}`;
+  const raw = eventBody(member.id, id);
+  const original = durableDb.saveMemberAsync;
+  durableDb.saveMemberAsync = async () => { throw new Error('storage outage'); };
+  let first;
+  try {
+    first = await deliver(raw, signPaymentWebhook(raw, SECRET, now()));
+  } finally {
+    durableDb.saveMemberAsync = original;
+  }
+  assert.strictEqual(first.statusCode, 503);
+  assert.strictEqual(durableDb.getMemberById(member.id).plan, 'free');
+  assert.strictEqual(durableDb.isWebhookProcessed('payments', id), false, 'not marked processed');
+  const retry = await deliver(raw, signPaymentWebhook(raw, SECRET, now()));
+  assert.strictEqual(retry.statusCode, 200, retry.body);
+  assert.strictEqual(durableDb.getMemberById(member.id).plan, 'premium');
+  const replay = await deliver(raw, signPaymentWebhook(raw, SECRET, now()));
+  assert.strictEqual(replay.statusCode, 409);
 });
 
 delete process.env.PAYMENT_WEBHOOK_SECRET;

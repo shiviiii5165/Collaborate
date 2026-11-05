@@ -12,6 +12,7 @@ import {
   ProfileViewLedgerEntry,
 } from '@/lib/types';
 import { assertDatabaseAvailable, isNeonConfigured, getNeonPool } from './neon';
+import { applyDocument, docKey, emptyDocumentState, enumerateDocuments, splitKey, type DocKey } from './documents';
 import { MembersRepository } from './repositories/members';
 import { ConnectionsRepository } from './repositories/connections';
 import { MessagesRepository } from './repositories/messages';
@@ -64,7 +65,19 @@ interface DatabaseState {
   blockedUsers: string[]; // "blockerId:blockedId"
   notifications: AppNotification[];
   savedMembers?: Record<string, string[]>; // "userId -> [savedMemberId1, ...]"
-  webhookEvents?: Record<string, { provider: string; eventId: string; eventType: string; processedAt: string }>;
+  webhookEvents?: Record<
+    string,
+    {
+      provider: string;
+      eventId: string;
+      eventType: string;
+      processedAt: string;
+      status?: 'processing' | 'processed' | 'failed';
+      attempts?: number;
+      lockedUntil?: number;
+      lastError?: string;
+    }
+  >;
 }
 
 // COLLABORATE_DATA_FILE lets automated tests use an isolated store instead of the tracked
@@ -73,15 +86,228 @@ const DATA_FILE_PATH = process.env.COLLABORATE_DATA_FILE
   ? path.resolve(process.env.COLLABORATE_DATA_FILE)
   : path.join(process.cwd(), 'data', 'collaborate.db.json');
 
-class DurableCollaborateDatabase {
+/** Another instance changed a document this request also changed; nothing was written. */
+export class ConcurrentModificationError extends Error {
+  public readonly keys: string[];
+  constructor(keys: string[]) {
+    super(`CONCURRENT_MODIFICATION: ${keys.length} document(s) were changed by another instance. Retry the request.`);
+    this.name = 'ConcurrentModificationError';
+    this.keys = keys;
+  }
+}
+
+/** Postgres holds legacy relational data but no documents yet: refuse to serve an empty network. */
+export class BackfillRequiredError extends Error {
+  constructor() {
+    super(
+      'BACKFILL_REQUIRED: collaborate_documents is empty but the legacy members table has rows. ' +
+        'Run scripts/backfill_documents.ts before serving traffic (docs/architecture/PHASE2_DURABLE_STORAGE_MIGRATION.md).'
+    );
+    this.name = 'BackfillRequiredError';
+  }
+}
+
+const DOC_LOCK_KEY = 7314001; // pg_advisory_xact_lock key serializing document writes
+
+export class DurableCollaborateDatabase {
   private state: DatabaseState;
   private isPersisting = false;
 
-  constructor() {
-    if (process.env.NODE_ENV === 'production') {
+  // --- Shared document store (Postgres mode) ---
+  private readonly docMode: boolean;
+  private readonly injectedPool: any | null;
+  private persisted = new Map<DocKey, string>(); // last JSON known to be stored
+  private revs = new Map<DocKey, number>(); // revision of that stored JSON
+  private lastSeenRev = 0;
+  private loaded = false;
+  private mutated = false;
+  private syncing: Promise<void> | null = null;
+  private flushing: Promise<void> = Promise.resolve();
+
+  /**
+   * options.pool: a pg-compatible pool (tests inject PGlite). Without it, Postgres mode is
+   * enabled by DATABASE_URL; otherwise the local JSON file store is used (dev/tests only).
+   */
+  constructor(options: { pool?: any } = {}) {
+    this.injectedPool = options.pool ?? null;
+    this.docMode = Boolean(this.injectedPool) || isNeonConfigured();
+    if (process.env.NODE_ENV === 'production' && !this.injectedPool) {
       assertDatabaseAvailable();
     }
-    this.state = this.loadFromDisk();
+    // Postgres mode starts empty and is loaded by syncFromStore(); it never reads or seeds the JSON file.
+    this.state = this.docMode ? (emptyDocumentState() as DatabaseState) : this.loadFromDisk();
+  }
+
+  private get pool(): any {
+    const pool = this.injectedPool ?? getNeonPool();
+    if (!pool) throw new Error('STORAGE_UNAVAILABLE: database pool is not configured.');
+    return pool;
+  }
+
+  public get usesSharedStore(): boolean {
+    return this.docMode;
+  }
+
+  /**
+   * Pulls documents changed by any instance since the last sync (first call loads everything).
+   * Call before handling a request. No-op for the local file store.
+   */
+  public async syncFromStore(): Promise<void> {
+    if (!this.docMode) return;
+    if (this.syncing) return this.syncing;
+    this.syncing = (this.loaded ? this.pullChanges() : this.loadAll()).finally(() => {
+      this.syncing = null;
+    });
+    return this.syncing;
+  }
+
+  private async loadAll(): Promise<void> {
+    const res = await this.pool.query(
+      'SELECT collection, id, doc, rev FROM collaborate_documents ORDER BY rev'
+    );
+    const rows: any[] = res.rows || [];
+    if (rows.length === 0 && (await this.legacyMembersExist())) {
+      throw new BackfillRequiredError();
+    }
+    const fresh = emptyDocumentState() as DatabaseState;
+    this.persisted.clear();
+    this.revs.clear();
+    let max = 0;
+    for (const r of rows) {
+      const rev = Number(r.rev);
+      max = Math.max(max, rev);
+      const key = docKey(r.collection, r.id);
+      this.revs.set(key, rev);
+      if (r.doc === null || r.doc === undefined) continue;
+      const doc = typeof r.doc === 'string' ? JSON.parse(r.doc) : r.doc;
+      applyDocument(fresh, r.collection, r.id, doc);
+      this.persisted.set(key, JSON.stringify(doc));
+    }
+    this.state = fresh;
+    this.lastSeenRev = max;
+    this.loaded = true;
+  }
+
+  private async legacyMembersExist(): Promise<boolean> {
+    try {
+      const res = await this.pool.query('SELECT 1 FROM members LIMIT 1');
+      return Boolean(res.rows && res.rows.length > 0);
+    } catch {
+      return false; // legacy table absent: a fresh database
+    }
+  }
+
+  private async pullChanges(): Promise<void> {
+    const res = await this.pool.query(
+      'SELECT collection, id, doc, rev FROM collaborate_documents WHERE rev > $1 ORDER BY rev',
+      [this.lastSeenRev]
+    );
+    const current = this.mutated ? enumerateDocuments(this.state) : null;
+    for (const r of res.rows || []) {
+      const rev = Number(r.rev);
+      this.lastSeenRev = Math.max(this.lastSeenRev, rev);
+      const key = docKey(r.collection, r.id);
+      if ((this.revs.get(key) ?? 0) >= rev) continue; // our own write, already applied
+      // A document this instance changed but has not flushed keeps its local version; the
+      // flush will detect the conflict (its base revision is now behind) and reject it.
+      if (current && current.get(key) !== this.persisted.get(key)) continue;
+      const doc = r.doc === null || r.doc === undefined ? null : typeof r.doc === 'string' ? JSON.parse(r.doc) : r.doc;
+      applyDocument(this.state, r.collection, r.id, doc);
+      this.revs.set(key, rev);
+      if (doc === null) this.persisted.delete(key);
+      else this.persisted.set(key, JSON.stringify(doc));
+    }
+  }
+
+  /**
+   * Writes every changed document in one transaction with optimistic concurrency.
+   * Throws ConcurrentModificationError (nothing written, conflicting documents reloaded)
+   * if another instance changed one of them first. No-op for the local file store.
+   */
+  public async flush(force = false): Promise<void> {
+    if (!this.docMode) return;
+    const run = this.flushing.then(() => this.flushNow(force));
+    this.flushing = run.catch(() => undefined);
+    return run;
+  }
+
+  private async flushNow(force: boolean): Promise<void> {
+    if (!this.loaded) return;
+    if (!this.mutated && !force) return;
+    const current = enumerateDocuments(this.state);
+    const changes: { key: DocKey; json: string | null }[] = [];
+    for (const [key, json] of current) if (this.persisted.get(key) !== json) changes.push({ key, json });
+    for (const key of this.persisted.keys()) if (!current.has(key)) changes.push({ key, json: null });
+    this.mutated = false;
+    if (changes.length === 0) return;
+
+    const client = await this.pool.connect();
+    const written: { key: DocKey; json: string | null; rev: number }[] = [];
+    const conflicts: DocKey[] = [];
+    try {
+      await client.query('BEGIN');
+      await client.query('SELECT pg_advisory_xact_lock($1)', [DOC_LOCK_KEY]);
+      for (const { key, json } of changes) {
+        const [collection, id] = splitKey(key);
+        const base = this.revs.get(key);
+        const res =
+          base === undefined
+            ? await client.query(
+                `INSERT INTO collaborate_documents (collection, id, doc, rev, updated_at)
+                 VALUES ($1, $2, $3::jsonb, nextval('collaborate_doc_rev_seq'), now())
+                 ON CONFLICT (collection, id) DO NOTHING RETURNING rev`,
+                [collection, id, json]
+              )
+            : await client.query(
+                `UPDATE collaborate_documents SET doc = $3::jsonb, rev = nextval('collaborate_doc_rev_seq'), updated_at = now()
+                 WHERE collection = $1 AND id = $2 AND rev = $4 RETURNING rev`,
+                [collection, id, json, base]
+              );
+        if (!res.rows || res.rows.length === 0) conflicts.push(key);
+        else written.push({ key, json, rev: Number(res.rows[0].rev) });
+      }
+      if (conflicts.length > 0) {
+        await client.query('ROLLBACK');
+      } else {
+        await client.query('COMMIT');
+      }
+    } catch (err) {
+      try {
+        await client.query('ROLLBACK');
+      } catch {
+        /* connection already failed */
+      }
+      this.mutated = true; // keep the changes pending for the next flush
+      throw err;
+    } finally {
+      client.release();
+    }
+
+    if (conflicts.length > 0) {
+      await this.reloadDocuments(conflicts);
+      this.mutated = true; // non-conflicting changes stay pending
+      throw new ConcurrentModificationError(conflicts.map((k) => splitKey(k).join('/')));
+    }
+    for (const w of written) {
+      this.revs.set(w.key, w.rev);
+      if (w.json === null) this.persisted.delete(w.key);
+      else this.persisted.set(w.key, w.json);
+    }
+  }
+
+  /** Replaces local copies of `keys` with the stored versions (discarding local changes). */
+  private async reloadDocuments(keys: DocKey[]): Promise<void> {
+    for (const key of keys) {
+      const [collection, id] = splitKey(key);
+      const res = await this.pool.query('SELECT doc, rev FROM collaborate_documents WHERE collection = $1 AND id = $2', [collection, id]);
+      const row = res.rows?.[0];
+      const doc = !row || row.doc === null ? null : typeof row.doc === 'string' ? JSON.parse(row.doc) : row.doc;
+      applyDocument(this.state, collection, id, doc);
+      if (row) this.revs.set(key, Number(row.rev));
+      else this.revs.delete(key);
+      if (doc === null) this.persisted.delete(key);
+      else this.persisted.set(key, JSON.stringify(doc));
+    }
   }
 
   private loadFromDisk(): DatabaseState {
@@ -103,6 +329,12 @@ class DurableCollaborateDatabase {
   }
 
   private persistToDisk(): void {
+    if (this.docMode) {
+      // Shared store: changes are written by flush() (before the response, or immediately by
+      // *Async methods). Never write the instance-local JSON file in Postgres mode.
+      this.mutated = true;
+      return;
+    }
     if (this.isPersisting) return;
     this.isPersisting = true;
     try {
@@ -595,11 +827,26 @@ class DurableCollaborateDatabase {
     }
   }
 
+  /** Saves and, in Postgres mode, durably writes before returning. */
   public async saveMemberAsync(member: MemberProfile): Promise<void> {
+    const previous = this.state.members[member.id];
     this.state.members[member.id] = member;
     this.persistToDisk();
-    if (isNeonConfigured()) {
-      await MembersRepository.saveMember(member);
+    try {
+      await this.flush();
+    } catch (err) {
+      // Not durable: do not leave an unsaved version visible to later requests.
+      if (this.state.members[member.id] === member) {
+        if (previous) this.state.members[member.id] = previous;
+        else delete this.state.members[member.id];
+      }
+      throw err;
+    }
+    if (isNeonConfigured() && !this.injectedPool) {
+      // Legacy relational copy (secondary; nothing reads it). Never fails the request.
+      await MembersRepository.saveMember(member).catch((err) => {
+        console.error('Failed to sync member to legacy relational tables:', err?.message || err);
+      });
     }
   }
 
@@ -648,7 +895,113 @@ class DurableCollaborateDatabase {
     this.persistToDisk();
   }
 
-  // --- Webhook Events (Durable Idempotency & Replay Protection) ---
+  // --- Webhook delivery ledger (shared by all instances in Postgres mode) ---
+
+  /**
+   * Claims a delivery for processing.
+   *   'claimed'      new delivery, or a previously failed / abandoned one: process it now.
+   *   'processed'    already handled successfully: acknowledge as duplicate.
+   *   'in_progress'  another instance (or request) is processing it right now.
+   * A delivery stays retryable until completeWebhookDelivery() is called.
+   */
+  public async beginWebhookDelivery(
+    provider: string,
+    eventId: string,
+    eventType: string,
+    lockSeconds = 120
+  ): Promise<'claimed' | 'processed' | 'in_progress'> {
+    if (this.docMode) {
+      const hookId = `wh_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+      const res = await this.pool.query(
+        `INSERT INTO webhook_events (id, provider, event_id, event_type, payload, processed_at, status, attempts, locked_until)
+         VALUES ($1, $2, $3, $4, '{}'::jsonb, now(), 'processing', 1, now() + make_interval(secs => $5))
+         ON CONFLICT (provider, event_id) DO UPDATE
+           SET status = 'processing', attempts = webhook_events.attempts + 1,
+               locked_until = now() + make_interval(secs => $5), last_error = NULL
+         WHERE webhook_events.status = 'failed'
+            OR (webhook_events.status = 'processing' AND webhook_events.locked_until < now())
+         RETURNING id`,
+        [hookId, provider, eventId, eventType, lockSeconds]
+      );
+      if (res.rows && res.rows.length > 0) return 'claimed';
+      const cur = await this.pool.query('SELECT status FROM webhook_events WHERE provider = $1 AND event_id = $2', [provider, eventId]);
+      return cur.rows?.[0]?.status === 'processed' ? 'processed' : 'in_progress';
+    }
+
+    if (!this.state.webhookEvents) this.state.webhookEvents = {};
+    const key = `${provider}:${eventId}`;
+    const existing = this.state.webhookEvents[key];
+    const now = Date.now();
+    if (existing) {
+      const status = existing.status ?? 'processed'; // pre-ledger entries were processed
+      if (status === 'processed') return 'processed';
+      if (status === 'processing' && existing.lockedUntil && existing.lockedUntil > now) return 'in_progress';
+    }
+    this.state.webhookEvents[key] = {
+      provider,
+      eventId,
+      eventType,
+      processedAt: new Date().toISOString(),
+      status: 'processing',
+      attempts: (existing?.attempts ?? 0) + 1,
+      lockedUntil: now + lockSeconds * 1000,
+    };
+    this.persistToDisk();
+    return 'claimed';
+  }
+
+  public async completeWebhookDelivery(provider: string, eventId: string): Promise<void> {
+    if (this.docMode) {
+      await this.pool.query(
+        `UPDATE webhook_events SET status = 'processed', processed_at = now(), locked_until = NULL, last_error = NULL
+         WHERE provider = $1 AND event_id = $2`,
+        [provider, eventId]
+      );
+      return;
+    }
+    const entry = this.state.webhookEvents?.[`${provider}:${eventId}`];
+    if (entry) {
+      entry.status = 'processed';
+      entry.processedAt = new Date().toISOString();
+      delete entry.lockedUntil;
+      delete entry.lastError;
+      this.persistToDisk();
+    }
+  }
+
+  public async failWebhookDelivery(provider: string, eventId: string, error: string): Promise<void> {
+    const lastError = error.slice(0, 500);
+    if (this.docMode) {
+      await this.pool.query(
+        `UPDATE webhook_events SET status = 'failed', locked_until = NULL, last_error = $3 WHERE provider = $1 AND event_id = $2`,
+        [provider, eventId, lastError]
+      );
+      return;
+    }
+    const entry = this.state.webhookEvents?.[`${provider}:${eventId}`];
+    if (entry) {
+      entry.status = 'failed';
+      entry.lastError = lastError;
+      delete entry.lockedUntil;
+      this.persistToDisk();
+    }
+  }
+
+  /** Delivery state for operators and tests (never includes payloads). */
+  public async getWebhookDelivery(provider: string, eventId: string): Promise<{ status: string; attempts: number; lastError?: string | null } | null> {
+    if (this.docMode) {
+      const res = await this.pool.query(
+        'SELECT status, attempts, last_error FROM webhook_events WHERE provider = $1 AND event_id = $2',
+        [provider, eventId]
+      );
+      const r = res.rows?.[0];
+      return r ? { status: r.status, attempts: Number(r.attempts), lastError: r.last_error } : null;
+    }
+    const e = this.state.webhookEvents?.[`${provider}:${eventId}`];
+    return e ? { status: e.status ?? 'processed', attempts: e.attempts ?? 1, lastError: e.lastError ?? null } : null;
+  }
+
+  // --- Webhook Events (payment provider: claim-once semantics, unchanged) ---
   public async isWebhookProcessedAsync(provider: string, eventId: string): Promise<boolean> {
     if (isNeonConfigured()) {
       try {
@@ -670,7 +1023,9 @@ class DurableCollaborateDatabase {
   public isWebhookProcessed(provider: string, eventId: string): boolean {
     if (!this.state.webhookEvents) this.state.webhookEvents = {};
     const key = `${provider}:${eventId}`;
-    return Boolean(this.state.webhookEvents[key]);
+    const entry = this.state.webhookEvents[key];
+    // Pre-ledger entries have no status and were processed; failed/in-progress ones are not.
+    return Boolean(entry) && (entry.status ?? 'processed') === 'processed';
   }
 
   public async recordWebhookEventAsync(
@@ -1107,7 +1462,7 @@ class DurableCollaborateDatabase {
     }
 
     const audit: VerificationAuditLog = {
-      id: `audit_${Date.now()}`,
+      id: `audit_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
       requestId,
       memberId: req.memberId,
       action: decision,
@@ -1134,7 +1489,7 @@ class DurableCollaborateDatabase {
     member.verifiedAt = undefined;
 
     const audit: VerificationAuditLog = {
-      id: `audit_revoke_${Date.now()}`,
+      id: `audit_revoke_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
       requestId: 'revocation',
       memberId,
       action: 'revoked',
@@ -1312,8 +1667,11 @@ class DurableCollaborateDatabase {
 declare global {
   // eslint-disable-next-line no-var
   var __collaborate_durable_db__: DurableCollaborateDatabase | undefined;
+  // Test seam: lets a test build the singleton on an injected pool (e.g. PGlite). Unset in production.
+  // eslint-disable-next-line no-var
+  var __collaborate_durable_db_options__: { pool?: any } | undefined;
 }
 
 export const durableDb: DurableCollaborateDatabase =
   globalThis.__collaborate_durable_db__ ||
-  (globalThis.__collaborate_durable_db__ = new DurableCollaborateDatabase());
+  (globalThis.__collaborate_durable_db__ = new DurableCollaborateDatabase(globalThis.__collaborate_durable_db_options__ ?? {}));
