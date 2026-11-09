@@ -31,15 +31,25 @@ export class AttemptLimiter {
   }
 }
 
-/** 10 attempts per account+IP and 50 per IP, per 15 minutes. */
+/**
+ * Per 15 minutes: 10 attempts per account+IP, 50 per IP, and 30 per account from ANY IP.
+ *
+ * The IP comes from X-Forwarded-For (the API runs behind Render's proxy and the Vercel gateway, so
+ * trustProxy is on). The API is also reachable directly, where that header is client-controlled, so
+ * the two IP-keyed limits alone can be bypassed by sending a new X-Forwarded-For per request. The
+ * account-only limit caps guesses against one account however the IP is presented.
+ */
 export const passwordAttemptsPerAccount = new AttemptLimiter(10, 15 * 60_000);
 export const passwordAttemptsPerIp = new AttemptLimiter(50, 15 * 60_000);
+export const passwordAttemptsPerAccountAnyIp = new AttemptLimiter(30, 15 * 60_000);
 
 export function checkPasswordAttempt(ip: string, account: string): { allowed: boolean; retryAfter: number } {
+  const acct = account.toLowerCase().trim();
   const perIp = passwordAttemptsPerIp.hit(`ip:${ip}`);
-  const perAccount = passwordAttemptsPerAccount.hit(`acct:${account.toLowerCase().trim()}|${ip}`);
-  if (!perIp.allowed || !perAccount.allowed) {
-    return { allowed: false, retryAfter: Math.max(perIp.retryAfter, perAccount.retryAfter) };
+  const perAccount = passwordAttemptsPerAccount.hit(`acct:${acct}|${ip}`);
+  const perAccountAnyIp = passwordAttemptsPerAccountAnyIp.hit(`acct:${acct}`);
+  if (!perIp.allowed || !perAccount.allowed || !perAccountAnyIp.allowed) {
+    return { allowed: false, retryAfter: Math.max(perIp.retryAfter, perAccount.retryAfter, perAccountAnyIp.retryAfter) };
   }
   return { allowed: true, retryAfter: 0 };
 }
