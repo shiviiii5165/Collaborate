@@ -30,7 +30,7 @@ export class IdentityService {
     }
 
     const memberId = `usr_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
-    const { hash, salt } = hashPassword(password);
+    const { hash, salt } = await hashPassword(password);
     durableDb.setCredential(memberId, hash, salt);
 
     const newMember: MemberProfile = {
@@ -138,7 +138,7 @@ export class IdentityService {
       throw new Error('Invalid credentials or SSO account');
     }
 
-    const isValid = verifyPassword(password, credential.passwordHash, credential.salt);
+    const isValid = await verifyPassword(password, credential.passwordHash, credential.salt);
     if (!isValid) {
       throw new Error('Invalid email or password');
     }
@@ -298,7 +298,7 @@ export class IdentityService {
               'ACCOUNT_EXISTS_REQUIRES_CONFIRMATION: An existing Collaborate account was found with this email. To prevent unauthorized takeover, please provide your Collaborate account password to link your profile.'
             );
           }
-          const valid = verifyPassword(linkConfirmationPassword, cred.passwordHash, cred.salt);
+          const valid = await verifyPassword(linkConfirmationPassword, cred.passwordHash, cred.salt);
           if (!valid) {
             throw new Error('Invalid Collaborate password for account linking confirmation');
           }

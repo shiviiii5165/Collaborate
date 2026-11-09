@@ -252,7 +252,7 @@ export class TathastuSsoService {
             linkErr.pendingLink = { externalSubjectId, email: externalEmail, fullName };
             throw linkErr;
           }
-          const valid = verifyPassword(linkConfirmationPassword, cred.passwordHash, cred.salt);
+          const valid = await verifyPassword(linkConfirmationPassword, cred.passwordHash, cred.salt);
           if (!valid) {
             throw new Error('INVALID_PASSWORD: Invalid Collaborate password for account linking confirmation.');
           }

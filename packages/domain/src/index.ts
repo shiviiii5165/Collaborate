@@ -6,7 +6,6 @@
  * quota rules, recommendation scoring, and security algorithms.
  */
 
-import crypto from 'crypto';
 import type { MemberProfile, RecommendationMatch } from '@collaborate/contracts';
 
 export const DAILY_FREE_PROFILE_VIEW_LIMIT = 3;
@@ -60,20 +59,5 @@ export function deduplicateRecommendations(matches: RecommendationMatch[]): Reco
   return unique;
 }
 
-/**
- * Scrypt Password Security
- */
-export function hashPasswordScrypt(password: string): string {
-  const salt = crypto.randomBytes(16).toString('hex');
-  const derivedKey = crypto.scryptSync(password, salt, 64);
-  return `${salt}:${derivedKey.toString('hex')}`;
-}
-
-export function verifyPasswordScrypt(password: string, storedHash: string): boolean {
-  if (!storedHash || !storedHash.includes(':')) return false;
-  const [salt, key] = storedHash.split(':');
-  if (!salt || !key) return false;
-  const keyBuffer = Buffer.from(key, 'hex');
-  const derivedKey = crypto.scryptSync(password, salt, 64);
-  return crypto.timingSafeEqual(keyBuffer, derivedKey);
-}
+// Password hashing lives in src/lib/auth/password.ts (asynchronous scrypt). The synchronous duplicates
+// that used to be here blocked the server thread and threw on a missing password; they were removed.

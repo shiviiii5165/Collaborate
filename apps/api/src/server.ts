@@ -13,6 +13,7 @@ import cookie from '@fastify/cookie';
 import { durableDb, getKolkataDateKey, ConcurrentModificationError } from '@/lib/db/index';
 import { toPublicMember, toSelfMember, isVisibleInDiscovery } from '@/modules/profile/public-member';
 import { applyLocalProfileEdit, releaseIdentityFills } from '@/modules/profile/ownership';
+import { ProfileEditError, sanitizeProfileUpdates } from '@/modules/profile/profile-edit';
 import { isNeonConfigured } from '@/lib/db/neon';
 import { IdentityService } from '@/modules/identity/service';
 import { TathastuSsoService } from '@/modules/identity/tathastu-sso';
@@ -36,6 +37,7 @@ import {
 } from '@/modules/billing/payment-webhook';
 import { isOriginAllowed } from '@/lib/http/cors-policy';
 import { checkPasswordAttempt } from '@/lib/http/rate-limit';
+import { hashPassword, verifyPassword } from '@/lib/auth/password';
 import { canInitiateContact } from '@collaborate/domain';
 import type { MemberProfile } from '@collaborate/contracts';
 import { getRecommendationsForMember, getProjectCollaborators } from '@/lib/recommendations';
@@ -145,6 +147,10 @@ export function buildServer(): FastifyInstance {
     }
   );
 
+
+  // 2a. Size limits for user-written text that is stored and held in memory by every instance.
+  const MAX_MESSAGE_CHARS = 4000;
+  const MAX_INTRO_CHARS = 500;
 
   // 2b. Brute-force protection for password-bearing endpoints.
   const limitPasswordAttempt = (req: FastifyRequest, reply: FastifyReply, account: string): boolean => {
@@ -399,15 +405,11 @@ export function buildServer(): FastifyInstance {
     'recommendationPreferences',
     'autoProvisioned', 'unlinkedTathastuSubjects',
   ];
-  /** Sections whose effective value is derived from local + imported data. */
-  const OWNED_SECTIONS = ['skills', 'projects', 'experience', 'education', 'metrics'] as const;
 
   fastify.put('/api/profiles', { preHandler: authenticate }, async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
     const body = req.body || {};
     const rawUpdates = (body.updates || body) as Record<string, any>;
     const targetUserId = body.id || rawUpdates.id || req.user!.userId;
-    const updates: Record<string, any> = { ...rawUpdates };
-    for (const field of PROTECTED_PROFILE_FIELDS) delete updates[field];
 
     if (targetUserId !== req.user!.userId && req.user!.role !== 'admin') {
       return reply.status(403).send({ error: 'Unauthorized to edit this profile' });
@@ -416,14 +418,18 @@ export function buildServer(): FastifyInstance {
     const existing = durableDb.getMemberById(targetUserId);
     if (!existing) return reply.status(404).send({ error: 'Member not found' });
 
-    // Plain fields are Collaborate-owned and set directly. Profile sections go through the
-    // ownership model: edits become local data, hides or overrides of imported entries, and
-    // never modify the imported AI Tathastu copy.
-    const sectionUpdates: Record<string, any> = {};
-    for (const key of OWNED_SECTIONS) {
-      if (key in updates) sectionUpdates[key] = updates[key];
-      delete updates[key];
+    // Allow-list: only known fields, each type- and size-checked; everything else is ignored
+    // (see src/modules/profile/profile-edit.ts). Profile sections go through the ownership model:
+    // edits become local data, hides or overrides of imported entries, never the imported copy.
+    let updates: Record<string, any>;
+    let sectionUpdates: Record<string, any>;
+    try {
+      ({ plain: updates, sections: sectionUpdates } = sanitizeProfileUpdates(rawUpdates, existing));
+    } catch (err) {
+      if (err instanceof ProfileEditError) return reply.status(400).send({ error: err.message });
+      throw err;
     }
+    for (const field of PROTECTED_PROFILE_FIELDS) delete updates[field]; // belt and braces
     const updatedMember: MemberProfile = { ...existing, ...updates };
     if ('discoverable' in updates) {
       // An automatically created profile starts private; turning discovery on is the member's
@@ -660,7 +666,10 @@ export function buildServer(): FastifyInstance {
       }
 
       try {
-        const conn = await durableDb.sendConnectionRequestAsync(userId, targetId, introMessage);
+        if (introMessage !== undefined && introMessage !== null && (typeof introMessage !== 'string' || introMessage.length > MAX_INTRO_CHARS)) {
+          return reply.status(400).send({ error: `The note can be at most ${MAX_INTRO_CHARS} characters` });
+        }
+        const conn = await durableDb.sendConnectionRequestAsync(userId, targetId, introMessage ? introMessage.trim() : undefined);
         return reply.status(201).send({ success: true, connection: conn });
       } catch (err) {
         return storeError(err);
@@ -754,10 +763,14 @@ export function buildServer(): FastifyInstance {
 
   fastify.post('/api/messages', { preHandler: authenticate }, async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
     const userId = req.user!.userId;
-    const { recipientId, content } = req.body || {};
+    const { recipientId } = req.body || {};
+    const content = typeof req.body?.content === 'string' ? req.body.content.trim() : '';
 
-    if (!recipientId || !content) {
+    if (typeof recipientId !== 'string' || !recipientId || !content) {
       return reply.status(400).send({ error: 'recipientId and content required' });
+    }
+    if (content.length > MAX_MESSAGE_CHARS) {
+      return reply.status(400).send({ error: `Messages can be at most ${MAX_MESSAGE_CHARS} characters` });
     }
 
     if (durableDb.isBlocked(userId, recipientId) || durableDb.isBlocked(recipientId, userId)) {
@@ -855,29 +868,121 @@ export function buildServer(): FastifyInstance {
     });
   });
 
+  /** Shared by POST (action update_password) and PUT (action change_password) so the rules can't drift. */
+  const changePassword = async (req: FastifyRequest, reply: FastifyReply, currentPassword: unknown, newPassword: unknown) => {
+    const userId = req.user!.userId;
+    if (!currentPassword || !newPassword) {
+      return reply.status(400).send({ error: 'Missing current or new password' });
+    }
+    if (!limitPasswordAttempt(req, reply, `pwchange:${userId}`)) return reply;
+    const member = durableDb.getMemberById(userId);
+    if (!member) return reply.status(404).send({ error: 'Member not found' });
+    const cred = durableDb.getCredential(userId);
+    if (!cred) return reply.status(401).send({ error: 'Credentials not found' });
+
+    const valid = await verifyPassword(String(currentPassword), cred.passwordHash, cred.salt);
+    if (!valid) return reply.status(401).send({ error: 'Current password incorrect' });
+    // Same rule as registration: a change must not weaken the account below it.
+    if (typeof newPassword !== 'string' || newPassword.length < 8) {
+      return reply.status(400).send({ error: 'New password must be at least 8 characters' });
+    }
+
+    const { hash: newHash, salt: newSalt } = await hashPassword(newPassword);
+    durableDb.setCredential(userId, newHash, newSalt);
+    return reply.send({ success: true, message: 'Password updated' });
+  };
+
+  const buildExport = (userId: string, member: MemberProfile) => ({
+    profile: toSelfMember(member),
+    connections: durableDb.getAllConnections().filter((c) => c.requesterId === userId || c.recipientId === userId),
+    exportedAt: new Date().toISOString(),
+    platform: 'Collaborate by AI Tathastu',
+  });
+
+  const PROFILE_VISIBILITIES = ['public', 'connections_only', 'private'] as const;
+  const CONTACT_VISIBILITIES = ['connections_only', 'hidden'] as const;
+  const NOTIFICATION_KEYS = ['connections', 'messages', 'verifications', 'recommendations', 'securityAlerts'] as const;
+  const SYNC_KEYS = ['autoSyncProjects', 'autoSyncSkills', 'autoSyncAchievements'] as const;
+
+  /**
+   * PUT /api/settings — the contract the Settings screen actually uses (src/components/SettingsView.tsx).
+   * Previously only GET/POST/DELETE existed, so every Settings action answered 404 in production.
+   * Each action validates its input; unknown keys are ignored, never stored.
+   */
+  fastify.put('/api/settings', { preHandler: authenticate }, async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
+    const body = req.body || {};
+    const userId = req.user!.userId;
+
+    if (body.action === 'change_password') {
+      const pc = body.passwordChange && typeof body.passwordChange === 'object' ? body.passwordChange : {};
+      return changePassword(req, reply, pc.currentPassword, pc.newPassword);
+    }
+
+    const member = durableDb.getMemberById(userId);
+    if (!member) return reply.status(404).send({ error: 'Member not found' });
+
+    switch (body.action) {
+      case 'update_privacy': {
+        const p = body.privacy && typeof body.privacy === 'object' ? body.privacy : null;
+        if (!p) return reply.status(400).send({ error: 'privacy settings are required' });
+        if (p.discoverable !== undefined && typeof p.discoverable !== 'boolean') return reply.status(400).send({ error: 'discoverable must be true or false' });
+        if (p.profileVisibility !== undefined && !PROFILE_VISIBILITIES.includes(p.profileVisibility)) return reply.status(400).send({ error: 'Invalid profile visibility' });
+        if (p.contactVisibility !== undefined && !CONTACT_VISIBILITIES.includes(p.contactVisibility)) return reply.status(400).send({ error: 'Invalid contact visibility' });
+        const next: MemberProfile = { ...member };
+        if (p.discoverable !== undefined) {
+          next.discoverable = p.discoverable;
+          next.discoveryChoiceMade = true;
+        }
+        if (p.profileVisibility !== undefined) next.profileVisibility = p.profileVisibility;
+        if (p.contactVisibility !== undefined) next.contactVisibility = p.contactVisibility;
+        await durableDb.saveMemberAsync(next);
+        return reply.send({ success: true, member: toSelfMember(next) });
+      }
+      case 'update_notifications': {
+        const n = body.notificationPreferences && typeof body.notificationPreferences === 'object' ? body.notificationPreferences : null;
+        if (!n) return reply.status(400).send({ error: 'notificationPreferences are required' });
+        const prefs = { ...(member.notificationPreferences || {}) } as Record<string, boolean>;
+        for (const k of NOTIFICATION_KEYS) {
+          if (n[k] === undefined) continue;
+          if (typeof n[k] !== 'boolean') return reply.status(400).send({ error: `${k} must be true or false` });
+          prefs[k] = n[k];
+        }
+        await durableDb.saveMemberAsync({ ...member, notificationPreferences: prefs as unknown as MemberProfile['notificationPreferences'] });
+        return reply.send({ success: true });
+      }
+      case 'update_federation_sync': {
+        const s = body.tathastuSyncSettings && typeof body.tathastuSyncSettings === 'object' ? body.tathastuSyncSettings : null;
+        if (!s) return reply.status(400).send({ error: 'tathastuSyncSettings are required' });
+        const settings = { ...(member.tathastuSyncSettings || {}) } as Record<string, boolean>;
+        for (const k of SYNC_KEYS) {
+          if (s[k] === undefined) continue;
+          if (typeof s[k] !== 'boolean') return reply.status(400).send({ error: `${k} must be true or false` });
+          settings[k] = s[k];
+        }
+        await durableDb.saveMemberAsync({ ...member, tathastuSyncSettings: settings as unknown as MemberProfile['tathastuSyncSettings'] });
+        return reply.send({ success: true });
+      }
+      case 'restrict_account': {
+        if (typeof body.isRestricted !== 'boolean') return reply.status(400).send({ error: 'isRestricted must be true or false' });
+        // Restricting also makes the profile private; lifting the restriction leaves visibility as the member set it.
+        const next: MemberProfile = body.isRestricted ? { ...member, isRestricted: true, profileVisibility: 'private' } : { ...member, isRestricted: false };
+        await durableDb.saveMemberAsync(next);
+        return reply.send({ success: true, restricted: next.isRestricted, message: next.isRestricted ? 'Account restricted: your profile is now private.' : 'Restriction lifted.' });
+      }
+      case 'export_data': {
+        reply.header('Cache-Control', 'no-store');
+        return reply.send({ success: true, export: buildExport(userId, member) });
+      }
+      default:
+        return reply.status(400).send({ error: 'Invalid settings action' });
+    }
+  });
+
   fastify.post('/api/settings', { preHandler: authenticate }, async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
     const { action, currentPassword, newPassword } = req.body || {};
     const userId = req.user!.userId;
 
-    if (action === 'update_password') {
-      if (!currentPassword || !newPassword) {
-        return reply.status(400).send({ error: 'Missing current or new password' });
-      }
-      if (!limitPasswordAttempt(req, reply, `pwchange:${userId}`)) return reply;
-      const member = durableDb.getMemberById(userId);
-      if (!member) return reply.status(404).send({ error: 'Member not found' });
-      const cred = durableDb.getCredential(userId);
-      if (!cred) return reply.status(401).send({ error: 'Credentials not found' });
-      
-      const { hashPasswordScrypt, verifyPasswordScrypt } = await import('@collaborate/domain');
-      const valid = verifyPasswordScrypt(currentPassword, `${cred.salt}:${cred.passwordHash}`);
-      if (!valid) return reply.status(401).send({ error: 'Current password incorrect' });
-
-      const newHashString = hashPasswordScrypt(newPassword);
-      const [newSalt, newHash] = newHashString.split(':');
-      durableDb.setCredential(userId, newHash, newSalt);
-      return reply.send({ success: true, message: 'Password updated' });
-    }
+    if (action === 'update_password') return changePassword(req, reply, currentPassword, newPassword);
 
     if (action === 'restrict_account') {
       const member = durableDb.getMemberById(userId);
@@ -914,8 +1019,8 @@ export function buildServer(): FastifyInstance {
     const cred = durableDb.getCredential(userId);
     if (!cred) return reply.status(401).send({ error: 'Credentials not found' });
 
-    const { verifyPasswordScrypt } = await import('@collaborate/domain');
-    const valid = verifyPasswordScrypt(password, `${cred.salt}:${cred.passwordHash}`);
+    // A missing or non-string password is simply wrong (401), never a 500.
+    const valid = typeof password === 'string' && (await verifyPassword(password, cred.passwordHash, cred.salt));
     if (!valid) return reply.status(401).send({ error: 'Invalid password for account deletion' });
 
     // Anonymize and deactivate
@@ -936,15 +1041,8 @@ export function buildServer(): FastifyInstance {
     const member = durableDb.getMemberById(userId);
     if (!member) return reply.status(404).send({ error: 'Member not found' });
 
-    const exportData = {
-      profile: toSelfMember(member),
-      connections: durableDb.getAllConnections().filter((c) => c.requesterId === userId || c.recipientId === userId),
-      exportedAt: new Date().toISOString(),
-      platform: 'Collaborate by AI Tathastu',
-    };
-
     reply.header('Cache-Control', 'no-store');
-    return reply.send(exportData);
+    return reply.send(buildExport(userId, member));
   });
 
   // ============================================================================
@@ -955,12 +1053,19 @@ export function buildServer(): FastifyInstance {
     const member = durableDb.getMemberById(req.user!.userId);
     if (!member) return reply.status(404).send({ error: 'Member not found' });
 
-    const reqId = durableDb.submitVerificationRequest(
-      member.id,
-      category || 'identity',
-      evidenceSummary || 'User request'
-    );
-    return reply.send({ success: true, requestId: reqId });
+    // Validated and bounded: requests are stored and held in memory, and reviewed by admins.
+    if (!['identity', 'institution', 'organization'].includes(category)) {
+      return reply.status(400).send({ error: 'Choose identity, institution or organization verification' });
+    }
+    const evidence = typeof evidenceSummary === 'string' ? evidenceSummary.trim() : '';
+    if (!evidence || evidence.length > 2000) {
+      return reply.status(400).send({ error: 'Describe your evidence in 1 to 2000 characters' });
+    }
+    const pending = durableDb.getAllVerificationRequests().some((r) => r.memberId === member.id && r.status === 'pending');
+    if (pending) return reply.status(409).send({ error: 'You already have a verification request under review' });
+
+    const created = durableDb.submitVerificationRequest(member.id, category, evidence);
+    return reply.send({ success: true, requestId: created.id });
   });
 
   fastify.post('/api/verification/review', { preHandler: requireAdmin }, async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
@@ -976,9 +1081,17 @@ export function buildServer(): FastifyInstance {
 
   fastify.post('/api/reports', { preHandler: authenticate }, async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
     const { reportedMemberId, reason, details } = req.body || {};
-    if (!reportedMemberId || !reason) return reply.status(400).send({ error: 'Missing reportedMemberId or reason' });
+    if (typeof reportedMemberId !== 'string' || typeof reason !== 'string' || !reason.trim()) {
+      return reply.status(400).send({ error: 'Missing reportedMemberId or reason' });
+    }
+    if (reason.length > 100 || (details !== undefined && (typeof details !== 'string' || details.length > 2000))) {
+      return reply.status(400).send({ error: 'Reason must be at most 100 characters and details at most 2000' });
+    }
+    if (reportedMemberId === req.user!.userId || !durableDb.getMemberById(reportedMemberId)) {
+      return reply.status(404).send({ error: 'Member not found' });
+    }
 
-    const repId = durableDb.submitAbuseReport(req.user!.userId, reportedMemberId, reason, details || '');
+    const repId = durableDb.submitAbuseReport(req.user!.userId, reportedMemberId, reason.trim(), (details || '').trim());
     return reply.send({ success: true, reportId: repId });
   });
 

@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "tsc --noEmit",
     "test:sso": "tsx --import ./tests/setup-isolated-db.mjs tests/tathastu_sso_client_hardening.test.mjs && tsx --import ./tests/setup-isolated-db.mjs tests/tathastu_production_integration.test.mjs && tsx --import ./tests/setup-isolated-db.mjs tests/live_adapter_no_credentials.test.mjs",
-    "test:authz": "tsx --import ./tests/setup-isolated-db.mjs tests/api_authorization_hardening.test.mjs && tsx --import ./tests/setup-isolated-db.mjs tests/cors_and_payment_webhook.test.mjs && tsx --import ./tests/setup-isolated-db.mjs tests/password_rate_limit.test.mjs",
+    "test:authz": "tsx --import ./tests/setup-isolated-db.mjs tests/api_authorization_hardening.test.mjs && tsx --import ./tests/setup-isolated-db.mjs tests/cors_and_payment_webhook.test.mjs && tsx --import ./tests/setup-isolated-db.mjs tests/password_rate_limit.test.mjs && tsx --import ./tests/setup-isolated-db.mjs tests/password_hashing.test.mjs && tsx --import ./tests/setup-isolated-db.mjs tests/settings_and_profile_edit.test.mjs",
     "test:phase2": "tsx --import ./tests/setup-isolated-db.mjs tests/phase2_privacy_ownership_sync.test.mjs && tsx tests/phase2_multi_instance_pg.test.mjs",
     "test:phase3": "tsx --import ./tests/setup-isolated-db.mjs tests/phase3_intelligence_matching.test.mjs",
     "test:migration": "tsx tests/migration_readiness.test.mjs && tsx scripts/rehearse_migration.ts",
