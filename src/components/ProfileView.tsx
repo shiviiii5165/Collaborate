@@ -59,6 +59,24 @@ const LinkedinIcon = ({ size = 16 }: { size?: number }) => (
 );
 import { MemberProfile, ProjectItem } from '@/lib/types';
 
+/**
+ * A count is shown only when it is known: imported achievements shared from AI Tathastu (a real
+ * zero is then shown as 0), or a counter the member entered themselves. Otherwise '—'.
+ */
+function knownCount(importedSection: unknown[] | null | undefined, value: number): number | string {
+  if (importedSection === null) return '—'; // not shared
+  if (Array.isArray(importedSection)) return value;
+  return value > 0 ? value : '—';
+}
+
+const initial = (s: string) => (s || '?').trim().charAt(0).toUpperCase() || '?';
+
+const formatDate = (iso: string | null | undefined) => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+};
+
 interface ProfileViewProps {
   member: MemberProfile;
   isSelf: boolean;
@@ -118,6 +136,29 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       console.error(err);
     }
   };
+
+  const tp = member.tathastuProfile;
+  // LeetCode: only from AI Tathastu's LeetCode connector (public profile API), shared under "activity".
+  const leetcode = tp?.activity?.coding?.find((c: any) => c.source === 'leetcode') ?? null;
+  const leetcodeTitle = leetcode
+    ? [
+        ['Easy', leetcode.solved.easy],
+        ['Medium', leetcode.solved.medium],
+        ['Hard', leetcode.solved.hard],
+      ]
+        .filter(([, n]) => n != null)
+        .map(([k, n]) => `${k} ${n}`)
+        .join(' · ') + (leetcode.contest ? ` · Contest rating ${Math.round(leetcode.contest.rating)}` : '')
+    : !tp
+      ? 'Connect LeetCode in AI Tathastu to show your problem-solving activity'
+      : tp.activity === null
+        ? 'Activity is not shared from AI Tathastu'
+        : 'Connect LeetCode in AI Tathastu to show your problem-solving activity';
+  const direction = tp?.careerDirection ?? null;
+  const achievementsList: any[] = tp?.achievements ?? [];
+  const certifications = achievementsList.filter((a) => a.type === 'certification');
+  const honours = achievementsList.filter((a) => a.type === 'achievement');
+  const publications = achievementsList.filter((a) => a.type === 'publication');
 
   return (
     <div className="profile-card">
@@ -301,11 +342,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               <Trophy size={18} />
             </div>
             <div>
-              <div
-                className="metric-val"
-                title={member.tathastuProfile?.achievements === null ? 'Not shared from AI Tathastu' : undefined}
-              >
-                {member.tathastuProfile?.achievements === null ? '—' : member.metrics.achievements}
+              <div className="metric-val" title={tp?.achievements === null ? 'Not shared from AI Tathastu' : undefined}>
+                {knownCount(tp?.achievements, member.metrics.achievements)}
               </div>
               <div className="metric-lbl">Achievements</div>
             </div>
@@ -316,14 +354,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               <GitBranch size={18} />
             </div>
             <div>
-              <div
-                className="metric-val"
-                title={member.tathastuProfile?.activity === null ? 'Not shared from AI Tathastu' : undefined}
-              >
-                {member.tathastuProfile?.activity === null || member.metrics.githubContributions === '—'
-                  ? '—'
-                  : member.metrics.githubContributions}
-              </div>
+              {/* Contribution counts are being integrated separately. Repository counts, stars or
+                  push dates are not contributions, so nothing is shown until a sourced value exists. */}
+              <div className="metric-val" title="Contribution data is not available yet">—</div>
               <div className="metric-lbl">GitHub Contributions</div>
             </div>
           </div>
@@ -333,13 +366,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               <TrendingUp size={18} />
             </div>
             <div>
-              <div
-                className="metric-val"
-                title={member.tathastuProfile?.achievements === null ? 'Not shared from AI Tathastu' : undefined}
-              >
-                {member.tathastuProfile?.achievements === null ? '—' : member.metrics.leetcodeProblems}
+              <div className="metric-val" title={leetcodeTitle}>
+                {leetcode?.solved.total != null ? leetcode.solved.total : '—'}
               </div>
-              <div className="metric-lbl">LeetCode Problems</div>
+              <div className="metric-lbl">LeetCode Solved</div>
             </div>
           </div>
 
@@ -348,11 +378,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               <FileText size={18} />
             </div>
             <div>
-              <div
-                className="metric-val"
-                title={member.tathastuProfile?.achievements === null ? 'Not shared from AI Tathastu' : undefined}
-              >
-                {member.tathastuProfile?.achievements === null ? '—' : member.metrics.publications}
+              <div className="metric-val" title={tp?.achievements === null ? 'Not shared from AI Tathastu' : undefined}>
+                {knownCount(tp?.achievements, member.metrics.publications)}
               </div>
               <div className="metric-lbl">Publications</div>
             </div>
@@ -423,7 +450,16 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   </button>
                 )}
               </div>
-              <p className="about-text">{member.about}</p>
+              {member.about?.trim() ? (
+                <p className="about-text">{member.about}</p>
+              ) : isSelf ? (
+                <div>
+                  <p className="empty-note">Add an About section so people know what you work on and what you are looking for.</p>
+                  <button className="empty-note-action" onClick={onEditProfile}>Add an About section</button>
+                </div>
+              ) : (
+                <p className="empty-note">{member.fullName} has not added an About section yet.</p>
+              )}
 
               {/* Context Tags */}
               <div className="context-meta-list">
@@ -484,73 +520,75 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               </div>
             </div>
 
-            {/* AI Tathastu Insights Card */}
-            <div className="insights-card">
-              <div className="info-card-header" style={{ marginBottom: 6 }}>
-                <div className="info-card-title" style={{ color: '#4338CA' }}>
-                  <Sparkles size={18} color="#7C3AED" />
-                  <span>AI Tathastu Insights</span>
+            {/* Career direction (replaces the old score-based "AI Tathastu Insights" card).
+                Only fields AI Tathastu's v3 engine supports and the member shared: the canonical
+                role label, skills assessed Proficient/Advanced, and (owner only) the top open
+                competencies. No scores, percentages or raw role ids. Hidden when nothing is shared. */}
+            {direction && (
+              <div className="info-card">
+                <div className="info-card-header">
+                  <div className="info-card-title">Career direction</div>
                 </div>
-                {member.tathastuProfile?.skills?.erisReadiness ? (
-                  <span className="info-card-action" style={{ color: '#6D28D9', fontWeight: 600 }}>
-                    Score: {Math.round(member.tathastuProfile.skills.erisReadiness.score * 100) / 100}
-                  </span>
-                ) : null}
-              </div>
+                <div className="direction-label">{direction.label}</div>
 
-              {member.tathastuProfile?.skills?.erisReadiness ? (
-                <div className="insights-content">
-                  <img
-                    src="/images/eora_avatar.jpg"
-                    alt="EORA AI Guide"
-                    className="insights-avatar"
-                  />
-                  <div className="insights-bubble">
-                    <div style={{ marginBottom: 4 }}>
-                      <strong>Target Role:</strong> {member.tathastuProfile.skills.erisReadiness.role} &bull;{' '}
-                      <strong>Readiness Score:</strong>{' '}
-                      {Math.round(member.tathastuProfile.skills.erisReadiness.score * 100) / 100}
+                {direction.strengths.length > 0 && (
+                  <>
+                    <div className="direction-sub">Demonstrated strengths</div>
+                    <div className="skills-tags-wrap">
+                      {direction.strengths.map((s: string) => (
+                        <span key={s} className="skill-tag-pill">{s}</span>
+                      ))}
                     </div>
-                    {Array.isArray(member.tathastuProfile.skills.erisReadiness.gaps) &&
-                      member.tathastuProfile.skills.erisReadiness.gaps.length > 0 && (
-                        <div style={{ marginTop: 6 }}>
-                          <strong style={{ fontSize: '13px', color: '#4338CA' }}>Top Competency Gaps:</strong>
-                          <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
-                            {member.tathastuProfile.skills.erisReadiness.gaps.slice(0, 3).map((g: any, idx: number) => (
-                              <li key={idx}>
-                                {g.skill} (Readiness: {Math.round((g.readiness || 0) * 100)}%)
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
+                  </>
+                )}
+
+                {isSelf && direction.developmentAreas && direction.developmentAreas.length > 0 && (
+                  <>
+                    <div className="direction-sub">Working on (visible only to you)</div>
+                    <div className="skills-tags-wrap">
+                      {direction.developmentAreas.map((s: string) => (
+                        <span key={s} className="skill-tag-pill" style={{ background: '#F8FAFC', color: '#475569' }}>{s}</span>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {isSelf && !direction.assessed && (
+                  <p className="empty-note" style={{ marginTop: 8 }}>
+                    AI Tathastu does not have enough evidence to assess this direction yet.
+                  </p>
+                )}
+
+                <div className="direction-meta">
+                  From AI Tathastu
+                  {formatDate(direction.assessedAt) ? ` · assessed ${formatDate(direction.assessedAt)}` : ''}
+                </div>
+              </div>
+            )}
+
+            {/* Achievements, certifications and publications shared from AI Tathastu */}
+            {achievementsList.length > 0 && (
+              <div className="info-card">
+                <div className="info-card-header">
+                  <div className="info-card-title">Achievements &amp; certifications</div>
+                </div>
+                {[...certifications, ...honours, ...publications].slice(0, 8).map((a, i) => (
+                  <div key={i} className="achievement-row">
+                    <span className="achievement-kind">{a.type === 'certification' ? 'Certification' : a.type === 'publication' ? 'Publication' : 'Achievement'}</span>
+                    <span>
+                      {a.url ? (
+                        <a href={a.url} target="_blank" rel="noopener noreferrer">{a.title}</a>
+                      ) : (
+                        a.title
                       )}
+                      {(a.issuer || a.date) && (
+                        <span className="coding-split"> · {[a.issuer, a.date].filter(Boolean).join(', ')}</span>
+                      )}
+                    </span>
                   </div>
-                </div>
-              ) : (
-                <div className="insights-content" style={{ padding: '8px 0' }}>
-                  <div className="insights-bubble" style={{ width: '100%' }}>
-                    <p style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#475569' }}>
-                      Share your ERIS readiness from AI Tathastu to see insights.
-                    </p>
-                    <a
-                      href="/api/auth/tathastu/start?prompt=consent"
-                      className="btn-insight"
-                      style={{
-                        display: 'inline-block',
-                        textDecoration: 'none',
-                        background: '#6366F1',
-                        color: '#FFFFFF',
-                        fontWeight: 500,
-                        padding: '6px 14px',
-                        borderRadius: '6px',
-                      }}
-                    >
-                      Connect ERIS Readiness &rarr;
-                    </a>
-                  </div>
-                </div>
-              )}
-            </div>
+                ))}
+              </div>
+            )}
 
             {/* Skills Card */}
             <div className="info-card">
@@ -613,6 +651,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 </button>
               </div>
 
+              {!member.projects[0] && (
+                <p className="empty-note">{isSelf ? 'No projects yet. Add one, or share projects from AI Tathastu.' : 'No projects shared yet.'}</p>
+              )}
               {member.projects[0] && (
                 <div className="project-card-item">
                   {member.projects[0].imageUrl && (
@@ -682,9 +723,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 </button>
               </div>
 
-              {member.experience.map((exp) => (
+              {member.experience.length === 0 && (
+                <p className="empty-note">{isSelf ? 'No experience listed yet.' : 'No experience shared yet.'}</p>
+              )}
+              {member.experience.slice(0, 3).map((exp) => (
                 <div key={exp.id} className="timeline-item">
-                  <div className="timeline-logo-box">A</div>
+                  <div className="timeline-logo-box">{initial(exp.company)}</div>
                   <div className="timeline-body">
                     <div className="timeline-role">{exp.role}</div>
                     <div className="timeline-company">{exp.company}</div>
@@ -711,28 +755,21 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 )}
               </div>
 
+              {member.education.length === 0 && (
+                <p className="empty-note">{isSelf ? 'No education listed yet.' : 'No education shared yet.'}</p>
+              )}
               {member.education.map((edu) => (
                 <div key={edu.id} className="timeline-item">
-                  <div
-                    className="timeline-logo-box"
-                    style={{ background: '#FFF7ED', color: '#EA580C' }}
-                  >
-                    🎓
+                  <div className="timeline-logo-box" style={{ background: '#FFF7ED', color: '#EA580C' }}>
+                    {initial(edu.institution)}
                   </div>
                   <div className="timeline-body">
                     <div className="timeline-role">{edu.institution}</div>
-                    <div className="timeline-period">{edu.period}</div>
-                    <div className="timeline-company">{edu.degree}</div>
-                    <div
-                      style={{
-                        fontSize: '0.82rem',
-                        fontWeight: 600,
-                        color: '#059669',
-                        marginTop: 4,
-                      }}
-                    >
-                      {edu.score}
-                    </div>
+                    {edu.degree && <div className="timeline-company">{edu.degree}</div>}
+                    {edu.period && <div className="timeline-period">{edu.period}</div>}
+                    {edu.score && (
+                      <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#059669', marginTop: 4 }}>{edu.score}</div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -750,7 +787,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 </button>
               </div>
 
-              {member.recentActivity.map((act) => (
+              {member.recentActivity.length === 0 && <p className="empty-note">No recent activity yet.</p>}
+              {member.recentActivity.slice(0, 5).map((act) => (
                 <div key={act.id} className="activity-item">
                   <div className="activity-icon">
                     {act.type === 'github' && <GithubIcon size={18} />}
@@ -848,7 +886,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           <div className="info-card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>
-                Verified Skills & Specializations ({member.skills.length})
+                Skills ({member.skills.length})
               </h3>
               {isSelf && (
                 <button
@@ -975,8 +1013,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         {activeTab === 'activity' && (
           <div className="info-card">
             <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 16 }}>
-              Activity Feed & Contributions
+              Recent activity
             </h3>
+            {member.recentActivity.length === 0 && <p className="empty-note">No recent activity yet.</p>}
             {member.recentActivity.map((act) => (
               <div key={act.id} className="activity-item">
                 <div className="activity-icon">

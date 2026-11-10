@@ -42,6 +42,16 @@ const lc = (s: string) => s.trim().toLowerCase();
 const shortHash = (s: string) => crypto.createHash('sha256').update(s).digest('hex').slice(0, 16);
 export const isImportedId = (id: string | undefined) => Boolean(id && id.startsWith(IMPORTED_PREFIX));
 
+/**
+ * AI Tathastu providers before 2026-11-11 sent LeetCode/HackerRank stats as an "achievement"
+ * ("LeetCode: 120 problems solved"). That is coding activity, not an honour: never counted or
+ * listed as an achievement. Detected by source when present, otherwise by the connector's title.
+ */
+export function isCodingActivityAchievement(a: { title: string; sources?: string[] }): boolean {
+  if ((a.sources ?? []).some((s) => s === 'leetcode' || s === 'hackerrank')) return true;
+  return /^(LeetCode|HackerRank)\s*:/i.test(a.title.trim());
+}
+
 function safeUrl(u: string | null | undefined): string | null {
   if (!u) return null;
   try {
@@ -170,6 +180,7 @@ export function normalizeProjection(p: ProfessionalProjectionV1, now = new Date(
             targetRole: p.goals.targetRole,
             needs: p.goals.needs.slice(0, 20),
             assessed: p.goals.assessed,
+            assessedAt: p.goals.assessedAt && !Number.isNaN(Date.parse(p.goals.assessedAt)) ? new Date(p.goals.assessedAt).toISOString() : null,
             collaborationIntents: p.goals.collaborationIntents.slice(0, 10),
           }
         : null,
@@ -198,11 +209,21 @@ export function normalizeProjection(p: ProfessionalProjectionV1, now = new Date(
               lastCommitAt: r.lastCommitAt && !Number.isNaN(Date.parse(r.lastCommitAt)) ? new Date(r.lastCommitAt).toISOString() : null,
             })),
             profileUpdatedAt: p.activity.profileUpdatedAt,
+            ...(p.activity.coding
+              ? {
+                  coding: p.activity.coding.map((c) => ({
+                    source: c.source,
+                    solved: { ...c.solved },
+                    contest: c.contest ? { ...c.contest } : null,
+                    profileRef: c.profileRef,
+                  })),
+                }
+              : {}),
           }
         : null,
     achievements:
       shared('achievements') && p.achievements
-        ? p.achievements.map((a) => ({
+        ? p.achievements.filter((a) => !isCodingActivityAchievement(a)).map((a) => ({
             type: a.type,
             title: a.title,
             issuer: a.issuer,
@@ -342,9 +363,12 @@ export function recomputeEffectiveProfile(member: MemberProfile): void {
     }));
   member.recentActivity = [...localActivity, ...importedActivity];
 
-  const achievements = imp?.achievements;
+  const achievements = imp?.achievements?.filter((a) => !isCodingActivityAchievement(a));
+  // LeetCode solved count only from a sourced value; otherwise unknown ('—'), never a default 0.
+  const leetcode = imp?.activity?.coding?.find((c) => c.source === 'leetcode');
   member.metrics = {
-    ...(member.metrics || { githubContributions: '0', leetcodeProblems: '0', projects: 0, skills: 0, achievements: 0, publications: 0 }),
+    ...(member.metrics || { githubContributions: '—', leetcodeProblems: '—', projects: 0, skills: 0, achievements: 0, publications: 0 }),
+    leetcodeProblems: leetcode?.solved.total != null ? String(leetcode.solved.total) : '—',
     projects: member.projects.length,
     skills: member.skills.length,
     achievements: achievements ? achievements.filter((a) => a.type !== 'publication').length : local.metrics.achievements ?? 0,

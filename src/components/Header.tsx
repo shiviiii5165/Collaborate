@@ -9,6 +9,7 @@ import {
   Bell,
   ShieldCheck,
   Sparkles,
+  LogIn,
 } from 'lucide-react';
 import { MemberProfile } from '@/lib/types';
 
@@ -21,6 +22,8 @@ interface HeaderProps {
   unreadNotificationsCount?: number;
   onOpenUpgradeModal: () => void;
   onOpenFederationModal: () => void;
+  /** Opens sign-in / switch account / SSO. */
+  onOpenAuth?: () => void;
   searchQuery: string;
   onSearchChange: (q: string) => void;
 }
@@ -34,6 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
   unreadNotificationsCount,
   onOpenUpgradeModal,
   onOpenFederationModal,
+  onOpenAuth,
   searchQuery,
   onSearchChange,
 }) => {
@@ -184,6 +188,13 @@ export const Header: React.FC<HeaderProps> = ({
           )}
           <Bell size={20} />
         </button>
+
+        {/* Switch account / SSO (moved here from the removed identity banner) */}
+        {currentUser && onOpenAuth && (
+          <button className="nav-icon-btn" title="Switch account / SSO" aria-label="Switch account or sign in with SSO" onClick={onOpenAuth}>
+            <LogIn size={20} />
+          </button>
+        )}
 
         {/* User Avatar */}
         {currentUser ? (

@@ -86,6 +86,8 @@ export function projectionV1({
           connectedSources: activity.connectedSources ?? ['github'],
           github: { repositories: activity.repositories ?? activity.recent.length, recent: activity.recent.map((r) => ({ name: r.name, url: r.url ?? null, stars: r.stars ?? 0, languages: r.languages ?? [], lastCommitAt: r.lastCommitAt ?? null })) },
           profileUpdatedAt: generatedAt,
+          // Additive (2026-11-11): omitted unless given, as older AI Tathastu builds send.
+          ...(activity.coding !== undefined ? { coding: activity.coding } : {}),
         }
       : null,
     privacy: { scopes: shared, masked: [], hiddenProjects: 0, consentUpdatedAt: generatedAt },
@@ -93,7 +95,15 @@ export function projectionV1({
   // Goals (additive field, shared under the "eris" scope). Omitted entirely unless requested,
   // which is also what an older AI Tathastu build sends.
   if (goals !== undefined) {
-    p.goals = shared.eris ? { targetRole: careerRole, needs: goals.needs ?? [], assessed: goals.assessed ?? true, collaborationIntents: goals.collaborationIntents ?? [] } : null;
+    p.goals = shared.eris
+      ? {
+          targetRole: careerRole,
+          needs: goals.needs ?? [],
+          assessed: goals.assessed ?? true,
+          ...(goals.assessedAt !== undefined ? { assessedAt: goals.assessedAt } : {}),
+          collaborationIntents: goals.collaborationIntents ?? [],
+        }
+      : null;
   }
   p.privacy.masked = [
     ...SECTIONS.filter((s) => p[s] === null),

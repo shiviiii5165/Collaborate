@@ -136,13 +136,20 @@ await test('Sparse/independent profiles are not penalized for missing data; unce
   assert.ok(!recs.some((r) => r.member.id === unrelated.member.id && r.score > 0), 'no fabricated relevance');
 });
 
-await test('Cold start: an empty profile gets honest general suggestions', async () => {
+await test('Cold start: an empty profile gets an honest empty list, never filler suggestions', async () => {
   const empty = await indie('empty');
   const recs = recommend(empty.member.id, matchContext(), { limit: 5 });
+  assert.strictEqual(recs.length, 0, 'no evidence to match on: nobody is recommended');
+});
+
+await test('Every recommendation carries at least one evidence-backed reason', async () => {
+  const recs = recommend(viewer.member.id, matchContext(), { limit: 50 });
   assert.ok(recs.length > 0);
   for (const r of recs) {
-    assert.strictEqual(r.explanation.confidence, 'low');
-    assert.ok(r.explanation.unknowns.includes('Your own profile is empty'));
+    assert.ok(
+      r.explanation.dimensions.some((d) => d.key !== 'collaboration_intent' && d.value > 0 && d.evidence.length > 0),
+      `${r.member.fullName} has no evidenced reason`
+    );
   }
 });
 

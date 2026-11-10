@@ -81,7 +81,17 @@ export interface ImportedGoals {
   needs: { skill: string; priority: 'High' | 'Medium' | 'Low'; state: string; expectedLevel: string | null }[];
   /** False when AI Tathastu had too little evidence to assess; needs is then empty (not "no gaps"). */
   assessed: boolean;
+  /** When AI Tathastu's career intelligence engine last assessed the member; absent on older rows. */
+  assessedAt?: string | null;
   collaborationIntents: string[];
+}
+
+/** Problem-solving stats from a coding platform's public profile (via AI Tathastu). Null = not returned. */
+export interface ImportedCodingStats {
+  source: 'leetcode' | 'hackerrank';
+  solved: { total: number | null; easy: number | null; medium: number | null; hard: number | null };
+  contest: { rating: number; attended: number | null; topPercentage: number | null } | null;
+  profileRef: string | null;
 }
 
 export interface ImportedAchievement {
@@ -136,6 +146,8 @@ export interface ImportedActivity {
   githubRepositories: number;
   recentRepositories: { name: string; url: string | null; stars: number | null; languages: string[]; lastCommitAt: string | null }[];
   profileUpdatedAt: string | null;
+  /** Coding-platform stats; absent on rows imported before 2026-11-11 (unknown, not zero). */
+  coding?: ImportedCodingStats[];
 }
 
 export interface LocalProfileSections {
@@ -350,7 +362,12 @@ export interface RecommendationMatch {
   sharedInterests: string[];
   mutualCount: number;
   /** Evidence-backed explanation (src/modules/intelligence/matching.ts). */
-  explanation?: unknown;
+  explanation?: {
+    summary: string;
+    sharedSkills: string[];
+    complementarySkills: string[];
+    helpsWith: { skill: string; evidence: string }[];
+  };
   categories?: string[];
 }
 

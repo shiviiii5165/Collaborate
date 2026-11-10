@@ -308,9 +308,37 @@ export function scoreCandidate(viewer: MemberProfile, candidate: MemberProfile, 
   };
 }
 
+/** A recommendation needs a positive, evidenced dimension other than stated openness. */
+export function hasEvidencedReason(r: MatchResult): boolean {
+  return r.explanation.dimensions.some((d) => d.key !== 'collaboration_intent' && d.value > 0 && d.evidence.length > 0);
+}
+
 /**
- * Ranked recommendations for `viewerId`. Cold start: when the viewer has no profile data to
- * compare, candidates are ordered by how much evidence they have and the explanation says so.
+ * One entry per real person: records are keyed by member id, then by linked AI Tathastu subject
+ * and by e-mail, so two Collaborate records of the same person (e.g. a legacy account and an
+ * auto-provisioned one) never appear twice, and never as the viewer themself. Distinct people who
+ * merely share a name are kept. The most complete record wins; ties keep the oldest id.
+ */
+export function dedupeCandidates(candidates: MemberProfile[], viewer?: MemberProfile): MemberProfile[] {
+  const keysOf = (m: MemberProfile) =>
+    [`id:${m.id}`, m.tathastu_user_id ? `sub:${m.tathastu_user_id}` : null, m.email ? `mail:${lc(m.email)}` : null].filter(Boolean) as string[];
+  const viewerKeys = new Set(viewer ? keysOf(viewer) : []);
+  const richness = (m: MemberProfile) => (m.skills?.length ?? 0) + (m.projects?.length ?? 0) * 2 + (m.experience?.length ?? 0) * 2 + (m.about ? 1 : 0);
+  const ordered = [...candidates].sort((a, b) => richness(b) - richness(a) || a.id.localeCompare(b.id));
+  const seen = new Set<string>();
+  const out: MemberProfile[] = [];
+  for (const m of ordered) {
+    const keys = keysOf(m);
+    if (keys.some((k) => seen.has(k) || viewerKeys.has(k))) continue;
+    keys.forEach((k) => seen.add(k));
+    out.push(m);
+  }
+  return out;
+}
+
+/**
+ * Ranked recommendations for `viewerId`. Only candidates with an evidence-backed reason are
+ * returned; when there are none the list is empty and the UI says so.
  */
 export function recommend(
   viewerId: string,
@@ -321,28 +349,23 @@ export function recommend(
   if (!viewer) return [];
   const category = opts.category ?? 'all';
   const limit = Math.max(1, Math.min(opts.limit ?? 6, 50));
-  const vi = getProfileIntelligence(viewer);
-  // A member with a goal but no skills yet is not cold: their goal is exactly what to match on.
-  const coldStart = vi.skills.length === 0 && vi.projects.length === 0 && vi.intents.length === 0 && vi.interests.length === 0 && viewerGoals(viewer, vi).needs.length === 0;
-
   // Skill frequency over everyone the viewer could be shown, for rarity weighting.
-  const eligible = ctx.allMembers().filter((c) => isEligibleCandidate(viewer, c, ctx, { excludeConnected: opts.excludeConnected }));
+  const eligible = dedupeCandidates(
+    ctx.allMembers().filter((c) => isEligibleCandidate(viewer, c, ctx, { excludeConnected: opts.excludeConnected })),
+    viewer
+  );
   const df = new Map<string, number>();
   for (const c of eligible) for (const s of getProfileIntelligence(c).skills) df.set(s.canonical, (df.get(s.canonical) ?? 0) + 1);
   const scored: MatchContext = { ...ctx, skillFrequency: { df, total: eligible.length } };
 
+  // Only people with at least one evidence-backed reason are recommended. A viewer with an empty
+  // profile ("cold start") therefore gets an honest empty list, never general filler suggestions,
+  // and "open to networking" alone is not a reason.
   const results: MatchResult[] = [];
   for (const c of eligible) {
     const r = scoreCandidate(viewer, c, scored);
-    if (coldStart) {
-      const ci = getProfileIntelligence(c);
-      r.score = Math.round(ci.completeness.score * 100);
-      r.explanation.summary = 'Your profile has no skills or interests yet, so this is a general suggestion. Add skills to get matched on real evidence.';
-      r.explanation.confidence = 'low';
-      r.explanation.unknowns.unshift('Your own profile is empty');
-    }
     if (!r.categories.includes(category)) continue;
-    if (!coldStart && category === 'all' && r.score === 0 && r.mutualCount === 0 && !r.explanation.dimensions.some((d) => d.key === 'collaboration_intent')) continue;
+    if (!hasEvidencedReason(r)) continue;
     results.push(r);
   }
   results.sort((a, b) => b.score - a.score || b.mutualCount - a.mutualCount || a.member.id.localeCompare(b.member.id));

@@ -152,6 +152,11 @@ export const PeopleDiscoverView: React.FC<PeopleDiscoverViewProps> = ({
           </h3>
         </div>
 
+        {recommendations.length === 0 && (
+          <p className="empty-note" style={{ marginBottom: 16 }}>
+            No relevant profiles found yet. Add skills, projects or a career goal to your profile to be matched with people who can help.
+          </p>
+        )}
         <div className="discover-rec-grid">
           {recommendations.map((rec) => (
             <div

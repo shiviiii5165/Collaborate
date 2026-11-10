@@ -70,7 +70,23 @@ const GoalsSchema = z.object({
     .optional()
     .default([]),
   assessed: z.boolean().optional().default(false),
+  // Additive (2026-11): when the career intelligence engine last assessed the member; null = unknown.
+  assessedAt: nullableStr,
   collaborationIntents: z.array(z.string()).max(20).optional().default([]),
+});
+
+const count = z.number().int().nonnegative().nullable().optional().transform((v) => v ?? null);
+
+// Additive (2026-11): problem-solving stats from a platform's public profile API. Null = not returned.
+const CodingSchema = z.object({
+  source: z.enum(['leetcode', 'hackerrank']),
+  solved: z.object({ total: count, easy: count, medium: count, hard: count }),
+  contest: z
+    .object({ rating: z.number().nonnegative(), attended: count, topPercentage: z.number().min(0).max(100).nullable().optional().transform((v) => v ?? null) })
+    .nullable()
+    .optional()
+    .transform((v) => v ?? null),
+  profileRef: nullableStr,
 });
 
 const ErisSchema = z.object({
@@ -135,6 +151,8 @@ const ActivitySchema = z.object({
     .optional()
     .transform((v) => v ?? null),
   profileUpdatedAt: nullableStr,
+  // Absent (older provider) stays undefined = unknown; [] = provider checked, nothing connected.
+  coding: z.array(CodingSchema).max(10).optional(),
 });
 
 const PrivacySchema = z.object({

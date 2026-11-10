@@ -12,6 +12,18 @@ interface RightRailProps {
   onViewAllPeople: () => void;
 }
 
+/** One factual line from the engine's evidence: what this person can help with, or why they match. */
+function shortReason(rec: RecommendationMatch): string {
+  const help = rec.explanation?.helpsWith?.slice(0, 2).map((h) => h.skill) ?? [];
+  if (help.length) return `Can help with ${help.join(' and ')}`;
+  if (rec.mutualCount > 0) return `${rec.mutualCount} mutual connection${rec.mutualCount > 1 ? 's' : ''}`;
+  const shared = rec.explanation?.sharedSkills?.slice(0, 2) ?? [];
+  if (shared.length) return `Also works with ${shared.join(', ')}`;
+  const comp = rec.explanation?.complementarySkills?.slice(0, 2) ?? [];
+  if (comp.length) return `Adds ${comp.join(', ')} to your work`;
+  return rec.reason || '';
+}
+
 export const RightRail: React.FC<RightRailProps> = ({
   recommendations,
   currentUser,
@@ -32,6 +44,8 @@ export const RightRail: React.FC<RightRailProps> = ({
     },
   ]);
   const [loadingEora, setLoadingEora] = useState(false);
+  // The server already dedupes; this guards against a stale client list repeating a member id.
+  const uniqueRecs = recommendations.filter((r, i, all) => all.findIndex((x) => x.member.id === r.member.id) === i);
 
   const handleSendPrompt = async (promptText: string) => {
     if (!promptText.trim()) return;
@@ -95,40 +109,49 @@ export const RightRail: React.FC<RightRailProps> = ({
         </div>
 
         <div>
-          {recommendations.slice(0, 3).map((rec) => (
-            <div key={rec.member.id} className="person-item">
-              <img
-                src={rec.member.avatarUrl}
-                alt={rec.member.fullName}
-                className="person-avatar"
-                style={{ cursor: 'pointer' }}
-                onClick={() => onViewProfile(rec.member.id)}
-              />
-              <div className="person-info">
-                <div
-                  className="person-name"
-                  style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+          {uniqueRecs.length === 0 && (
+            <p className="people-empty">
+              {currentUser && currentUser.skills.length === 0
+                ? 'Add skills or a career goal to your profile to see people who can help you.'
+                : 'No relevant profiles found yet.'}
+            </p>
+          )}
+          {uniqueRecs.slice(0, 3).map((rec) => {
+            const why = shortReason(rec);
+            const org = rec.member.experience?.[0]?.company || rec.member.education?.[0]?.institution || '';
+            return (
+              <div key={rec.member.id} className="person-item">
+                <img
+                  src={rec.member.avatarUrl}
+                  alt=""
+                  className="person-avatar"
+                  style={{ cursor: 'pointer' }}
                   onClick={() => onViewProfile(rec.member.id)}
+                />
+                <div className="person-info">
+                  <button
+                    className="person-name"
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, textAlign: 'left' }}
+                    onClick={() => onViewProfile(rec.member.id)}
+                    title={`View ${rec.member.fullName}'s profile`}
+                  >
+                    <span>{rec.member.fullName}</span>
+                    {rec.member.isVerified && <CheckCircle2 size={13} fill="#0284C7" color="#fff" />}
+                  </button>
+                  {rec.member.headline && <div className="person-headline">{rec.member.headline}</div>}
+                  {org && <div className="person-org">{org}</div>}
+                  {why && <div className="person-reason">{why}</div>}
+                </div>
+                <button
+                  className="btn-connect-sm"
+                  onClick={() => onConnect(rec.member.id)}
+                  title={`Send a connection request to ${rec.member.fullName}`}
                 >
-                  <span>{rec.member.fullName}</span>
-                  {rec.member.isVerified && (
-                    <CheckCircle2 size={13} fill="#0284C7" color="#fff" />
-                  )}
-                </div>
-                <div className="person-headline">{rec.member.headline}</div>
-                <div className="person-mutuals">
-                  {rec.mutualCount > 0 ? `${rec.mutualCount} mutual connections` : 'Verified Peer'}
-                </div>
+                  Connect
+                </button>
               </div>
-              <button
-                className="btn-connect-sm"
-                onClick={() => onConnect(rec.member.id)}
-                title="Send Connection Request"
-              >
-                Connect
-              </button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

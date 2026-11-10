@@ -1102,6 +1102,7 @@ export default function CollaborateApp() {
           unreadNotificationsCount={unreadNotificationsCount}
           onOpenUpgradeModal={() => setIsUpgradeOpen(true)}
           onOpenFederationModal={() => setIsFederationOpen(true)}
+          onOpenAuth={() => setIsAuthOpen(true)}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
         />
@@ -1112,53 +1113,34 @@ export default function CollaborateApp() {
 
         {/* Center Content Area */}
         <main className="center-content">
-          {/* Identity & Session Banner */}
-          <div
-            className="identity-banner"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              background: '#FFFFFF',
-              border: '1px solid #E2E8F0',
-              borderRadius: '12px',
-              padding: '10px 18px',
-              boxShadow: 'var(--shadow-sm)',
-            }}
-          >
-            {currentUser ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    background: currentUser.role === 'admin' ? '#F59E0B' : '#10B981',
-                  }}
-                />
-                <span className="identity-banner-text" style={{ fontSize: '0.82rem', color: '#475569' }}>
-                  Active Identity: <strong>{currentUser.fullName}</strong> ({currentUser.email})
-                  {currentUser.role === 'admin' && ' • [ADMIN]'}
-                </span>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#94A3B8' }} />
-                <span style={{ fontSize: '0.82rem', color: '#64748B' }}>
-                  Guest Explorer • Please sign in or register to connect & collaborate
-                </span>
-              </div>
-            )}
-
-            <button
-              className="btn-secondary"
-              style={{ fontSize: '0.78rem', padding: '5px 12px' }}
-              onClick={() => setIsAuthOpen(true)}
+          {/* Guests only: a sign-in prompt. Signed-in members switch account from the header. */}
+          {!currentUser && (
+            <div
+              className="identity-banner"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: '#FFFFFF',
+                border: '1px solid #E2E8F0',
+                borderRadius: '12px',
+                padding: '10px 18px',
+                boxShadow: 'var(--shadow-sm)',
+              }}
             >
-              <LogIn size={13} />
-              <span>{currentUser ? 'Switch Account / SSO' : 'Sign In / Register'}</span>
-            </button>
-          </div>
+              <span style={{ fontSize: '0.82rem', color: '#64748B' }}>
+                Sign in or register to connect and collaborate.
+              </span>
+              <button
+                className="btn-secondary"
+                style={{ fontSize: '0.78rem', padding: '5px 12px' }}
+                onClick={() => setIsAuthOpen(true)}
+              >
+                <LogIn size={13} />
+                <span>Sign In / Register</span>
+              </button>
+            </div>
+          )}
 
           {/* View Tab: Home or My Profile */}
           {(currentTab === 'home' || currentTab === 'profile') && (
