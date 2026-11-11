@@ -58,6 +58,14 @@ const LinkedinIcon = ({ size = 16 }: { size?: number }) => (
   </svg>
 );
 import { MemberProfile, ProjectItem } from '@/lib/types';
+import {
+  CredentialsSection,
+  EducationSection,
+  ExperienceSection,
+  GitHubActivitySection,
+  CodingProfilesSection,
+  LocalActivityList,
+} from './ProfileSections';
 
 /**
  * A count is shown only when it is known: imported achievements shared from AI Tathastu (a real
@@ -96,7 +104,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   onEditProfile,
   onOpenFederationSync,
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'skills' | 'experience' | 'education' | 'activity'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'skills' | 'experience' | 'education' | 'achievements' | 'activity'>('overview');
   const [isSaved, setIsSaved] = useState(false);
   const [syncStatusText, setSyncStatusText] = useState<string | null>(null);
 
@@ -156,9 +164,17 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         : 'Connect LeetCode in AI Tathastu to show your problem-solving activity';
   const direction = tp?.careerDirection ?? null;
   const achievementsList: any[] = tp?.achievements ?? [];
-  const certifications = achievementsList.filter((a) => a.type === 'certification');
-  const honours = achievementsList.filter((a) => a.type === 'achievement');
-  const publications = achievementsList.filter((a) => a.type === 'publication');
+  const firstName = (member.fullName || '').split(' ')[0] || 'This member';
+  // undefined = not linked to AI Tathastu; null = linked, activity not shared.
+  const activityView = tp ? tp.activity : undefined;
+  const activityProps = {
+    activity: activityView,
+    syncedAt: tp?.syncedAt ?? null,
+    syncIssue: isSelf ? tp?.syncIssue ?? null : null,
+    isSelf,
+    name: firstName,
+  };
+  const githubRepos: number | null = tp?.activity ? tp.activity.githubRepositories : null;
 
   return (
     <div className="profile-card">
@@ -354,10 +370,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               <GitBranch size={18} />
             </div>
             <div>
-              {/* Contribution counts are being integrated separately. Repository counts, stars or
-                  push dates are not contributions, so nothing is shown until a sourced value exists. */}
-              <div className="metric-val" title="Contribution data is not available yet">—</div>
-              <div className="metric-lbl">GitHub Contributions</div>
+              {/* Repositories imported through AI Tathastu's GitHub connector. Not a contribution
+                  count: AI Tathastu does not share commit totals, so none is shown. */}
+              <div
+                className="metric-val"
+                title={githubRepos == null ? (tp ? 'Activity is not shared from AI Tathastu' : 'GitHub is not connected through AI Tathastu') : 'Repositories imported from GitHub via AI Tathastu'}
+              >
+                {githubRepos ?? '—'}
+              </div>
+              <div className="metric-lbl">GitHub Repos</div>
             </div>
           </div>
 
@@ -425,6 +446,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           onClick={() => setActiveTab('education')}
         >
           <span>Education</span>
+        </button>
+
+        <button
+          className={`tab-btn ${activeTab === 'achievements' ? 'active' : ''}`}
+          onClick={() => setActiveTab('achievements')}
+        >
+          <Trophy size={16} />
+          <span>Achievements</span>
         </button>
 
         <button
@@ -567,26 +596,17 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             )}
 
             {/* Achievements, certifications and publications shared from AI Tathastu */}
-            {achievementsList.length > 0 && (
+            {(achievementsList.length > 0 || isSelf) && (
               <div className="info-card">
                 <div className="info-card-header">
                   <div className="info-card-title">Achievements &amp; certifications</div>
+                  {achievementsList.length > 4 && (
+                    <button className="info-card-action" onClick={() => setActiveTab('achievements')}>
+                      View all
+                    </button>
+                  )}
                 </div>
-                {[...certifications, ...honours, ...publications].slice(0, 8).map((a, i) => (
-                  <div key={i} className="achievement-row">
-                    <span className="achievement-kind">{a.type === 'certification' ? 'Certification' : a.type === 'publication' ? 'Publication' : 'Achievement'}</span>
-                    <span>
-                      {a.url ? (
-                        <a href={a.url} target="_blank" rel="noopener noreferrer">{a.title}</a>
-                      ) : (
-                        a.title
-                      )}
-                      {(a.issuer || a.date) && (
-                        <span className="coding-split"> · {[a.issuer, a.date].filter(Boolean).join(', ')}</span>
-                      )}
-                    </span>
-                  </div>
-                ))}
+                <CredentialsSection items={achievementsList} notShared={tp?.achievements === null} isSelf={isSelf} name={firstName} initialLimit={4} />
               </div>
             )}
 
@@ -723,24 +743,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 </button>
               </div>
 
-              {member.experience.length === 0 && (
-                <p className="empty-note">{isSelf ? 'No experience listed yet.' : 'No experience shared yet.'}</p>
+              <ExperienceSection experience={member.experience} notShared={tp?.experience === null} isSelf={isSelf} name={firstName} limit={3} />
+              {member.experience.length > 3 && (
+                <button className="ps-more" onClick={() => setActiveTab('experience')}>
+                  Show all {member.experience.length} roles
+                </button>
               )}
-              {member.experience.slice(0, 3).map((exp) => (
-                <div key={exp.id} className="timeline-item">
-                  <div className="timeline-logo-box">{initial(exp.company)}</div>
-                  <div className="timeline-body">
-                    <div className="timeline-role">{exp.role}</div>
-                    <div className="timeline-company">{exp.company}</div>
-                    <div className="timeline-period">{exp.period}</div>
-                    <ul className="timeline-bullets">
-                      {exp.bullets.map((b, bi) => (
-                        <li key={bi}>{b}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              ))}
             </div>
 
             {/* Education Card */}
@@ -755,51 +763,26 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 )}
               </div>
 
-              {member.education.length === 0 && (
-                <p className="empty-note">{isSelf ? 'No education listed yet.' : 'No education shared yet.'}</p>
-              )}
-              {member.education.map((edu) => (
-                <div key={edu.id} className="timeline-item">
-                  <div className="timeline-logo-box" style={{ background: '#FFF7ED', color: '#EA580C' }}>
-                    {initial(edu.institution)}
-                  </div>
-                  <div className="timeline-body">
-                    <div className="timeline-role">{edu.institution}</div>
-                    {edu.degree && <div className="timeline-company">{edu.degree}</div>}
-                    {edu.period && <div className="timeline-period">{edu.period}</div>}
-                    {edu.score && (
-                      <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#059669', marginTop: 4 }}>{edu.score}</div>
-                    )}
-                  </div>
-                </div>
-              ))}
+              <EducationSection education={member.education} notShared={tp?.education === null} isSelf={isSelf} name={firstName} />
             </div>
 
-            {/* Recent Activity Card */}
-            <div className="info-card grid-col-full">
+            {/* GitHub activity (via AI Tathastu) */}
+            <div className="info-card">
               <div className="info-card-header">
-                <div className="info-card-title">Recent Activity</div>
-                <button
-                  className="info-card-action"
-                  onClick={() => setActiveTab('activity')}
-                >
+                <div className="info-card-title">GitHub activity</div>
+                <button className="info-card-action" onClick={() => setActiveTab('activity')}>
                   View all
                 </button>
               </div>
+              <GitHubActivitySection {...activityProps} repoLimit={3} />
+            </div>
 
-              {member.recentActivity.length === 0 && <p className="empty-note">No recent activity yet.</p>}
-              {member.recentActivity.slice(0, 5).map((act) => (
-                <div key={act.id} className="activity-item">
-                  <div className="activity-icon">
-                    {act.type === 'github' && <GithubIcon size={18} />}
-                    {act.type === 'leetcode' && <TrendingUp size={18} color="#10B981" />}
-                    {act.type === 'project' && <Folder size={18} color="#6366F1" />}
-                    {act.type === 'publication' && <FileText size={18} color="#EC4899" />}
-                  </div>
-                  <div className="activity-title">{act.title}</div>
-                  <div className="activity-time">{act.timeAgo}</div>
-                </div>
-              ))}
+            {/* Coding profiles (via AI Tathastu) */}
+            <div className="info-card">
+              <div className="info-card-header">
+                <div className="info-card-title">Coding profiles</div>
+              </div>
+              <CodingProfilesSection {...activityProps} linkedProfileUrl={member.socialLinks?.leetcode || null} />
             </div>
           </div>
         )}
@@ -936,31 +919,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 </button>
               )}
             </div>
-            {member.experience.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '24px 20px', color: '#64748B' }}>
-                <div>No experience records listed yet.</div>
-                {isSelf && (
-                  <button className="btn-primary" style={{ marginTop: 12, padding: '8px 16px', fontSize: '0.84rem' }} onClick={onEditProfile}>
-                    <Plus size={14} /> Add Experience
-                  </button>
-                )}
-              </div>
-            ) : (
-              member.experience.map((exp) => (
-                <div key={exp.id} className="timeline-item" style={{ marginBottom: 24 }}>
-                  <div className="timeline-logo-box">EXP</div>
-                  <div className="timeline-body">
-                    <div className="timeline-role">{exp.role}</div>
-                    <div className="timeline-company">{exp.company}</div>
-                    <div className="timeline-period">{exp.period}</div>
-                    <ul className="timeline-bullets">
-                      {exp.bullets.map((b, bi) => (
-                        <li key={bi}>{b}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              ))
+            <ExperienceSection experience={member.experience} notShared={tp?.experience === null} isSelf={isSelf} name={firstName} />
+            {isSelf && member.experience.length === 0 && (
+              <button className="btn-primary" style={{ marginTop: 12, padding: '8px 16px', fontSize: '0.84rem' }} onClick={onEditProfile}>
+                <Plus size={14} /> Add Experience
+              </button>
             )}
           </div>
         )}
@@ -982,52 +945,48 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 </button>
               )}
             </div>
-            {member.education.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '24px 20px', color: '#64748B' }}>
-                <div>No academic records listed yet.</div>
-                {isSelf && (
-                  <button className="btn-primary" style={{ marginTop: 12, padding: '8px 16px', fontSize: '0.84rem' }} onClick={onEditProfile}>
-                    <Plus size={14} /> Add Education
-                  </button>
-                )}
-              </div>
-            ) : (
-              member.education.map((edu) => (
-                <div key={edu.id} className="timeline-item">
-                  <div className="timeline-logo-box">EDU</div>
-                  <div className="timeline-body">
-                    <div className="timeline-role">{edu.institution}</div>
-                    <div className="timeline-period">{edu.period}</div>
-                    <div className="timeline-company">{edu.degree}</div>
-                    <div style={{ color: '#059669', fontWeight: 600, marginTop: 4 }}>
-                      {edu.score}
-                    </div>
-                  </div>
-                </div>
-              ))
+            <EducationSection education={member.education} notShared={tp?.education === null} isSelf={isSelf} name={firstName} />
+            {isSelf && member.education.length === 0 && (
+              <button className="btn-primary" style={{ marginTop: 12, padding: '8px 16px', fontSize: '0.84rem' }} onClick={onEditProfile}>
+                <Plus size={14} /> Add Education
+              </button>
             )}
+          </div>
+        )}
+
+        {/* Achievements Tab */}
+        {activeTab === 'achievements' && (
+          <div className="info-card">
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 16px' }}>
+              Achievements, certifications &amp; publications ({achievementsList.length})
+            </h3>
+            <CredentialsSection items={achievementsList} notShared={tp?.achievements === null} isSelf={isSelf} name={firstName} />
           </div>
         )}
 
         {/* Activity Tab */}
         {activeTab === 'activity' && (
-          <div className="info-card">
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 16 }}>
-              Recent activity
-            </h3>
-            {member.recentActivity.length === 0 && <p className="empty-note">No recent activity yet.</p>}
-            {member.recentActivity.map((act) => (
-              <div key={act.id} className="activity-item">
-                <div className="activity-icon">
-                  {act.type === 'github' && <GithubIcon size={18} />}
-                  {act.type === 'leetcode' && <TrendingUp size={18} color="#10B981" />}
-                  {act.type === 'project' && <Folder size={18} color="#6366F1" />}
-                  {act.type === 'publication' && <FileText size={18} color="#EC4899" />}
-                </div>
-                <div className="activity-title">{act.title}</div>
-                <div className="activity-time">{act.timeAgo}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div className="info-card">
+              <div className="info-card-header">
+                <div className="info-card-title">GitHub activity</div>
               </div>
-            ))}
+              <GitHubActivitySection {...activityProps} />
+            </div>
+            <div className="info-card">
+              <div className="info-card-header">
+                <div className="info-card-title">Coding profiles</div>
+              </div>
+              <CodingProfilesSection {...activityProps} linkedProfileUrl={member.socialLinks?.leetcode || null} />
+            </div>
+            {member.recentActivity.some((a) => a.sourceOrigin !== 'tathastu_core') && (
+              <div className="info-card">
+                <div className="info-card-header">
+                  <div className="info-card-title">Activity on Collaborate</div>
+                </div>
+                <LocalActivityList items={member.recentActivity} />
+              </div>
+            )}
           </div>
         )}
       </div>

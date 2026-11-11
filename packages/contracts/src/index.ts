@@ -52,6 +52,11 @@ export interface EducationItem {
   period: string;
   degree: string;
   score: string;
+  /**
+   * Imported rows only (additive, 2026-11): AI Tathastu's fieldOfStudy kept separately so the UI can
+   * show qualification and specialisation apart. `degree` still holds "Degree, Field" for older readers.
+   */
+  fieldOfStudy?: string;
   sourceOrigin?: 'collaborate' | 'tathastu_core';
   locallyEdited?: boolean;
 }
@@ -100,6 +105,9 @@ export interface ImportedAchievement {
   issuer: string | null;
   date: string | null;
   url: string | null;
+  /** Additive (2026-11): the source's description, and where AI Tathastu got the entry (e.g. "resume"). */
+  description?: string | null;
+  sources?: string[];
 }
 
 export interface ImportedErisReadiness {
@@ -241,6 +249,8 @@ export interface MemberProfile {
   contactVisibility: 'connections_only' | 'hidden';
   isLinkedWithTathastu: boolean;
   tathastuSyncStatus: 'synced' | 'draft' | 'pending_conflict' | 'unlinked';
+  /** Last AI Tathastu profile update Collaborate could not accept; cleared by the next accepted sync. */
+  tathastuLastSyncError?: { at: string; code: string };
   tathastuSyncSettings: TathastuSyncSettings;
   tathastuDraftProposal?: Partial<MemberProfile>;
   notificationPreferences?: NotificationPreferences;
@@ -367,6 +377,8 @@ export interface RecommendationMatch {
     sharedSkills: string[];
     complementarySkills: string[];
     helpsWith: { skill: string; evidence: string }[];
+    /** Concrete collaboration idea, only when evidence supports one; otherwise null. */
+    possibleCollaboration?: string | null;
   };
   categories?: string[];
 }

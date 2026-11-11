@@ -138,6 +138,7 @@ export function normalizeProjection(p: ProfessionalProjectionV1, now = new Date(
             id: `${IMPORTED_PREFIX}edu:${shortHash(`${e.institution}|${e.degree}|${e.fieldOfStudy}|${e.dates}`)}`,
             institution: e.institution ?? '',
             degree: [e.degree, e.fieldOfStudy].filter(Boolean).join(', '),
+            ...(e.fieldOfStudy ? { fieldOfStudy: e.fieldOfStudy } : {}),
             period: e.dates ?? '',
             score: e.grade ?? '',
             sourceOrigin: 'tathastu_core' as const,
@@ -229,6 +230,8 @@ export function normalizeProjection(p: ProfessionalProjectionV1, now = new Date(
             issuer: a.issuer,
             date: a.date,
             url: safeUrl(a.url),
+            description: a.description,
+            sources: a.sources.slice(0, 5),
           }))
         : null,
   };
@@ -348,6 +351,9 @@ export function recomputeEffectiveProfile(member: MemberProfile): void {
   );
 
   // Recent activity: Collaborate-authored items first, then imported GitHub activity (newest first).
+  // AI Tathastu's lastCommitAt is the repository's latest update (AI Tathastu itself labels it
+  // "Updated"); it does not establish that the member authored that commit, so it is never
+  // described as the member's commit.
   const localActivity = (member.recentActivity || []).filter((a) => a.sourceOrigin !== 'tathastu_core');
   const importedActivity = (imp?.activity?.recentRepositories ?? [])
     .filter((r) => r.lastCommitAt)
@@ -355,7 +361,7 @@ export function recomputeEffectiveProfile(member: MemberProfile): void {
     .map((r) => ({
       id: `${IMPORTED_PREFIX}act:${shortHash(r.name)}`,
       type: 'github' as const,
-      title: `Committed to ${r.name}${r.languages.length ? ` (${r.languages.slice(0, 3).join(', ')})` : ''}`,
+      title: `Repository ${r.name} updated${r.languages.length ? ` (${r.languages.slice(0, 3).join(', ')})` : ''}`,
       timeAgo: timeAgo(r.lastCommitAt!),
       at: r.lastCommitAt!,
       ...(r.url ? { url: r.url } : {}),
@@ -438,6 +444,7 @@ export function applyImportedProjection(member: MemberProfile, projection: Profe
   setRoleBadge(member, imported.identity.careerRoleLabel);
   member.tathastuLastSyncedAt = imported.syncedAt;
   member.tathastuSyncStatus = 'synced';
+  delete member.tathastuLastSyncError;
   recomputeEffectiveProfile(member);
 }
 
@@ -453,6 +460,7 @@ export function clearImportedProfile(member: MemberProfile): void {
   setRoleBadge(member, null);
   member.importedIdentity = {};
   member.tathastuLastSyncedAt = undefined;
+  delete member.tathastuLastSyncError;
   recomputeEffectiveProfile(member);
 }
 

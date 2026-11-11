@@ -76,7 +76,9 @@ await test('GitHub activity becomes recent activity (newest first, imported, fre
   const m = durableDb.getMemberById(memberId);
   const gh = m.recentActivity.filter((a) => a.sourceOrigin === 'tathastu_core');
   assert.strictEqual(gh.length, 3);
-  assert.ok(gh[0].title.startsWith('Committed to vision-lab'));
+  // Repository-level update date: never worded as the member's own commit (2026-11 provenance fix).
+  assert.ok(gh[0].title.startsWith('Repository vision-lab updated'));
+  assert.ok(!/committed/i.test(gh[0].title));
   assert.ok(gh[0].timeAgo.includes('day'));
   assert.ok(gh[0].url === 'https://github.com/x/vision-lab');
 });

@@ -531,6 +531,13 @@ export class TathastuSsoService {
         if (err instanceof ProjectionContractError || (err instanceof Error && err.message.startsWith('PROJECTION_SUBJECT_MISMATCH'))) {
           // Permanent: a retry carries the same payload. Acknowledge, never import.
           console.warn(`[Tathastu Webhook] Projection rejected: ${(err as Error).message}`);
+          // Recorded (code only, no payload) so the owner sees that their latest AI Tathastu update
+          // did not arrive and can retry. Previously imported data is left exactly as it was.
+          member.tathastuLastSyncError = {
+            at: new Date().toISOString(),
+            code: err instanceof ProjectionContractError ? err.code : 'PROJECTION_SUBJECT_MISMATCH',
+          };
+          await durableDb.saveMemberAsync(member);
           return { status: 200, handled: true, action: 'REJECTED_INVALID_PROJECTION', memberId: member.id };
         }
         throw err;

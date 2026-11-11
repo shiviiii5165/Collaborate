@@ -1230,6 +1230,7 @@ export default function CollaborateApp() {
               onSearchChange={setSearchQuery}
               onViewProfile={handleViewProfile}
               onConnect={handleSendConnection}
+              onRefresh={fetchDiscoverData}
               quotaRemaining={quotaRemaining}
               userPlan={currentUser.plan}
               onOpenUpgradeModal={() => setIsUpgradeOpen(true)}

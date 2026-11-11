@@ -33,12 +33,39 @@ export interface TathastuProfileView {
   projects: [] | null;
   experience: [] | null;
   education: [] | null;
-  achievements: { type: 'achievement' | 'certification' | 'publication'; title: string; issuer: string | null; date: string | null; url: string | null }[] | null;
+  achievements: {
+    type: 'achievement' | 'certification' | 'publication';
+    title: string;
+    issuer: string | null;
+    date: string | null;
+    url: string | null;
+    description: string | null;
+    /**
+     * Provenance only. The contract has no verification field for achievements, so every entry is a
+     * member-provided claim (e.g. from a resume) and is never presented as a verified credential.
+     */
+    sources: string[];
+  }[] | null;
   /** null = activity not shared. */
   activity: {
     githubRepositories: number;
-    coding: { source: 'leetcode' | 'hackerrank'; solved: { total: number | null; easy: number | null; medium: number | null; hard: number | null }; contest: { rating: number; attended: number | null; topPercentage: number | null } | null }[] | null;
+    /** Sources AI Tathastu has imported data from (e.g. "github", "leetcode"). */
+    connectedSources: string[];
+    /** Most recently updated repositories. `updatedAt` is the repository's latest update, not proof of authorship. */
+    recentRepositories: { name: string; owner: string | null; url: string | null; stars: number | null; languages: string[]; updatedAt: string | null }[];
+    /** When AI Tathastu last recomputed the profile these values come from. */
+    profileUpdatedAt: string | null;
+    coding: {
+      source: 'leetcode' | 'hackerrank';
+      solved: { total: number | null; easy: number | null; medium: number | null; hard: number | null };
+      contest: { rating: number; attended: number | null; topPercentage: number | null } | null;
+      /** https link to the public platform profile, only when it points at that platform. */
+      profileUrl: string | null;
+      username: string | null;
+    }[] | null;
   } | null;
+  /** Owner only: the last AI Tathastu update Collaborate rejected, if newer than the last accepted sync. */
+  syncIssue?: { at: string; code: string } | null;
   /** Shared under AI Tathastu's goals ("eris") consent; null = not shared or no target role. */
   careerDirection: {
     label: string;
@@ -53,6 +80,44 @@ export interface TathastuProfileView {
 }
 
 const STRONG_LEVELS = new Set(['proficient', 'advanced']);
+
+const CODING_HOSTS: Record<'leetcode' | 'hackerrank', string> = { leetcode: 'leetcode.com', hackerrank: 'www.hackerrank.com' };
+
+/**
+ * AI Tathastu sends a profile reference such as "leetcode.com/u/asha". It becomes a link only when it
+ * resolves to that platform's own host; anything else is dropped rather than linked.
+ */
+export function codingProfileLink(source: 'leetcode' | 'hackerrank', ref: string | null | undefined): { url: string | null; username: string | null } {
+  if (!ref || typeof ref !== 'string') return { url: null, username: null };
+  try {
+    const u = new URL(/^https?:\/\//i.test(ref) ? ref : `https://${ref.replace(/^\/+/, '')}`);
+    const host = u.hostname.toLowerCase().replace(/^www\./, '');
+    if (host !== CODING_HOSTS[source].replace(/^www\./, '')) return { url: null, username: null };
+    const parts = u.pathname.split('/').filter(Boolean);
+    const username = (parts[0] === 'u' || parts[0] === 'profile' ? parts[1] : parts[0]) || null;
+    if (!username || !/^[A-Za-z0-9_.-]{1,64}$/.test(username)) return { url: null, username: null };
+    return { url: `https://${CODING_HOSTS[source]}/${source === 'leetcode' ? 'u/' : 'profile/'}${username}`, username };
+  } catch {
+    return { url: null, username: null };
+  }
+}
+
+/** "owner" from a github.com repository URL or an "owner/name" repository name; otherwise null. */
+function repoOwner(name: string, url: string | null): string | null {
+  if (url) {
+    try {
+      const u = new URL(url);
+      if (u.hostname.toLowerCase() === 'github.com') {
+        const owner = u.pathname.split('/').filter(Boolean)[0];
+        if (owner) return owner;
+      }
+    } catch {
+      /* fall through */
+    }
+  }
+  const slash = name.indexOf('/');
+  return slash > 0 ? name.slice(0, slash) : null;
+}
 
 const EMAIL_LIKE = /[^\s@]+@[^\s@]+\.[^\s@]+/;
 
@@ -81,15 +146,33 @@ export function tathastuProfileView(member: MemberProfile, opts: { isSelf?: bool
     achievements: imp.achievements
       ? imp.achievements
           .filter((a) => !isCodingActivityAchievement(a))
-          .map((a) => ({ type: a.type, title: a.title, issuer: a.issuer, date: a.date, url: a.url }))
+          .map((a) => ({ type: a.type, title: a.title, issuer: a.issuer, date: a.date, url: a.url, description: a.description ?? null, sources: [...(a.sources ?? [])] }))
       : null,
     activity: imp.activity
       ? {
           githubRepositories: imp.activity.githubRepositories,
+          connectedSources: [...(imp.activity.connectedSources ?? [])],
+          recentRepositories: (imp.activity.recentRepositories ?? []).map((r) => ({
+            name: r.name,
+            owner: repoOwner(r.name, r.url),
+            url: r.url,
+            stars: r.stars,
+            languages: [...r.languages],
+            updatedAt: r.lastCommitAt,
+          })),
+          profileUpdatedAt: imp.activity.profileUpdatedAt ?? null,
           // Rows imported before coding stats existed: unknown (null), not "none".
-          coding: imp.activity.coding ? imp.activity.coding.map((c) => ({ source: c.source, solved: { ...c.solved }, contest: c.contest ? { ...c.contest } : null })) : null,
+          coding: imp.activity.coding
+            ? imp.activity.coding.map((c) => {
+                const link = codingProfileLink(c.source, c.profileRef);
+                return { source: c.source, solved: { ...c.solved }, contest: c.contest ? { ...c.contest } : null, profileUrl: link.url, username: link.username };
+              })
+            : null,
         }
       : null,
+    ...(opts.isSelf
+      ? { syncIssue: member.tathastuLastSyncError && Date.parse(member.tathastuLastSyncError.at) > Date.parse(imp.syncedAt) ? { ...member.tathastuLastSyncError } : null }
+      : {}),
     careerDirection:
       goals && label
         ? {

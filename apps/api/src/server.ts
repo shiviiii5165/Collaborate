@@ -403,7 +403,7 @@ export function buildServer(): FastifyInstance {
     'importedProfile', 'localProfile', 'importedIdentity', 'tathastuLinkedAt', 'discoveryChoiceMade',
     // Validated through POST /api/recommendations/preferences only.
     'recommendationPreferences',
-    'autoProvisioned', 'unlinkedTathastuSubjects',
+    'autoProvisioned', 'unlinkedTathastuSubjects', 'tathastuLastSyncError',
   ];
 
   fastify.put('/api/profiles', { preHandler: authenticate }, async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
@@ -456,11 +456,19 @@ export function buildServer(): FastifyInstance {
     const isConnected = (otherId: string) =>
       Boolean(currentUserId) && durableDb.getConnectionState(currentUserId, otherId)?.status === 'accepted';
 
+    // Recommendations carry the same connection fields as directory rows, so a recommended card can
+    // show Pending / Respond instead of offering a second request (the store rejects duplicates too).
     const recommendations = currentUserId
-      ? getRecommendationsForMember(currentUserId, 10).map((r) => ({
-          ...r,
-          member: toPublicMember(r.member, { viewerId: currentUserId, isConnected: isConnected(r.member.id) }),
-        }))
+      ? getRecommendationsForMember(currentUserId, 10).map((r) => {
+          const conn = durableDb.getConnectionState(currentUserId, r.member.id);
+          return {
+            ...r,
+            member: toPublicMember(r.member, { viewerId: currentUserId, isConnected: conn?.status === 'accepted' }),
+            connectionStatus: conn ? conn.status : 'not_connected',
+            connectionId: conn ? conn.id : null,
+            pendingDirection: conn?.status === 'request_sent' ? (conn.requesterId === currentUserId ? 'outgoing' : 'incoming') : null,
+          };
+        })
       : [];
 
     // Same gate as recommendations: discoverable, visibility, safeguarding, blocks (both ways).
