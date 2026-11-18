@@ -28,6 +28,21 @@ export const COLLECTIONS = [
   'block',
   'notification',
   'saved_members',
+  // Social feed (src/modules/social). One document per post / comment, and one per
+  // (post, member) for likes, bookmarks, shares, poll votes and impressions, so a duplicate
+  // like is impossible by key and two instances writing the same pair conflict instead of
+  // double counting. Counters are never stored: they are derived from these documents.
+  'post',
+  'post_comment',
+  'post_like',
+  'post_bookmark',
+  'post_share',
+  'post_vote',
+  'post_view',
+  // Moderation decisions on posts / comments / reports: append-only audit, one document each.
+  'moderation_audit',
+  // Media uploaded to R2: one document per object (metadata, owner, lifecycle). Bytes live in R2.
+  'media_object',
 ] as const;
 export type Collection = (typeof COLLECTIONS)[number];
 
@@ -53,6 +68,32 @@ export interface DocumentState {
   notifications: any[];
   savedMembers?: Record<string, string[]>;
   webhookEvents?: Record<string, any>;
+  posts?: Record<string, any>;
+  postComments?: Record<string, any>;
+  postLikes?: Record<string, any>;
+  postBookmarks?: Record<string, any>;
+  postShares?: Record<string, any>;
+  postVotes?: Record<string, any>;
+  postViews?: Record<string, any>;
+  moderationAudit?: Record<string, any>;
+  mediaObjects?: Record<string, any>;
+}
+
+/** Social collections: each is a plain id -> document record on the state. */
+export const SOCIAL_COLLECTIONS = {
+  post: 'posts',
+  post_comment: 'postComments',
+  post_like: 'postLikes',
+  post_bookmark: 'postBookmarks',
+  post_share: 'postShares',
+  post_vote: 'postVotes',
+  post_view: 'postViews',
+  moderation_audit: 'moderationAudit',
+  media_object: 'mediaObjects',
+} as const satisfies Partial<Record<Collection, keyof DocumentState>>;
+
+export function ensureSocialState(state: DocumentState): void {
+  for (const field of Object.values(SOCIAL_COLLECTIONS)) (state as any)[field] ??= {};
 }
 
 export function emptyDocumentState(): DocumentState {
@@ -71,6 +112,15 @@ export function emptyDocumentState(): DocumentState {
     notifications: [],
     savedMembers: {},
     webhookEvents: {},
+    posts: {},
+    postComments: {},
+    postLikes: {},
+    postBookmarks: {},
+    postShares: {},
+    postVotes: {},
+    postViews: {},
+    moderationAudit: {},
+    mediaObjects: {},
   };
 }
 
@@ -91,6 +141,9 @@ export function enumerateDocuments(state: DocumentState): Map<DocKey, string> {
   for (const n of state.notifications) put('notification', n.id, n);
   for (const key of state.blockedUsers) put('block', key, { key });
   for (const [userId, ids] of Object.entries(state.savedMembers || {})) put('saved_members', userId, { ids });
+  for (const [collection, field] of Object.entries(SOCIAL_COLLECTIONS)) {
+    for (const [id, v] of Object.entries(((state as any)[field] as Record<string, any>) || {})) put(collection as Collection, id, v);
+  }
 
   const days = new Map<string, any[]>();
   for (const e of state.profileViewLedger) {
@@ -158,7 +211,11 @@ export function applyDocument(state: DocumentState, collection: string, id: stri
       if (doc && Array.isArray(doc.entries)) state.profileViewLedger.push(...doc.entries);
       return;
     }
-    default:
-      return;
+    default: {
+      const field = (SOCIAL_COLLECTIONS as Record<string, string>)[collection];
+      if (!field) return;
+      (state as any)[field] ??= {};
+      return rec((state as any)[field]);
+    }
   }
 }

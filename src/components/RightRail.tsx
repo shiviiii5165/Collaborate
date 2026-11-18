@@ -10,6 +10,8 @@ interface RightRailProps {
   onConnect: (memberId: string) => void;
   onViewProfile: (memberId: string) => void;
   onViewAllPeople: () => void;
+  /** Optional page-specific card shown above the EORA guide (e.g. trending topics on Home). */
+  extra?: React.ReactNode;
 }
 
 /** One factual line from the engine's evidence: what this person can help with, or why they match. */
@@ -30,6 +32,7 @@ export const RightRail: React.FC<RightRailProps> = ({
   onConnect,
   onViewProfile,
   onViewAllPeople,
+  extra,
 }) => {
   const [eoraInput, setEoraInput] = useState('');
   const [eoraMessages, setEoraMessages] = useState<
@@ -154,6 +157,8 @@ export const RightRail: React.FC<RightRailProps> = ({
           })}
         </div>
       </div>
+
+      {extra}
 
       {/* EORA — Your AI Guide */}
       <div className="eora-card">

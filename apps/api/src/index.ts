@@ -5,6 +5,8 @@
 import { buildServer } from './server';
 import { isNeonConfigured } from '@/lib/db/neon';
 import { formatStartupDiagnostics } from '@/integrations/tathastu/config';
+import { getMediaStore } from '@/lib/media/r2';
+import { startMediaCleanup } from '@/modules/media/service';
 
 const server = buildServer();
 const port = Number(process.env.PORT) || 4000;
@@ -19,4 +21,6 @@ server.listen({ port, host }, (err, address) => {
   console.log(`[Database Authority] Authoritative store: ${isNeonConfigured() ? 'PostgreSQL' : 'Local Store'}`);
   // Variable NAMES only; values are never printed.
   for (const line of formatStartupDiagnostics()) console.log(line);
+  console.log(`[Media] R2 storage: ${getMediaStore() ? 'configured' : 'not configured (uploads disabled)'}`);
+  startMediaCleanup();
 });

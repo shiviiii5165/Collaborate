@@ -354,6 +354,14 @@ export interface AbuseReport {
   details: string;
   status: 'pending' | 'resolved' | 'dismissed';
   createdAt: string;
+  /** Set when the report is about a post or comment rather than the member as a whole. */
+  targetType?: 'post' | 'comment';
+  targetId?: string;
+  /** Set when a moderator reviews the report. */
+  reviewedBy?: string;
+  reviewedAt?: string;
+  decision?: 'dismiss' | 'remove' | 'restore';
+  reviewNote?: string;
 }
 
 export interface ProfileViewLedgerEntry {

@@ -9,11 +9,13 @@ import {
   History,
   FileCheck,
   RefreshCw,
+  Flag,
 } from 'lucide-react';
+import { ModerationReports } from './feed/ModerationReports';
 import { VerificationRequest, VerificationAuditLog } from '@/lib/types';
 
 export const AdminConsoleView: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'requests' | 'audit' | 'plans'>('requests');
+  const [activeTab, setActiveTab] = useState<'requests' | 'audit' | 'plans' | 'reports'>('requests');
   const [requests, setRequests] = useState<VerificationRequest[]>([]);
   const [auditLogs, setAuditLogs] = useState<VerificationAuditLog[]>([]);
   const [reviewerNotes, setReviewerNotes] = useState<Record<string, string>>({});
@@ -121,6 +123,18 @@ export const AdminConsoleView: React.FC = () => {
           >
             <History size={16} />
             <span>Immutable Audit Log ({auditLogs.length})</span>
+          </button>
+
+          <button
+            className={`btn-secondary ${activeTab === 'reports' ? 'active' : ''}`}
+            style={{
+              background: activeTab === 'reports' ? '#4F46E5' : '#FFF',
+              color: activeTab === 'reports' ? '#FFF' : '#334155',
+            }}
+            onClick={() => setActiveTab('reports')}
+          >
+            <Flag size={16} />
+            <span>Content Reports</span>
           </button>
         </div>
       </div>
@@ -240,6 +254,9 @@ export const AdminConsoleView: React.FC = () => {
           )}
         </div>
       )}
+
+      {/* Content Reports (moderation) Tab */}
+      {activeTab === 'reports' && <ModerationReports />}
 
       {/* Immutable Audit Log Tab */}
       {activeTab === 'audit' && (
