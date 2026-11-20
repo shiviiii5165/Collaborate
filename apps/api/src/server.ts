@@ -11,7 +11,7 @@ import Fastify, { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
 import { durableDb, getKolkataDateKey, ConcurrentModificationError, StorageWriteDiscardedError } from '@/lib/db/index';
-import { toPublicMember, toSelfMember, isVisibleInDiscovery } from '@/modules/profile/public-member';
+import { toPublicMember, toSelfMember, isVisibleInDiscovery, isOrphanedAutomaticProfile } from '@/modules/profile/public-member';
 import { applyLocalProfileEdit, releaseIdentityFills } from '@/modules/profile/ownership';
 import { ProfileEditError, sanitizeProfileUpdates } from '@/modules/profile/profile-edit';
 import { isNeonConfigured } from '@/lib/db/neon';
@@ -345,7 +345,9 @@ export function buildServer(): FastifyInstance {
       const hiddenFromViewer =
         req.user?.role !== 'admin' &&
         viewerId !== id &&
-        (member.isRestricted || (member.isUnder18 && !(viewerId && isVisibleInDiscovery(member, durableDb.getMemberById(viewerId), false))));
+        (member.isRestricted ||
+          isOrphanedAutomaticProfile(member) ||
+          (member.isUnder18 && !(viewerId && isVisibleInDiscovery(member, durableDb.getMemberById(viewerId), false))));
       if (!viewerId && hiddenFromViewer) {
         return reply.status(401).send({ error: 'UNAUTHORIZED', message: 'Sign in to view this profile' });
       }

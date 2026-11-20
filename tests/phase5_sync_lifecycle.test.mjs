@@ -221,6 +221,23 @@ await test('blocked, restricted, deleted and under-18 members stay hidden; never
   assert.ok(!visible.includes(viewer.id), 'self');
 });
 
+await test('an orphaned automatic profile (its AI Tathastu account deleted or disconnected) is never shown', async () => {
+  const r = await deliverRaw(provision(subFor('orph'), `orph_${run}@gmail.com`));
+  const id = r.json.result.memberId;
+  durableDb.setCredential(id, 'hash', 'salt'); // keep the shell on revocation, as an adopted account would be
+  await durableDb.saveMemberAsync({ ...durableDb.getMemberById(id), autoProvisioned: true });
+  durableDb.setCredential(id, undefined, undefined);
+  await deliverRaw(revoke(subFor('orph'), 'user_disconnected'));
+  const m = durableDb.getMemberById(id);
+  assert.ok(m, 'shell kept');
+  assert.strictEqual(m.tathastu_user_id, undefined);
+  assert.strictEqual(isVisibleInDiscovery(m, viewer, false), false, 'hidden from discovery');
+  const { token } = await IdentityService.registerStandalone(`look_${run}@gmail.com`, 'password-1234', 'Look');
+  const byId = await app.inject({ method: 'GET', url: `/api/profiles?id=${id}`, headers: { authorization: `Bearer ${token}` } });
+  assert.strictEqual(byId.statusCode, 403);
+  const guest = await app.inject({ method: 'GET', url: `/api/profiles?id=${id}` });
+  assert.strictEqual(guest.statusCode, 401);
+});
 await test('members cannot set the bookkeeping fields through the profile API', async () => {
   const { token, member } = await IdentityService.registerStandalone(`self2_${run}@gmail.com`, 'password-1234', 'Self2');
   await app.inject({ method: 'PUT', url: '/api/profiles', headers: { authorization: `Bearer ${token}` }, payload: { autoProvisioned: true, headline: 'x' } });
