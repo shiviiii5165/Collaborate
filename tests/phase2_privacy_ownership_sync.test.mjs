@@ -172,14 +172,14 @@ await test('Directory list and saved list are sanitized', async () => {
   for (const m of saved.json.savedMembers) assertPublic(m, 'saved');
 });
 
-await test('Users cannot read another member\'s private profile or look them up by email', async () => {
-  const priv = await independent('private', { profileVisibility: 'private' });
-  assert.strictEqual((await get(`/api/profiles?id=${priv.member.id}`, viewer.token)).status, 403);
-  assert.strictEqual((await get(`/api/profiles?email=${encodeURIComponent(priv.email)}`, viewer.token)).status, 404);
-  assert.strictEqual((await get(`/api/profiles?id=${priv.member.id}`)).status, 401, 'guest');
+await test('Open profiles: another member\'s profile is viewable; email lookup stays owner/admin only', async () => {
+  const other = await independent('private', { profileVisibility: 'private' });
+  assert.strictEqual((await get(`/api/profiles?id=${other.member.id}`, viewer.token)).status, 200);
+  assert.strictEqual((await get(`/api/profiles?id=${other.member.id}`)).status, 200, 'guest');
+  assert.strictEqual((await get(`/api/profiles?email=${encodeURIComponent(other.email)}`, viewer.token)).status, 404);
 });
 
-await test('Visibility gate: non-discoverable, connections-only, blocked and under-18 members are not discoverable', async () => {
+await test('Visibility gate: old private/connections-only/non-discoverable flags no longer hide; blocks and under-18 still do', async () => {
   const hidden = await independent('hidden', { discoverable: false });
   const connOnly = await independent('connonly', { profileVisibility: 'connections_only' });
   const blocker = await independent('blocker');
@@ -187,26 +187,22 @@ await test('Visibility gate: non-discoverable, connections-only, blocked and und
   durableDb.blockMember(blocker.member.id, viewer.member.id); // blocker blocks the viewer
 
   const ids = (await get('/api/discover', viewer.token)).json.members.map((m) => m.id);
-  assert.ok(!ids.includes(hidden.member.id), 'non-discoverable');
-  assert.ok(!ids.includes(connOnly.member.id), 'connections-only, not connected');
+  assert.ok(ids.includes(hidden.member.id), 'open profiles: an old discoverable=false is ignored');
+  assert.ok(ids.includes(connOnly.member.id), 'open profiles: connections-only is ignored');
   assert.ok(!ids.includes(blocker.member.id), 'blocked (reverse direction)');
   assert.ok(!ids.includes(minor.member.id), 'under-18 hidden from adults');
-
-  connect(viewer.member, connOnly.member);
-  const ids2 = (await get('/api/discover', viewer.token)).json.members.map((m) => m.id);
-  assert.ok(ids2.includes(connOnly.member.id), 'connections-only visible once connected');
+  assert.ok(!ids.includes(viewer.member.id), 'never yourself');
 });
 
-await test('New SSO member is not discoverable until they explicitly opt in', async () => {
+await test('New SSO member is discoverable from the start (no opt-in)', async () => {
   const fresh = await linked('fresh', { skills: [{ name: 'Elixir' }] });
-  assert.strictEqual(fresh.member.discoverable, false);
-  let ids = (await get('/api/discover', viewer.token)).json.members.map((m) => m.id);
-  assert.ok(!ids.includes(fresh.member.id));
-  const r = await put('/api/profiles', fresh.token, { discoverable: true });
-  assert.strictEqual(r.status, 200);
-  assert.strictEqual(r.json.member.discoveryChoiceMade, true);
-  ids = (await get('/api/discover', viewer.token)).json.members.map((m) => m.id);
+  assert.strictEqual(fresh.member.discoverable, true);
+  const ids = (await get('/api/discover', viewer.token)).json.members.map((m) => m.id);
   assert.ok(ids.includes(fresh.member.id));
+  // Trying to hide through the API has no effect.
+  await put('/api/profiles', fresh.token, { discoverable: false, profileVisibility: 'private' });
+  const again = (await get('/api/discover', viewer.token)).json.members.map((m) => m.id);
+  assert.ok(again.includes(fresh.member.id));
 });
 
 await test('Independent members appear in discovery and recommendations', async () => {

@@ -53,6 +53,20 @@ export interface AppNotification {
   createdAt: string;
 }
 
+/**
+ * Open profiles (owner decision 2026-11-21: Collaborate works like a professional network). Every member's profile is
+ * public and discoverable; there is no private or hidden setting. The only exceptions are accounts that are
+ * deactivated (deleted) or restricted by moderation, which stay hidden, and under-18 accounts, which keep their
+ * safeguarding defaults (private, not discoverable to adults). Contact details keep their own setting, and blocks
+ * still apply in the visibility gates. Applied on every save, so no code path can make a profile private again.
+ */
+export function applyOpenProfilePolicy(member: MemberProfile): MemberProfile {
+  if (member.deactivated || member.isRestricted || member.isUnder18) return member;
+  member.discoverable = true;
+  member.profileVisibility = 'public';
+  return member;
+}
+
 interface DatabaseState {
   members: Record<string, MemberProfile>;
   credentials: Record<string, { passwordHash: string; salt: string }>;
@@ -879,6 +893,7 @@ export class DurableCollaborateDatabase {
   }
 
   public saveMember(member: MemberProfile): void {
+    applyOpenProfilePolicy(member);
     this.state.members[member.id] = member;
     this.persistToDisk();
     if (isNeonConfigured()) {
@@ -890,6 +905,7 @@ export class DurableCollaborateDatabase {
 
   /** Saves and, in Postgres mode, durably writes before returning. */
   public async saveMemberAsync(member: MemberProfile): Promise<void> {
+    applyOpenProfilePolicy(member);
     const previous = this.state.members[member.id];
     this.state.members[member.id] = member;
     this.persistToDisk();

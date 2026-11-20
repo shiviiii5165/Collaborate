@@ -256,9 +256,9 @@ export function isVisibleInDiscovery(candidate: MemberProfile, viewer: MemberPro
   if (candidate.deactivated || candidate.isRestricted || candidate.role === 'admin') return false;
   // A synthetic account is hidden from everyone except other synthetic accounts (test runs).
   if (isSyntheticAccount(candidate) && !(viewer && isSyntheticAccount(viewer))) return false;
-  if (!candidate.discoverable) return false;
-  if (candidate.profileVisibility === 'private') return false;
-  if (candidate.profileVisibility === 'connections_only' && !isConnected) return false;
+  // Open profiles: every member is discoverable (src/lib/db applyOpenProfilePolicy). Stored discoverable/visibility
+  // values from before that policy are ignored; only deactivated, restricted, admin, synthetic and under-18 rules hide.
+  void isConnected;
   // Safeguarding: under-18 accounts are only shown to other under-18 or safeguarding-approved viewers.
   if (candidate.isUnder18 && !(viewer && (viewer.isUnder18 || viewer.safeguardingApproved))) return false;
   return true;

@@ -139,24 +139,28 @@ await test('Forged body.userId on EORA answers for the session user only', async
   assert.ok(!body(res).reply.includes('bob'));
 });
 
-await test('Forged ?viewerId= cannot unlock private or connections-only profiles', async () => {
-  // Make carol connected to bob, then try to view carol as a guest claiming to be bob.
-  const conn = await durableDb.sendConnectionRequestAsync(bob.member.id, carol.member.id, 'hi');
-  await durableDb.respondToConnectionAsync(conn.id, carol.member.id, 'accept');
-  const guest = await inject({ method: 'GET', url: `/api/profiles?id=${carol.member.id}&viewerId=${bob.member.id}` });
+await test('Open profiles: anyone can view; a forged ?viewerId= cannot unlock a restricted profile', async () => {
+  // Every profile is public now (applyOpenProfilePolicy), including ones stored as private or connections-only.
+  assert.strictEqual((await inject({ method: 'GET', url: `/api/profiles?id=${carol.member.id}` })).statusCode, 200);
+  assert.strictEqual((await inject({ method: 'GET', url: `/api/profiles?id=${bob.member.id}`, headers: alice.auth })).statusCode, 200);
+  // Moderation still hides: a restricted profile, even when the caller claims to be its owner via ?viewerId=.
+  const m = durableDb.getMemberById(carol.member.id);
+  await durableDb.saveMemberAsync({ ...m, isRestricted: true });
+  const guest = await inject({ method: 'GET', url: `/api/profiles?id=${carol.member.id}&viewerId=${carol.member.id}` });
   assert.strictEqual(guest.statusCode, 401);
-  const asAlice = await inject({ method: 'GET', url: `/api/profiles?id=${carol.member.id}&viewerId=${bob.member.id}`, headers: alice.auth });
+  const asAlice = await inject({ method: 'GET', url: `/api/profiles?id=${carol.member.id}&viewerId=${carol.member.id}`, headers: alice.auth });
   assert.strictEqual(asAlice.statusCode, 403);
-  const priv = await inject({ method: 'GET', url: `/api/profiles?id=${bob.member.id}&viewerId=${bob.member.id}`, headers: alice.auth });
-  assert.strictEqual(priv.statusCode, 403);
-  // Legitimate: bob (accepted connection) sees carol.
-  const legit = await inject({ method: 'GET', url: `/api/profiles?id=${carol.member.id}`, headers: bob.auth });
-  assert.strictEqual(legit.statusCode, 200);
+  await durableDb.saveMemberAsync({ ...durableDb.getMemberById(carol.member.id), isRestricted: false });
 });
 
-await test('Public directory listing excludes private/connections-only profiles; email lookup is owner/admin only', async () => {
-  const list = body(await inject({ method: 'GET', url: '/api/profiles' }));
-  assert.ok(!list.some((m) => m.id === bob.member.id || m.id === carol.member.id));
+await test('Directory lists every open profile (never restricted ones); email lookup is owner/admin only', async () => {
+  // These fixtures use test-domain emails, which are shown only to other test accounts: list as alice (also one).
+  const list = body(await inject({ method: 'GET', url: '/api/profiles', headers: alice.auth }));
+  assert.ok(list.some((m) => m.id === bob.member.id) && list.some((m) => m.id === carol.member.id));
+  assert.ok(!list.some((m) => m.id === alice.member.id), 'never yourself');
+  // A guest (not a test account) never sees test accounts.
+  const guestList = body(await inject({ method: 'GET', url: '/api/profiles' }));
+  assert.ok(!guestList.some((m) => m.id === bob.member.id));
   assert.strictEqual((await inject({ method: 'GET', url: `/api/profiles?email=${encodeURIComponent(bob.member.email)}` })).statusCode, 401);
   assert.strictEqual((await inject({ method: 'GET', url: `/api/profiles?email=${encodeURIComponent(bob.member.email)}`, headers: alice.auth })).statusCode, 404);
   assert.strictEqual((await inject({ method: 'GET', url: `/api/profiles?email=${encodeURIComponent(bob.member.email)}`, headers: bob.auth })).statusCode, 200);
@@ -166,6 +170,11 @@ await test('Public directory listing excludes private/connections-only profiles;
 // Cross-user resource access
 // ---------------------------------------------------------------------------
 await test('Cannot read a conversation you are not part of', async () => {
+  // Messages need an accepted connection.
+  if (durableDb.getConnectionState(bob.member.id, carol.member.id)?.status !== 'accepted') {
+    const conn = await durableDb.sendConnectionRequestAsync(bob.member.id, carol.member.id, 'hi');
+    await durableDb.respondToConnectionAsync(conn.id, carol.member.id, 'accept');
+  }
   const msg = await durableDb.sendMessageAsync(bob.member.id, carol.member.id, `private ${runId}`);
   const res = await inject({ method: 'GET', url: `/api/messages?conversationId=${msg.conversationId}`, headers: alice.auth });
   assert.strictEqual(res.statusCode, 404);

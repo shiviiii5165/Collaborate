@@ -340,8 +340,13 @@ export function buildServer(): FastifyInstance {
         return reply.status(404).send({ error: 'Profile not found' });
       }
 
-      // Guests may only see public profiles.
-      if (!viewerId && member.profileVisibility !== 'public') {
+      // Open profiles (applyOpenProfilePolicy): every profile is public. Restricted (moderated) and under-18 profiles
+      // are the exceptions; guests never see them, members see them only when the safeguarding rules allow.
+      const hiddenFromViewer =
+        req.user?.role !== 'admin' &&
+        viewerId !== id &&
+        (member.isRestricted || (member.isUnder18 && !(viewerId && isVisibleInDiscovery(member, durableDb.getMemberById(viewerId), false))));
+      if (!viewerId && hiddenFromViewer) {
         return reply.status(401).send({ error: 'UNAUTHORIZED', message: 'Sign in to view this profile' });
       }
 
@@ -350,16 +355,8 @@ export function buildServer(): FastifyInstance {
         if (durableDb.isBlocked(viewerId, id)) {
           return reply.status(403).send({ error: 'Profile not available' });
         }
-
-        if (member.profileVisibility === 'private' && req.user?.role !== 'admin') {
-          return reply.status(403).send({ error: 'This profile is private' });
-        }
-
-        if (member.profileVisibility === 'connections_only' && req.user?.role !== 'admin') {
-          const conn = durableDb.getConnectionState(viewerId, id);
-          if (!conn || conn.status !== 'accepted') {
-            return reply.status(403).send({ error: 'Profile visible to accepted connections only' });
-          }
+        if (hiddenFromViewer) {
+          return reply.status(403).send({ error: 'Profile not available' });
         }
 
         // Daily 3-view quota enforcement
@@ -409,10 +406,11 @@ export function buildServer(): FastifyInstance {
       return reply.send({ member: toSelfMember(member) });
     }
 
-    // Directory listing: only members who chose to be discoverable with a public profile.
+    // Directory listing: every visible member (open profiles), never the viewer or anyone blocked either way.
+    const viewer = viewerId ? durableDb.getMemberById(viewerId) : null;
     const members = durableDb
       .getAllMembers()
-      .filter((m) => m.profileVisibility === 'public' && isVisibleInDiscovery(m, viewerId ? durableDb.getMemberById(viewerId) : null, false))
+      .filter((m) => m.id !== viewerId && !(viewerId && durableDb.isBlocked(viewerId, m.id)) && isVisibleInDiscovery(m, viewer, false))
       .map((m) => toPublicMember(m, { viewerId }));
     return reply.send(members);
   });
@@ -462,10 +460,6 @@ export function buildServer(): FastifyInstance {
         updatedMember.profileVisibility = 'public';
       }
       updatedMember.discoveryChoiceMade = true;
-    }
-    if ('discoverable' in updates || 'profileVisibility' in updates || 'contactVisibility' in updates) {
-      updatedMember.privacyChoiceMade = true;
-      updatedMember.discoverySetByTathastu = false;
     }
     releaseIdentityFills(updatedMember, Object.keys(updates));
     applyLocalProfileEdit(updatedMember, sectionUpdates);
@@ -971,9 +965,6 @@ export function buildServer(): FastifyInstance {
         }
         if (p.profileVisibility !== undefined) next.profileVisibility = p.profileVisibility;
         if (p.contactVisibility !== undefined) next.contactVisibility = p.contactVisibility;
-        // Any privacy choice made here takes precedence over the AI Tathastu discovery setting from now on.
-        next.privacyChoiceMade = true;
-        next.discoverySetByTathastu = false;
         await durableDb.saveMemberAsync(next);
         return reply.send({ success: true, member: toSelfMember(next) });
       }

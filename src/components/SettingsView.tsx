@@ -38,8 +38,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   >('privacy');
 
   // Privacy states
-  const [discoverable, setDiscoverable] = useState(currentUser.discoverable);
-  const [profileVisibility, setProfileVisibility] = useState(currentUser.profileVisibility || 'public');
   const [contactVisibility, setContactVisibility] = useState(currentUser.contactVisibility || 'connections_only');
 
   // Notification states
@@ -96,11 +94,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'update_privacy',
-          privacy: {
-            discoverable,
-            profileVisibility,
-            contactVisibility,
-          },
+          privacy: { contactVisibility },
         }),
       });
       const data = await res.json();
@@ -108,8 +102,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         showSaveSuccess('Privacy settings saved.');
         onProfileUpdated({
           ...currentUser,
-          discoverable,
-          profileVisibility,
           contactVisibility,
         });
       } else {
@@ -443,75 +435,20 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Discoverable Switch */}
+            {/* Open profiles: no private or hidden setting (owner decision 2026-11-21). */}
             <div
               style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
                 padding: '16px',
                 background: '#F8FAFC',
                 borderRadius: 10,
                 border: '1px solid #E2E8F0',
               }}
             >
-              <div>
-                <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0F172A' }}>
-                  Directory Discoverability
-                </div>
-                <div style={{ fontSize: '0.8rem', color: '#64748B', marginTop: 2 }}>
-                  When enabled, your profile card appears in people discovery search and peer recommendations.
-                </div>
+              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0F172A' }}>Your profile is public</div>
+              <div style={{ fontSize: '0.8rem', color: '#64748B', marginTop: 2 }}>
+                Like a professional network, every Collaborate profile can be found in Discover People and recommendations.
+                Your email and contact details follow the setting below, and you can block anyone at any time.
               </div>
-              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: 8 }}>
-                <input
-                  type="checkbox"
-                  checked={discoverable}
-                  onChange={(e) => setDiscoverable(e.target.checked)}
-                  style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#4F46E5' }}
-                />
-                <span style={{ fontSize: '0.84rem', fontWeight: 600, color: discoverable ? '#4F46E5' : '#94A3B8' }}>
-                  {discoverable ? 'Discoverable' : 'Hidden from Directory'}
-                </span>
-              </label>
-            </div>
-
-            {/* Profile Visibility */}
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '16px',
-                background: '#F8FAFC',
-                borderRadius: 10,
-                border: '1px solid #E2E8F0',
-              }}
-            >
-              <div>
-                <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0F172A' }}>
-                  Profile Visibility Level
-                </div>
-                <div style={{ fontSize: '0.8rem', color: '#64748B', marginTop: 2 }}>
-                  Controls how much information is shown to users who do not have an accepted connection.
-                </div>
-              </div>
-              <select
-                value={profileVisibility}
-                onChange={(e: any) => setProfileVisibility(e.target.value)}
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: 8,
-                  border: '1px solid #CBD5E1',
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                  color: '#1E293B',
-                }}
-              >
-                <option value="public">Public (All verified Collaborate users)</option>
-                <option value="connections_only">Connections Only (Accepted peers only)</option>
-                <option value="private">Private (Restricted)</option>
-              </select>
             </div>
 
             {/* Contact Visibility */}

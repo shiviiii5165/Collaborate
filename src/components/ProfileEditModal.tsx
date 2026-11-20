@@ -36,7 +36,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   const [location, setLocation] = useState(currentUser.location);
   const [avatarUrl, setAvatarUrl] = useState(currentUser.avatarUrl || '/images/rahul_avatar.jpg');
   const [bannerUrl, setBannerUrl] = useState(currentUser.bannerUrl || '/images/campus_banner.jpg');
-  const [visibility, setVisibility] = useState<'public' | 'connections_only' | 'private'>(
+  const [visibility] = useState<'public' | 'connections_only' | 'private'>(
     currentUser.profileVisibility || 'public'
   );
   const [contactVisibility, setContactVisibility] = useState<'connections_only' | 'hidden'>(
@@ -405,15 +405,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                   <label style={{ fontSize: '0.82rem', fontWeight: 700, display: 'block', marginBottom: 6 }}>
                     Profile Visibility
                   </label>
-                  <select
-                    style={{ width: '100%', border: '1px solid #CBD5E1', borderRadius: 8, padding: '9px 12px', fontSize: '0.88rem' }}
-                    value={visibility}
-                    onChange={(e: any) => setVisibility(e.target.value)}
-                  >
-                    <option value="public">Public (Discoverable across Collaborate network)</option>
-                    <option value="connections_only">Connections Only (Only accepted connections)</option>
-                    <option value="private">Private (Hidden from search directory)</option>
-                  </select>
+                  <p style={{ fontSize: '0.85rem', color: '#475569', margin: 0, padding: '9px 0' }}>Public: every Collaborate profile can be found by other members.</p>
                 </div>
                 <div>
                   <label style={{ fontSize: '0.82rem', fontWeight: 700, display: 'block', marginBottom: 6 }}>

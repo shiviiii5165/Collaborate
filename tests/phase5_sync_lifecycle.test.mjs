@@ -162,7 +162,7 @@ await test('The same delivery id twice is acknowledged once (duplicate protectio
   assert.strictEqual(durableDb.getAllMembers().filter((m) => m.email === emailFor('i')).length, 1);
 });
 
-// ── "Show me in Collaborate discovery" (privacy.scopes.discovery from AI Tathastu) ─────────────────────────
+// ── Open profiles (owner decision 2026-11-21): every Collaborate profile is public and discoverable ─────────────
 const withDiscovery = (sub, email, on, reason = 'auto_provision') => {
   const e = provision(sub, email, reason);
   e.data.profile.privacy.scopes.discovery = on;
@@ -171,61 +171,60 @@ const withDiscovery = (sub, email, on, reason = 'auto_provision') => {
 const { isVisibleInDiscovery } = await import('../src/modules/profile/public-member.ts');
 const { member: viewer } = await IdentityService.registerStandalone(`viewer5_${run}@gmail.com`, 'password-1234', 'Viewer');
 
-await test('discovery ON from AI Tathastu: new profile is discoverable and public, contact details stay hidden', async () => {
-  const r = await deliverRaw(withDiscovery(subFor('dv1'), `dv1_${run}@gmail.com`, true));
+await test('a new AI Tathastu profile is public and discoverable; contact details stay hidden', async () => {
+  const r = await deliverRaw(withDiscovery(subFor('dv1'), `dv1_${run}@gmail.com`, false));
   assert.strictEqual(r.json.result.outcome, 'created', JSON.stringify(r.json));
   const m = durableDb.getMemberById(r.json.result.memberId);
   assert.strictEqual(m.discoverable, true);
   assert.strictEqual(m.profileVisibility, 'public');
   assert.strictEqual(m.contactVisibility, 'connections_only');
-  assert.strictEqual(m.discoverySetByTathastu, true);
-  assert.strictEqual(isVisibleInDiscovery(m, viewer, false), true, 'appears to other members');
+  assert.strictEqual(isVisibleInDiscovery(m, viewer, false), true);
 });
 
-await test('discovery absent/OFF (existing users): profile stays private and hidden', async () => {
+await test('an existing private auto profile becomes public on its next sync', async () => {
   const r = await deliverRaw(withDiscovery(subFor('dv2'), `dv2_${run}@gmail.com`, false));
-  const m = durableDb.getMemberById(r.json.result.memberId);
-  assert.strictEqual(m.discoverable, false);
-  assert.strictEqual(m.profileVisibility, 'private');
-  assert.strictEqual(isVisibleInDiscovery(m, viewer, false), false);
-});
-
-await test('turning discovery OFF on AI Tathastu later hides the profile again', async () => {
-  const r = await deliverRaw(withDiscovery(subFor('dv1'), `dv1_${run}@gmail.com`, false, 'consent_changed'));
-  assert.strictEqual(r.json.result.outcome, 'updated', JSON.stringify(r.json));
-  const m = durableDb.getMemberById(r.json.result.memberId);
-  assert.strictEqual(m.discoverable, false);
-  assert.strictEqual(m.profileVisibility, 'private');
-  assert.strictEqual(isVisibleInDiscovery(m, viewer, false), false);
-});
-
-await test('a privacy choice made in Collaborate wins over AI Tathastu from then on', async () => {
-  const r = await deliverRaw(withDiscovery(subFor('dv3'), `dv3_${run}@gmail.com`, true));
   const id = r.json.result.memberId;
-  // The member hides themselves in Collaborate.
+  // Simulate a profile stored before open profiles (written straight to state, bypassing the save policy).
+  durableDb.getMemberById(id).discoverable = false;
+  durableDb.getMemberById(id).profileVisibility = 'private';
+  assert.strictEqual(isVisibleInDiscovery(durableDb.getMemberById(id), viewer, false), true, 'the gate already ignores old flags');
+  await deliverRaw(withDiscovery(subFor('dv2'), `dv2_${run}@gmail.com`, false, 'profile_recomputed'));
   const m = durableDb.getMemberById(id);
-  await durableDb.saveMemberAsync({ ...m, discoverable: false, profileVisibility: 'private', discoveryChoiceMade: true, privacyChoiceMade: true, discoverySetByTathastu: false });
-  await deliverRaw(withDiscovery(subFor('dv3'), `dv3_${run}@gmail.com`, true, 'profile_recomputed'));
-  const after = durableDb.getMemberById(id);
-  assert.strictEqual(after.discoverable, false, 'their own choice is kept');
-  assert.strictEqual(after.profileVisibility, 'private');
+  assert.strictEqual(m.discoverable, true);
+  assert.strictEqual(m.profileVisibility, 'public');
 });
 
-await test('unlinking withdraws discovery that only came from AI Tathastu', async () => {
-  const r = await deliverRaw(withDiscovery(subFor('dv4'), `dv4_${run}@gmail.com`, true));
-  const id = r.json.result.memberId;
-  durableDb.setCredential(id, 'hash', 'salt'); // adopted, so revocation keeps the account
-  await deliverRaw(revoke(subFor('dv4'), 'user_disconnected'));
-  const m = durableDb.getMemberById(id);
-  assert.strictEqual(m.discoverable, false);
-  assert.strictEqual(m.profileVisibility, 'private');
-});
-
-await test('members cannot set the discovery bookkeeping fields through the profile API', async () => {
+await test('members cannot hide through settings or profile edits', async () => {
   const { token, member } = await IdentityService.registerStandalone(`self_${run}@gmail.com`, 'password-1234', 'Self');
-  await app.inject({ method: 'PUT', url: '/api/profiles', headers: { authorization: `Bearer ${token}` }, payload: { discoverySetByTathastu: true, headline: 'x' } });
-  assert.notStrictEqual(durableDb.getMemberById(member.id).discoverySetByTathastu, true);
+  const h = { authorization: `Bearer ${token}` };
+  await app.inject({ method: 'PUT', url: '/api/settings', headers: h, payload: { action: 'update_privacy', privacy: { discoverable: false, profileVisibility: 'private', contactVisibility: 'hidden' } } });
+  await app.inject({ method: 'PUT', url: '/api/profiles', headers: h, payload: { discoverable: false, profileVisibility: 'private' } });
+  const m = durableDb.getMemberById(member.id);
+  assert.strictEqual(m.discoverable, true);
+  assert.strictEqual(m.profileVisibility, 'public');
+  assert.strictEqual(m.contactVisibility, 'hidden', 'contact details remain the member\'s choice');
 });
 
+await test('blocked, restricted, deleted and under-18 members stay hidden; never yourself', async () => {
+  const { member: blocker } = await IdentityService.registerStandalone(`blk_${run}@gmail.com`, 'password-1234', 'Blocker');
+  durableDb.blockMember(blocker.id, viewer.id);
+  const { member: restricted } = await IdentityService.registerStandalone(`rst_${run}@gmail.com`, 'password-1234', 'Restricted');
+  await durableDb.saveMemberAsync({ ...durableDb.getMemberById(restricted.id), isRestricted: true });
+  const { member: minor } = await IdentityService.registerStandalone(`min_${run}@gmail.com`, 'password-1234', 'Minor');
+  await durableDb.saveMemberAsync({ ...durableDb.getMemberById(minor.id), isUnder18: true, discoverable: false, profileVisibility: 'private' });
+  assert.strictEqual(durableDb.getMemberById(minor.id).profileVisibility, 'private', 'minors keep safeguarding defaults');
+  const all = durableDb.getAllMembers();
+  const visible = all.filter((m) => m.id !== viewer.id && !durableDb.isBlocked(viewer.id, m.id) && isVisibleInDiscovery(m, durableDb.getMemberById(viewer.id), false)).map((m) => m.id);
+  assert.ok(!visible.includes(blocker.id), 'blocked');
+  assert.ok(!visible.includes(restricted.id), 'restricted');
+  assert.ok(!visible.includes(minor.id), 'under-18');
+  assert.ok(!visible.includes(viewer.id), 'self');
+});
+
+await test('members cannot set the bookkeeping fields through the profile API', async () => {
+  const { token, member } = await IdentityService.registerStandalone(`self2_${run}@gmail.com`, 'password-1234', 'Self2');
+  await app.inject({ method: 'PUT', url: '/api/profiles', headers: { authorization: `Bearer ${token}` }, payload: { autoProvisioned: true, headline: 'x' } });
+  assert.notStrictEqual(durableDb.getMemberById(member.id).autoProvisioned, true);
+});
 console.log(`\n${passed}/${total} passed\n`);
 process.exit(passed === total ? 0 : 1);
