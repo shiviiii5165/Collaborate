@@ -24,7 +24,52 @@ export type WebhookOutcome = {
   handled: boolean;
   action: string;
   memberId?: string;
+  /** Machine-readable result for AI Tathastu (an HTTP 200 alone never means "profile created"). */
+  outcome?: SyncOutcome;
 };
+
+/**
+ * The cross-app sync vocabulary, shared with AI Tathastu and Avsar:
+ *   created / updated / up_to_date   the profile exists and reflects this event
+ *   deleted / unlinked               a revocation was applied
+ *   ignored                          nothing to do and nothing wrong (unknown user on an ordinary update)
+ *   ignored_consent                  the user disconnected here; nothing is created again
+ *   conflict                         an existing Collaborate account must be linked by its owner
+ *   invalid_identity / rejected      a permanent problem with this event; retrying won't help
+ *   retryable                        a temporary failure; send again later
+ */
+export type SyncOutcome =
+  | 'created' | 'updated' | 'up_to_date' | 'deleted' | 'unlinked' | 'ignored' | 'ignored_consent'
+  | 'conflict' | 'invalid_identity' | 'rejected' | 'retryable';
+
+const OUTCOME_BY_ACTION: Record<string, SyncOutcome> = {
+  AUTO_PROVISIONED_PRIVATE: 'created',
+  PROFILE_UPDATED: 'updated',
+  IGNORED_STALE: 'up_to_date',
+  IGNORED_ALREADY_LINKED: 'up_to_date',
+  DUPLICATE_ACKNOWLEDGED: 'up_to_date',
+  INTEGRATION_REVOKED: 'unlinked',
+  ACCOUNT_ERASED: 'deleted',
+  IGNORED_STALE_REVOCATION: 'up_to_date',
+  IGNORED_UNKNOWN_USER: 'ignored',
+  IGNORED_PREVIOUSLY_DISCONNECTED: 'ignored_consent',
+  CONFLICT_EXISTING_ACCOUNT: 'conflict',
+  CONFLICT_NEEDS_REVIEW: 'conflict',
+  IGNORED_NO_EMAIL: 'invalid_identity',
+  IGNORED_NO_USER_ID: 'invalid_identity',
+  REJECTED_INVALID_PROJECTION: 'rejected',
+  REJECTED_MISSING_DELIVERY_ID_OR_TYPE: 'rejected',
+  REJECTED_DELIVERY_ID_MISMATCH: 'rejected',
+  REJECTED_EVENT_TYPE_MISMATCH: 'rejected',
+  DELIVERY_IN_PROGRESS: 'retryable',
+  PROCESSING_FAILED_RETRYABLE: 'retryable',
+};
+
+/** Adds the machine-readable outcome to every webhook response. */
+export const withOutcome = (o: WebhookOutcome): WebhookOutcome => ({
+  ...o,
+  outcome: o.outcome ?? OUTCOME_BY_ACTION[o.action] ?? (o.action.startsWith('IGNORED_EVENT_') ? 'ignored' : 'rejected'),
+});
 
 export class TathastuSsoService {
   private static usedAuthorizationCodes = new Set<string>();
@@ -373,6 +418,26 @@ export class TathastuSsoService {
     return 'IMPORTED';
   }
 
+  /** Created by AI Tathastu provisioning and never claimed on Collaborate (the owner never set a password). */
+  public static isUnadoptedAutomaticProfile(member: MemberProfile): boolean {
+    return member.autoProvisioned === true && !durableDb.getCredential(member.id);
+  }
+
+  /**
+   * An unadopted automatic profile that no longer links to any AI Tathastu account and was never used:
+   * no connections, conversations or messages. Safe to erase.
+   */
+  public static isReclaimableShell(member: MemberProfile): boolean {
+    if (!this.isUnadoptedAutomaticProfile(member)) return false;
+    if (member.tathastu_user_id || durableDb.getMappingByMemberId('aitathastu_oidc', member.id)) return false;
+    const id = member.id;
+    const used =
+      durableDb.getAllConnections().some((c) => c.requesterId === id || c.recipientId === id) ||
+      durableDb.getAllConversations().some((c) => c.participantIds.includes(id)) ||
+      durableDb.messages.some((m) => m.senderId === id || m.recipientId === id);
+    return !used;
+  }
+
   /**
    * Removes the AI Tathastu link and every imported section. Local data is preserved.
    * Idempotent: running it on an unlinked member changes nothing.
@@ -399,6 +464,10 @@ export class TathastuSsoService {
    * leaves it retryable (HTTP 500), and AI Tathastu redelivers with backoff.
    */
   public static async processWebhook(event: any, headers: Record<string, string | undefined> = {}): Promise<WebhookOutcome> {
+    return withOutcome(await this.processWebhookInner(event, headers));
+  }
+
+  private static async processWebhookInner(event: any, headers: Record<string, string | undefined>): Promise<WebhookOutcome> {
     const deliveryId = typeof event?.id === 'string' ? event.id : '';
     const eventType = typeof event?.type === 'string' ? event.type : '';
     if (!deliveryId || !eventType) {
@@ -451,10 +520,26 @@ export class TathastuSsoService {
     }
     const email = (projection.identity.email || '').toLowerCase().trim();
     if (!email || !email.includes('@')) return { status: 200, handled: true, action: 'IGNORED_NO_EMAIL' };
-    if (durableDb.getMemberByEmail(email)) {
-      // An independent Collaborate account uses this email: never merge by email. The owner can
-      // link it with their Collaborate password via "Continue with AI Tathastu".
-      return { status: 200, handled: true, action: 'IGNORED_EMAIL_BELONGS_TO_EXISTING_ACCOUNT' };
+    const existing = durableDb.getMemberByEmail(email);
+    if (existing) {
+      if (this.isReclaimableShell(existing)) {
+        // A profile Collaborate itself created for an earlier AI Tathastu account that no longer links
+        // here, which nobody ever signed into or used: no password, no link, no connections or messages.
+        // It holds no one's independent data (imports were purged when it was unlinked), so it is erased
+        // rather than allowed to block this registration. This is not an email merge: nothing is kept.
+        await durableDb.eraseMemberAsync(existing.id);
+        console.info(`[Tathastu Webhook] Erased unused automatic shell ${existing.id.slice(0, 12)} before provisioning`);
+      } else {
+        // An independent (or used) Collaborate account has this email: never merge by email. The owner
+        // links it with their Collaborate password via "Continue with AI Tathastu"; AI Tathastu shows them
+        // that step. A shell with activity but no password can't prove ownership: an admin reviews it.
+        const canSelfLink = Boolean(durableDb.getCredential(existing.id));
+        return {
+          status: 200,
+          handled: true,
+          action: canSelfLink ? 'CONFLICT_EXISTING_ACCOUNT' : 'CONFLICT_NEEDS_REVIEW',
+        };
+      }
     }
 
     const now = new Date().toISOString();
@@ -553,6 +638,13 @@ export class TathastuSsoService {
       const linkedAt = Date.parse(member.tathastuLinkedAt ?? '');
       if (!Number.isNaN(sentAt) && !Number.isNaN(linkedAt) && sentAt < linkedAt) {
         return { status: 200, handled: true, action: 'IGNORED_STALE_REVOCATION', memberId: member.id };
+      }
+      // The AI Tathastu account itself was deleted, and this profile is one Collaborate created for it
+      // that its owner never adopted here (no password): erase it entirely instead of leaving a shell
+      // with their name and email. An account the person owns on Collaborate is kept, without imports.
+      if (event?.data?.reason === 'account_deleted' && this.isUnadoptedAutomaticProfile(member)) {
+        await durableDb.eraseMemberAsync(member.id);
+        return { status: 200, handled: true, action: 'ACCOUNT_ERASED', memberId: member.id };
       }
       this.unlinkAndPurge(member);
       await durableDb.saveMemberAsync(member);

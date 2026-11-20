@@ -956,6 +956,61 @@ export class DurableCollaborateDatabase {
     this.persistToDisk();
   }
 
+  /**
+   * Erases a member and everything that identifies them: the profile, password credential, identity
+   * mappings, connections, conversations and messages, notifications, saved lists, blocks, profile
+   * views and social records they authored. Used when an AI Tathastu account that Collaborate created
+   * automatically is deleted. Durable before returning (Postgres mode writes tombstones that other
+   * instances observe). Idempotent: erasing an unknown id changes nothing. Returns what was removed.
+   */
+  public async eraseMemberAsync(memberId: string): Promise<{ removed: Record<string, number> }> {
+    const s = this.state;
+    const removed: Record<string, number> = {};
+    const count = (k: string, n: number) => { if (n) removed[k] = (removed[k] ?? 0) + n; };
+    const dropWhere = <T>(rec: Record<string, T> | undefined, k: string, hit: (v: T) => boolean) => {
+      if (!rec) return;
+      for (const [id, v] of Object.entries(rec)) if (hit(v)) { delete rec[id]; count(k, 1); }
+    };
+    const involves = (v: any) =>
+      Boolean(v) && [v.authorId, v.userId, v.memberId, v.ownerId, v.actorId, v.viewerId, v.reporterId].includes(memberId);
+
+    if (s.members[memberId]) { delete s.members[memberId]; count('member', 1); }
+    if (s.credentials[memberId]) { delete s.credentials[memberId]; count('credential', 1); }
+    dropWhere(s.identityMappings, 'identity_mapping', (m) => m.memberId === memberId);
+    dropWhere(s.connections, 'connection', (c) => c.requesterId === memberId || c.recipientId === memberId);
+    const convIds = new Set<string>();
+    dropWhere(s.conversations, 'conversation', (c) => {
+      const hit = c.participantIds.includes(memberId);
+      if (hit) convIds.add(c.id);
+      return hit;
+    });
+    const msgBefore = s.messages.length;
+    s.messages = s.messages.filter((m) => !convIds.has(m.conversationId) && m.senderId !== memberId && m.recipientId !== memberId);
+    count('message', msgBefore - s.messages.length);
+    const notifBefore = s.notifications.length;
+    s.notifications = s.notifications.filter((n) => n.recipientId !== memberId && n.actorId !== memberId);
+    count('notification', notifBefore - s.notifications.length);
+    const viewBefore = s.profileViewLedger.length;
+    s.profileViewLedger = s.profileViewLedger.filter((v) => v.viewerId !== memberId && v.targetId !== memberId);
+    count('profile_view', viewBefore - s.profileViewLedger.length);
+    const blockBefore = s.blockedUsers.length;
+    s.blockedUsers = s.blockedUsers.filter((b) => !b.split(':').includes(memberId));
+    count('block', blockBefore - s.blockedUsers.length);
+    if (s.savedMembers) {
+      if (s.savedMembers[memberId]) { delete s.savedMembers[memberId]; count('saved_members', 1); }
+      for (const [owner, list] of Object.entries(s.savedMembers)) {
+        if (list.includes(memberId)) s.savedMembers[owner] = list.filter((id) => id !== memberId);
+      }
+    }
+    for (const k of ['posts', 'postComments', 'postLikes', 'postBookmarks', 'postShares', 'postVotes', 'postViews', 'mediaObjects'] as const) {
+      dropWhere(s[k], k, involves);
+    }
+    if (Object.keys(removed).length) this.markSocialChanged();
+    this.persistToDisk();
+    await this.flush();
+    return { removed };
+  }
+
   // --- Webhook delivery ledger (shared by all instances in Postgres mode) ---
 
   /**

@@ -14,7 +14,7 @@
     "test:migration": "tsx tests/migration_readiness.test.mjs && tsx scripts/rehearse_migration.ts",
     "rehearse:migration": "tsx scripts/rehearse_migration.ts",
     "test:staging": "tsx tests/staging_isolation.test.mjs",
-    "test:phase4": "tsx --import ./tests/setup-isolated-db.mjs tests/phase4_autoprovision_activity.test.mjs",
+    "test:phase4": "tsx --import ./tests/setup-isolated-db.mjs tests/phase4_autoprovision_activity.test.mjs && tsx --import ./tests/setup-isolated-db.mjs tests/phase5_sync_lifecycle.test.mjs",
     "test:ecosystem": "tsx --import ./tests/setup-isolated-db.mjs tests/ecosystem_matching_discovery.test.mjs",
     "test:integrity": "tsx tests/profile_discovery_integrity.test.mjs",
     "test:social": "tsx --import ./tests/setup-isolated-db.mjs tests/social_feed.test.mjs && tsx --import ./tests/setup-isolated-db.mjs tests/social_moderation.test.mjs && tsx --import ./tests/setup-isolated-db.mjs tests/social_media_r2.test.mjs && tsx tests/social_storage_failure_pg.test.mjs",
