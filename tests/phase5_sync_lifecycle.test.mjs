@@ -162,5 +162,70 @@ await test('The same delivery id twice is acknowledged once (duplicate protectio
   assert.strictEqual(durableDb.getAllMembers().filter((m) => m.email === emailFor('i')).length, 1);
 });
 
+// ── "Show me in Collaborate discovery" (privacy.scopes.discovery from AI Tathastu) ─────────────────────────
+const withDiscovery = (sub, email, on, reason = 'auto_provision') => {
+  const e = provision(sub, email, reason);
+  e.data.profile.privacy.scopes.discovery = on;
+  return e;
+};
+const { isVisibleInDiscovery } = await import('../src/modules/profile/public-member.ts');
+const { member: viewer } = await IdentityService.registerStandalone(`viewer5_${run}@gmail.com`, 'password-1234', 'Viewer');
+
+await test('discovery ON from AI Tathastu: new profile is discoverable and public, contact details stay hidden', async () => {
+  const r = await deliverRaw(withDiscovery(subFor('dv1'), `dv1_${run}@gmail.com`, true));
+  assert.strictEqual(r.json.result.outcome, 'created', JSON.stringify(r.json));
+  const m = durableDb.getMemberById(r.json.result.memberId);
+  assert.strictEqual(m.discoverable, true);
+  assert.strictEqual(m.profileVisibility, 'public');
+  assert.strictEqual(m.contactVisibility, 'connections_only');
+  assert.strictEqual(m.discoverySetByTathastu, true);
+  assert.strictEqual(isVisibleInDiscovery(m, viewer, false), true, 'appears to other members');
+});
+
+await test('discovery absent/OFF (existing users): profile stays private and hidden', async () => {
+  const r = await deliverRaw(withDiscovery(subFor('dv2'), `dv2_${run}@gmail.com`, false));
+  const m = durableDb.getMemberById(r.json.result.memberId);
+  assert.strictEqual(m.discoverable, false);
+  assert.strictEqual(m.profileVisibility, 'private');
+  assert.strictEqual(isVisibleInDiscovery(m, viewer, false), false);
+});
+
+await test('turning discovery OFF on AI Tathastu later hides the profile again', async () => {
+  const r = await deliverRaw(withDiscovery(subFor('dv1'), `dv1_${run}@gmail.com`, false, 'consent_changed'));
+  assert.strictEqual(r.json.result.outcome, 'updated', JSON.stringify(r.json));
+  const m = durableDb.getMemberById(r.json.result.memberId);
+  assert.strictEqual(m.discoverable, false);
+  assert.strictEqual(m.profileVisibility, 'private');
+  assert.strictEqual(isVisibleInDiscovery(m, viewer, false), false);
+});
+
+await test('a privacy choice made in Collaborate wins over AI Tathastu from then on', async () => {
+  const r = await deliverRaw(withDiscovery(subFor('dv3'), `dv3_${run}@gmail.com`, true));
+  const id = r.json.result.memberId;
+  // The member hides themselves in Collaborate.
+  const m = durableDb.getMemberById(id);
+  await durableDb.saveMemberAsync({ ...m, discoverable: false, profileVisibility: 'private', discoveryChoiceMade: true, privacyChoiceMade: true, discoverySetByTathastu: false });
+  await deliverRaw(withDiscovery(subFor('dv3'), `dv3_${run}@gmail.com`, true, 'profile_recomputed'));
+  const after = durableDb.getMemberById(id);
+  assert.strictEqual(after.discoverable, false, 'their own choice is kept');
+  assert.strictEqual(after.profileVisibility, 'private');
+});
+
+await test('unlinking withdraws discovery that only came from AI Tathastu', async () => {
+  const r = await deliverRaw(withDiscovery(subFor('dv4'), `dv4_${run}@gmail.com`, true));
+  const id = r.json.result.memberId;
+  durableDb.setCredential(id, 'hash', 'salt'); // adopted, so revocation keeps the account
+  await deliverRaw(revoke(subFor('dv4'), 'user_disconnected'));
+  const m = durableDb.getMemberById(id);
+  assert.strictEqual(m.discoverable, false);
+  assert.strictEqual(m.profileVisibility, 'private');
+});
+
+await test('members cannot set the discovery bookkeeping fields through the profile API', async () => {
+  const { token, member } = await IdentityService.registerStandalone(`self_${run}@gmail.com`, 'password-1234', 'Self');
+  await app.inject({ method: 'PUT', url: '/api/profiles', headers: { authorization: `Bearer ${token}` }, payload: { discoverySetByTathastu: true, headline: 'x' } });
+  assert.notStrictEqual(durableDb.getMemberById(member.id).discoverySetByTathastu, true);
+});
+
 console.log(`\n${passed}/${total} passed\n`);
 process.exit(passed === total ? 0 : 1);

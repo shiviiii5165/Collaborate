@@ -427,6 +427,7 @@ export function buildServer(): FastifyInstance {
     // Validated through POST /api/recommendations/preferences only.
     'recommendationPreferences',
     'autoProvisioned', 'unlinkedTathastuSubjects', 'tathastuLastSyncError',
+    'privacyChoiceMade', 'discoverySetByTathastu',
   ];
 
   fastify.put('/api/profiles', { preHandler: authenticate }, async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
@@ -461,6 +462,10 @@ export function buildServer(): FastifyInstance {
         updatedMember.profileVisibility = 'public';
       }
       updatedMember.discoveryChoiceMade = true;
+    }
+    if ('discoverable' in updates || 'profileVisibility' in updates || 'contactVisibility' in updates) {
+      updatedMember.privacyChoiceMade = true;
+      updatedMember.discoverySetByTathastu = false;
     }
     releaseIdentityFills(updatedMember, Object.keys(updates));
     applyLocalProfileEdit(updatedMember, sectionUpdates);
@@ -966,6 +971,9 @@ export function buildServer(): FastifyInstance {
         }
         if (p.profileVisibility !== undefined) next.profileVisibility = p.profileVisibility;
         if (p.contactVisibility !== undefined) next.contactVisibility = p.contactVisibility;
+        // Any privacy choice made here takes precedence over the AI Tathastu discovery setting from now on.
+        next.privacyChoiceMade = true;
+        next.discoverySetByTathastu = false;
         await durableDb.saveMemberAsync(next);
         return reply.send({ success: true, member: toSelfMember(next) });
       }
