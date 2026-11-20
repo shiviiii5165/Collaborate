@@ -66,6 +66,15 @@ export function buildServer(): FastifyInstance {
     trustProxy: true,
   });
 
+  // Baseline security headers on every response (the API is also reachable directly on its Render
+  // host, not only through the web gateway). JSON API: nothing here may be framed or MIME-sniffed.
+  fastify.addHook('onRequest', async (_req, reply) => {
+    reply.header('X-Content-Type-Options', 'nosniff');
+    reply.header('X-Frame-Options', 'DENY');
+    reply.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+    if (process.env.NODE_ENV === 'production') reply.header('Strict-Transport-Security', 'max-age=63072000');
+  });
+
   // 0. Shared durable storage (Postgres mode). Every request first pulls documents changed by
   //    other instances; every response is sent only after this request's changes are durably
   //    written. A write conflict with another instance returns 409 and writes nothing.
@@ -1407,7 +1416,9 @@ export function buildServer(): FastifyInstance {
     if (!member) return reply.status(404).send({ error: 'Member not found' });
 
     if (action === 'upgrade_premium') {
-      const isSandboxPermitted = process.env.ENABLE_BILLING_SANDBOX === 'true' || process.env.NODE_ENV !== 'production';
+      // Free sandbox upgrades need an explicit opt-in AND a non-production runtime. Either alone is
+      // not enough: a missing NODE_ENV (fail-open) or the flag set in production must never grant Premium.
+      const isSandboxPermitted = process.env.ENABLE_BILLING_SANDBOX === 'true' && process.env.NODE_ENV !== 'production';
       if (!isSandboxPermitted) {
         return reply.status(403).send({
           error: 'Direct client-side upgrades strictly disabled in production. Webhook signature from authorized payment gateway required.',
