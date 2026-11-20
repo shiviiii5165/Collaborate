@@ -10,7 +10,7 @@ import crypto from 'crypto';
 import Fastify, { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
-import { durableDb, getKolkataDateKey, ConcurrentModificationError } from '@/lib/db/index';
+import { durableDb, getKolkataDateKey, ConcurrentModificationError, StorageWriteDiscardedError } from '@/lib/db/index';
 import { toPublicMember, toSelfMember, isVisibleInDiscovery } from '@/modules/profile/public-member';
 import { applyLocalProfileEdit, releaseIdentityFills } from '@/modules/profile/ownership';
 import { ProfileEditError, sanitizeProfileUpdates } from '@/modules/profile/profile-edit';
@@ -36,7 +36,10 @@ import {
   PAYMENT_WEBHOOK_PROVIDER,
 } from '@/modules/billing/payment-webhook';
 import { isOriginAllowed } from '@/lib/http/cors-policy';
-import { checkPasswordAttempt } from '@/lib/http/rate-limit';
+import { AttemptLimiter, checkPasswordAttempt } from '@/lib/http/rate-limit';
+import * as Social from '@/modules/social/service';
+import { SocialError } from '@/modules/social/service';
+import * as Media from '@/modules/media/service';
 import { hashPassword, verifyPassword } from '@/lib/auth/password';
 import { canInitiateContact } from '@collaborate/domain';
 import type { MemberProfile } from '@collaborate/contracts';
@@ -63,6 +66,15 @@ export function buildServer(): FastifyInstance {
     trustProxy: true,
   });
 
+  // Baseline security headers on every response (the API is also reachable directly on its Render
+  // host, not only through the web gateway). JSON API: nothing here may be framed or MIME-sniffed.
+  fastify.addHook('onRequest', async (_req, reply) => {
+    reply.header('X-Content-Type-Options', 'nosniff');
+    reply.header('X-Frame-Options', 'DENY');
+    reply.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+    if (process.env.NODE_ENV === 'production') reply.header('Strict-Transport-Security', 'max-age=63072000');
+  });
+
   // 0. Shared durable storage (Postgres mode). Every request first pulls documents changed by
   //    other instances; every response is sent only after this request's changes are durably
   //    written. A write conflict with another instance returns 409 and writes nothing.
@@ -70,6 +82,7 @@ export function buildServer(): FastifyInstance {
   const LIVENESS_PATHS = new Set(['/', '/health']);
   fastify.addHook('onRequest', async (req, reply) => {
     if (LIVENESS_PATHS.has(req.url)) return;
+    (req as any).storageDiscardEpoch = durableDb.discardEpoch;
     try {
       await durableDb.syncFromStore();
     } catch (err: any) {
@@ -80,14 +93,24 @@ export function buildServer(): FastifyInstance {
   fastify.addHook('onSend', async (req, reply, payload) => {
     if (!durableDb.usesSharedStore || LIVENESS_PATHS.has(req.url)) return payload;
     try {
-      await durableDb.flush(req.method !== 'GET' && req.method !== 'HEAD' && req.method !== 'OPTIONS');
+      const isWrite = req.method !== 'GET' && req.method !== 'HEAD' && req.method !== 'OPTIONS';
+      await durableDb.flush(isWrite, isWrite ? (req as any).storageDiscardEpoch : undefined);
       return payload;
     } catch (err: any) {
       reply.header('content-type', 'application/json; charset=utf-8');
       reply.removeHeader('set-cookie');
       if (err instanceof ConcurrentModificationError) {
         reply.code(409);
+        // A repost's id is derived from (original post, member), so a conflict on it means another
+        // instance stored the same member's repost first.
+        if (err.keys.length > 0 && err.keys.every((k) => k.startsWith(`post/${Social.REPOST_ID_PREFIX}`))) {
+          return JSON.stringify({ error: 'ALREADY_REPOSTED', message: 'You have already reposted this post.' });
+        }
         return JSON.stringify({ error: 'CONCURRENT_MODIFICATION', message: 'This change conflicted with another update. Please retry.' });
+      }
+      if (err instanceof StorageWriteDiscardedError) {
+        reply.code(503);
+        return JSON.stringify({ error: 'STORAGE_UNAVAILABLE', message: 'Your change could not be saved. Please retry.' });
       }
       console.error('[Storage] Flush failed:', err?.message || err);
       reply.code(503);
@@ -404,6 +427,7 @@ export function buildServer(): FastifyInstance {
     // Validated through POST /api/recommendations/preferences only.
     'recommendationPreferences',
     'autoProvisioned', 'unlinkedTathastuSubjects', 'tathastuLastSyncError',
+    'privacyChoiceMade', 'discoverySetByTathastu',
   ];
 
   fastify.put('/api/profiles', { preHandler: authenticate }, async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
@@ -438,6 +462,10 @@ export function buildServer(): FastifyInstance {
         updatedMember.profileVisibility = 'public';
       }
       updatedMember.discoveryChoiceMade = true;
+    }
+    if ('discoverable' in updates || 'profileVisibility' in updates || 'contactVisibility' in updates) {
+      updatedMember.privacyChoiceMade = true;
+      updatedMember.discoverySetByTathastu = false;
     }
     releaseIdentityFills(updatedMember, Object.keys(updates));
     applyLocalProfileEdit(updatedMember, sectionUpdates);
@@ -943,6 +971,9 @@ export function buildServer(): FastifyInstance {
         }
         if (p.profileVisibility !== undefined) next.profileVisibility = p.profileVisibility;
         if (p.contactVisibility !== undefined) next.contactVisibility = p.contactVisibility;
+        // Any privacy choice made here takes precedence over the AI Tathastu discovery setting from now on.
+        next.privacyChoiceMade = true;
+        next.discoverySetByTathastu = false;
         await durableDb.saveMemberAsync(next);
         return reply.send({ success: true, member: toSelfMember(next) });
       }
@@ -1104,6 +1135,167 @@ export function buildServer(): FastifyInstance {
   });
 
   // ============================================================================
+  // SOCIAL FEED (src/modules/social). Every route is session-only: the acting member is
+  // always req.user, never a body/query parameter. Posts are visible to all members.
+  // ============================================================================
+  const socialLimits = {
+    post: new AttemptLimiter(10, 10 * 60_000),
+    edit: new AttemptLimiter(30, 10 * 60_000),
+    comment: new AttemptLimiter(40, 10 * 60_000),
+    reaction: new AttemptLimiter(300, 10 * 60_000),
+    impression: new AttemptLimiter(120, 60_000),
+    report: new AttemptLimiter(20, 24 * 60 * 60_000),
+    read: new AttemptLimiter(600, 10 * 60_000),
+  };
+  const limitSocial = (kind: keyof typeof socialLimits, req: FastifyRequest, reply: FastifyReply): boolean => {
+    const r = socialLimits[kind].hit(`${kind}:${req.user!.userId}`);
+    if (r.allowed) return true;
+    reply.header('Retry-After', String(r.retryAfter));
+    reply.status(429).send({ error: 'RATE_LIMITED', message: 'You are doing that too often. Please wait a moment and try again.', retryAfter: r.retryAfter });
+    return false;
+  };
+  const social = async (reply: FastifyReply, fn: () => unknown, status = 200) => {
+    try {
+      return reply.status(status).send(fn());
+    } catch (err) {
+      if (err instanceof SocialError || err instanceof Media.MediaError) return reply.status(err.status).send({ error: err.code, message: err.message });
+      throw err;
+    }
+  };
+  type IdParams = { Params: { id: string }; Body: Record<string, any> };
+
+  fastify.get('/api/feed', { preHandler: authenticate }, async (req: FastifyRequest<{ Querystring: Record<string, string> }>, reply) => {
+    if (!limitSocial('read', req, reply)) return reply;
+    return social(reply, () => Social.getFeed(req.user!.userId, req.query || {}));
+  });
+  fastify.get('/api/feed/trending', { preHandler: authenticate }, async (req, reply) =>
+    social(reply, () => ({ topics: Social.trendingTopics(req.user!.userId) }))
+  );
+  fastify.post('/api/feed/impressions', { preHandler: authenticate }, async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
+    if (!limitSocial('impression', req, reply)) return reply;
+    return social(reply, () => Social.recordImpressions(req.user!.userId, req.body?.postIds));
+  });
+  fastify.post('/api/posts', { preHandler: authenticate }, async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
+    if (!limitSocial('post', req, reply)) return reply;
+    return social(reply, () => ({ post: Social.createPost(req.user!.userId, req.body || {}) }), 201);
+  });
+  fastify.get('/api/posts/:id', { preHandler: authenticate }, async (req: FastifyRequest<IdParams>, reply) =>
+    social(reply, () => ({ post: Social.getPost(req.params.id, req.user!.userId) }))
+  );
+  fastify.put('/api/posts/:id', { preHandler: authenticate }, async (req: FastifyRequest<IdParams>, reply) => {
+    if (!limitSocial('edit', req, reply)) return reply;
+    return social(reply, () => ({ post: Social.updatePost(req.user!.userId, req.params.id, req.body || {}) }));
+  });
+  fastify.delete('/api/posts/:id', { preHandler: authenticate }, async (req: FastifyRequest<IdParams>, reply) =>
+    social(reply, () => Social.deletePost(req.user!.userId, req.params.id))
+  );
+  fastify.post('/api/posts/:id/like', { preHandler: authenticate }, async (req: FastifyRequest<IdParams>, reply) => {
+    if (!limitSocial('reaction', req, reply)) return reply;
+    if (typeof req.body?.liked !== 'boolean') return reply.status(400).send({ error: 'VALIDATION_ERROR', message: 'liked must be true or false' });
+    return social(reply, () => Social.setLike(req.user!.userId, req.params.id, req.body.liked));
+  });
+  fastify.post('/api/posts/:id/bookmark', { preHandler: authenticate }, async (req: FastifyRequest<IdParams>, reply) => {
+    if (!limitSocial('reaction', req, reply)) return reply;
+    if (typeof req.body?.bookmarked !== 'boolean') return reply.status(400).send({ error: 'VALIDATION_ERROR', message: 'bookmarked must be true or false' });
+    return social(reply, () => Social.setBookmark(req.user!.userId, req.params.id, req.body.bookmarked));
+  });
+  fastify.post('/api/posts/:id/share', { preHandler: authenticate }, async (req: FastifyRequest<IdParams>, reply) => {
+    if (!limitSocial('reaction', req, reply)) return reply;
+    return social(reply, () => Social.recordShare(req.user!.userId, req.params.id));
+  });
+  fastify.post('/api/posts/:id/vote', { preHandler: authenticate }, async (req: FastifyRequest<IdParams>, reply) => {
+    if (!limitSocial('reaction', req, reply)) return reply;
+    return social(reply, () => ({ post: Social.vote(req.user!.userId, req.params.id, req.body?.option) }));
+  });
+  fastify.get('/api/posts/:id/analytics', { preHandler: authenticate }, async (req: FastifyRequest<IdParams>, reply) =>
+    social(reply, () => Social.postAnalytics(req.user!.userId, req.params.id))
+  );
+  fastify.get('/api/posts/:id/comments', { preHandler: authenticate }, async (req: FastifyRequest<IdParams>, reply) => {
+    if (!limitSocial('read', req, reply)) return reply;
+    return social(reply, () => Social.listComments(req.user!.userId, req.params.id));
+  });
+  fastify.post('/api/posts/:id/comments', { preHandler: authenticate }, async (req: FastifyRequest<IdParams>, reply) => {
+    if (!limitSocial('comment', req, reply)) return reply;
+    return social(reply, () => ({ comment: Social.addComment(req.user!.userId, req.params.id, req.body || {}) }), 201);
+  });
+  fastify.put('/api/comments/:id', { preHandler: authenticate }, async (req: FastifyRequest<IdParams>, reply) => {
+    if (!limitSocial('comment', req, reply)) return reply;
+    return social(reply, () => ({ comment: Social.updateComment(req.user!.userId, req.params.id, req.body || {}) }));
+  });
+  fastify.delete('/api/comments/:id', { preHandler: authenticate }, async (req: FastifyRequest<IdParams>, reply) =>
+    social(reply, () => Social.deleteComment(req.user!.userId, req.params.id))
+  );
+  fastify.post('/api/posts/:id/report', { preHandler: authenticate }, async (req: FastifyRequest<IdParams>, reply) => {
+    if (!limitSocial('report', req, reply)) return reply;
+    return social(reply, () => Social.reportContent(req.user!.userId, { ...(req.body || {}), targetType: 'post', targetId: req.params.id }));
+  });
+  fastify.post('/api/comments/:id/report', { preHandler: authenticate }, async (req: FastifyRequest<IdParams>, reply) => {
+    if (!limitSocial('report', req, reply)) return reply;
+    return social(reply, () => Social.reportContent(req.user!.userId, { ...(req.body || {}), targetType: 'comment', targetId: req.params.id }));
+  });
+
+  // Media (R2). The bucket is private: uploads use short-lived signed PUT URLs, reads go through
+  // GET /api/media/:id, which applies the post's visibility rules and redirects to a short-lived
+  // signed GET URL. Metadata stays in Postgres (media_object documents).
+  const mediaLimits = { upload: new AttemptLimiter(60, 60 * 60_000), read: new AttemptLimiter(1200, 10 * 60_000) };
+  const mediaCall = async (reply: FastifyReply, fn: () => Promise<unknown>, status = 200) => {
+    try {
+      return reply.status(status).send(await fn());
+    } catch (err) {
+      if (err instanceof Media.MediaError || err instanceof SocialError) return reply.status(err.status).send({ error: err.code, message: err.message });
+      console.error('[Media] Storage call failed:', (err as any)?.name || 'error');
+      return reply.status(502).send({ error: 'MEDIA_STORAGE_ERROR', message: 'File storage is temporarily unavailable. Please try again.' });
+    }
+  };
+  const limitMedia = (kind: keyof typeof mediaLimits, req: FastifyRequest, reply: FastifyReply): boolean => {
+    const r = mediaLimits[kind].hit(`${kind}:${req.user!.userId}`);
+    if (r.allowed) return true;
+    reply.header('Retry-After', String(r.retryAfter));
+    reply.status(429).send({ error: 'RATE_LIMITED', message: 'Too many uploads. Please wait a moment and try again.', retryAfter: r.retryAfter });
+    return false;
+  };
+  fastify.post('/api/media/uploads', { preHandler: authenticate }, async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
+    if (!limitMedia('upload', req, reply)) return reply;
+    if (durableDb.getMemberById(req.user!.userId)?.isRestricted) {
+      return reply.status(403).send({ error: 'ACCOUNT_RESTRICTED', message: 'Your account is restricted. Lift the restriction in Settings to upload files.' });
+    }
+    return mediaCall(reply, () => Media.createUpload(req.user!.userId, req.body || {}), 201);
+  });
+  fastify.post('/api/media/:id/complete', { preHandler: authenticate }, async (req: FastifyRequest<IdParams>, reply) =>
+    mediaCall(reply, () => Media.completeUpload(req.user!.userId, req.params.id))
+  );
+  fastify.delete('/api/media/:id', { preHandler: authenticate }, async (req: FastifyRequest<IdParams>, reply) =>
+    mediaCall(reply, () => Media.discardUpload(req.user!.userId, req.params.id))
+  );
+  fastify.get('/api/media/:id', { preHandler: authenticate }, async (req: FastifyRequest<{ Params: { id: string }; Querystring: Record<string, string> }>, reply) => {
+    if (!limitMedia('read', req, reply)) return reply;
+    const viewer = req.user!.userId;
+    try {
+      const r = await Media.readUrl(viewer, req.params.id, (postId) => Social.canViewPostMedia(viewer, postId), { download: req.query?.download === '1' });
+      reply.header('Cache-Control', 'private, no-store');
+      reply.header('Referrer-Policy', 'no-referrer');
+      if (req.query?.format === 'json') return reply.send(r);
+      return reply.redirect(r.url, 302);
+    } catch (err) {
+      if (err instanceof Media.MediaError) return reply.status(err.status).send({ error: err.code, message: err.message });
+      console.error('[Media] Signing failed:', (err as any)?.name || 'error');
+      return reply.status(502).send({ error: 'MEDIA_STORAGE_ERROR', message: 'File storage is temporarily unavailable.' });
+    }
+  });
+  fastify.post('/api/admin/media/cleanup', { preHandler: requireAdmin }, async (_req, reply) => mediaCall(reply, () => Media.cleanupOrphanMedia()));
+
+  // Moderation (admin only: verified session AND stored admin role, see requireAdmin).
+  fastify.get('/api/admin/reports', { preHandler: requireAdmin }, async (req: FastifyRequest<{ Querystring: Record<string, string> }>, reply) =>
+    social(reply, () => Social.listReportsForAdmin(req.query || {}))
+  );
+  fastify.post('/api/admin/reports/:id', { preHandler: requireAdmin }, async (req: FastifyRequest<IdParams>, reply) =>
+    social(reply, () => Social.decideReport(req.user!.userId, req.params.id, req.body || {}))
+  );
+  fastify.get('/api/admin/posts/:id', { preHandler: requireAdmin }, async (req: FastifyRequest<IdParams>, reply) =>
+    social(reply, () => ({ post: Social.getPostForAdmin(req.user!.userId, req.params.id) }))
+  );
+
+  // ============================================================================
   // NOTIFICATIONS
   // ============================================================================
   // Session user only; ?userId= is ignored.
@@ -1232,7 +1424,9 @@ export function buildServer(): FastifyInstance {
     if (!member) return reply.status(404).send({ error: 'Member not found' });
 
     if (action === 'upgrade_premium') {
-      const isSandboxPermitted = process.env.ENABLE_BILLING_SANDBOX === 'true' || process.env.NODE_ENV !== 'production';
+      // Free sandbox upgrades need an explicit opt-in AND a non-production runtime. Either alone is
+      // not enough: a missing NODE_ENV (fail-open) or the flag set in production must never grant Premium.
+      const isSandboxPermitted = process.env.ENABLE_BILLING_SANDBOX === 'true' && process.env.NODE_ENV !== 'production';
       if (!isSandboxPermitted) {
         return reply.status(403).send({
           error: 'Direct client-side upgrades strictly disabled in production. Webhook signature from authorized payment gateway required.',

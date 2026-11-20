@@ -274,6 +274,12 @@ export interface MemberProfile {
   importedIdentity?: ImportedIdentityFills;
   /** True once the member explicitly chose whether to appear in discovery. */
   discoveryChoiceMade?: boolean;
+  /** True once the member changed any privacy setting here (visibility, contact, discovery). From then on their
+   *  Collaborate settings win and AI Tathastu's "Show me in Collaborate discovery" choice no longer changes them. */
+  privacyChoiceMade?: boolean;
+  /** Set when discovery (and the public profile it needs) was turned on from the member's AI Tathastu choice, so
+   *  withdrawing that choice or the link can turn it off again. Never set for a choice made here. */
+  discoverySetByTathastu?: boolean;
   /** When the current AI Tathastu link was established; revocations sent before it are stale. */
   tathastuLinkedAt?: string;
   /** Created automatically from AI Tathastu (private until the member turns on visibility). */
@@ -354,6 +360,14 @@ export interface AbuseReport {
   details: string;
   status: 'pending' | 'resolved' | 'dismissed';
   createdAt: string;
+  /** Set when the report is about a post or comment rather than the member as a whole. */
+  targetType?: 'post' | 'comment';
+  targetId?: string;
+  /** Set when a moderator reviews the report. */
+  reviewedBy?: string;
+  reviewedAt?: string;
+  decision?: 'dismiss' | 'remove' | 'restore';
+  reviewNote?: string;
 }
 
 export interface ProfileViewLedgerEntry {

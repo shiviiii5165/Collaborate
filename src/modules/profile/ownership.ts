@@ -442,10 +442,32 @@ export function applyImportedProjection(member: MemberProfile, projection: Profe
   fillIdentity(member, 'avatarUrl', imported.identity.avatarUrl);
   fillIdentity(member, 'location', imported.identity.location);
   setRoleBadge(member, imported.identity.careerRoleLabel);
+  applyTathastuDiscoveryChoice(member, projection.privacy?.scopes?.discovery === true);
   member.tathastuLastSyncedAt = imported.syncedAt;
   member.tathastuSyncStatus = 'synced';
   delete member.tathastuLastSyncError;
   recomputeEffectiveProfile(member);
+}
+
+/**
+ * The member's "Show me in Collaborate discovery" choice made on AI Tathastu (privacy.scopes.discovery).
+ * It applies only while the member has never changed a privacy setting here: any choice made in Collaborate wins.
+ *  - on:  discoverable, with the profile page public (discovery needs it). Contact details are left as they are.
+ *  - off: only undoes what this choice turned on; a profile made public some other way is not touched.
+ */
+export function applyTathastuDiscoveryChoice(member: MemberProfile, wantsDiscovery: boolean): void {
+  if (member.privacyChoiceMade || member.discoveryChoiceMade) return;
+  if (wantsDiscovery) {
+    if (!member.discoverable || member.profileVisibility === 'private') {
+      member.discoverable = true;
+      if (member.profileVisibility === 'private' || !member.profileVisibility) member.profileVisibility = 'public';
+      member.discoverySetByTathastu = true;
+    }
+  } else if (member.discoverySetByTathastu) {
+    member.discoverable = false;
+    member.profileVisibility = 'private';
+    member.discoverySetByTathastu = false;
+  }
 }
 
 /** Removes every imported section and identity fill. Local data is untouched. Idempotent. */
@@ -459,6 +481,8 @@ export function clearImportedProfile(member: MemberProfile): void {
   }
   setRoleBadge(member, null);
   member.importedIdentity = {};
+  // Unlinked: discovery that only existed because of the AI Tathastu choice is withdrawn with it.
+  applyTathastuDiscoveryChoice(member, false);
   member.tathastuLastSyncedAt = undefined;
   delete member.tathastuLastSyncError;
   recomputeEffectiveProfile(member);

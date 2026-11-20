@@ -12,7 +12,7 @@ import {
   ProfileViewLedgerEntry,
 } from '@/lib/types';
 import { assertDatabaseAvailable, isNeonConfigured, getNeonPool } from './neon';
-import { applyDocument, docKey, emptyDocumentState, enumerateDocuments, splitKey, type DocKey } from './documents';
+import { applyDocument, docKey, emptyDocumentState, ensureSocialState, enumerateDocuments, splitKey, type DocKey } from './documents';
 import { MembersRepository } from './repositories/members';
 import { ConnectionsRepository } from './repositories/connections';
 import { MessagesRepository } from './repositories/messages';
@@ -44,7 +44,9 @@ export interface AppNotification {
   id: string;
   recipientId: string;
   actorId?: string;
-  type: 'connection_request' | 'connection_accepted' | 'message' | 'verification_approved' | 'system';
+  type: 'connection_request' | 'connection_accepted' | 'message' | 'verification_approved' | 'system' | 'post_activity';
+  /** For post_activity: the post the notification is about. */
+  postId?: string;
   title: string;
   body: string;
   isRead: boolean;
@@ -65,6 +67,16 @@ interface DatabaseState {
   blockedUsers: string[]; // "blockerId:blockedId"
   notifications: AppNotification[];
   savedMembers?: Record<string, string[]>; // "userId -> [savedMemberId1, ...]"
+  // Social feed documents (see src/modules/social and SOCIAL_COLLECTIONS in ./documents).
+  posts?: Record<string, any>;
+  postComments?: Record<string, any>;
+  postLikes?: Record<string, any>;
+  postBookmarks?: Record<string, any>;
+  postShares?: Record<string, any>;
+  postVotes?: Record<string, any>;
+  postViews?: Record<string, any>;
+  moderationAudit?: Record<string, any>;
+  mediaObjects?: Record<string, any>;
   webhookEvents?: Record<
     string,
     {
@@ -93,6 +105,14 @@ export class ConcurrentModificationError extends Error {
     super(`CONCURRENT_MODIFICATION: ${keys.length} document(s) were changed by another instance. Retry the request.`);
     this.name = 'ConcurrentModificationError';
     this.keys = keys;
+  }
+}
+
+/** Changes made during this request were discarded by a failed write; the request must fail. */
+export class StorageWriteDiscardedError extends Error {
+  constructor() {
+    super('STORAGE_WRITE_DISCARDED: a concurrent write failed and unsaved changes were discarded. Retry the request.');
+    this.name = 'StorageWriteDiscardedError';
   }
 }
 
@@ -224,11 +244,41 @@ export class DurableCollaborateDatabase {
    * Throws ConcurrentModificationError (nothing written, conflicting documents reloaded)
    * if another instance changed one of them first. No-op for the local file store.
    */
-  public async flush(force = false): Promise<void> {
+  public async flush(force = false, sinceDiscardEpoch?: number): Promise<void> {
     if (!this.docMode) return;
-    const run = this.flushing.then(() => this.flushNow(force));
+    const run = this.flushing.then(async () => {
+      await this.flushNow(force);
+      // Another request's failed flush discarded unsaved changes after this request began; those
+      // may have included this request's changes, so it must not report success.
+      if (sinceDiscardEpoch !== undefined && this.discardEpoch > sinceDiscardEpoch) {
+        throw new StorageWriteDiscardedError();
+      }
+    });
     this.flushing = run.catch(() => undefined);
     return run;
+  }
+
+  /**
+   * Incremented whenever unsaved changes are discarded after a failed write. A request records
+   * it when it starts and passes it to flush(); see StorageWriteDiscardedError.
+   */
+  public discardEpoch = 0;
+
+  /**
+   * After a failed or conflicting write nothing from that flush is kept pending: every changed
+   * document is put back to the version last known to be stored (conflicting ones are reloaded
+   * from the database first). A write reported as failed can therefore never be persisted later
+   * by an unrelated request.
+   */
+  private discardUnsaved(keys: DocKey[]): void {
+    for (const key of keys) {
+      const [collection, id] = splitKey(key);
+      const stored = this.persisted.get(key);
+      applyDocument(this.state, collection, id, stored === undefined ? null : JSON.parse(stored));
+    }
+    this.mutated = false;
+    this.discardEpoch++;
+    this.socialVersion++;
   }
 
   private async flushNow(force: boolean): Promise<void> {
@@ -241,7 +291,13 @@ export class DurableCollaborateDatabase {
     this.mutated = false;
     if (changes.length === 0) return;
 
-    const client = await this.pool.connect();
+    let client: any;
+    try {
+      client = await this.pool.connect();
+    } catch (err) {
+      this.discardUnsaved(changes.map((c) => c.key));
+      throw err;
+    }
     const written: { key: DocKey; json: string | null; rev: number }[] = [];
     const conflicts: DocKey[] = [];
     try {
@@ -277,15 +333,19 @@ export class DurableCollaborateDatabase {
       } catch {
         /* connection already failed */
       }
-      this.mutated = true; // keep the changes pending for the next flush
+      this.discardUnsaved(changes.map((c) => c.key)); // nothing was written: drop it all
       throw err;
     } finally {
       client.release();
     }
 
     if (conflicts.length > 0) {
-      await this.reloadDocuments(conflicts);
-      this.mutated = true; // non-conflicting changes stay pending
+      this.discardUnsaved(changes.map((c) => c.key)); // rolled back: nothing was written
+      try {
+        await this.reloadDocuments(conflicts); // adopt the other instance's versions
+      } catch (err) {
+        console.error('[Storage] Reload after conflict failed; next sync will refresh:', (err as any)?.message || err);
+      }
       throw new ConcurrentModificationError(conflicts.map((k) => splitKey(k).join('/')));
     }
     for (const w of written) {
@@ -318,6 +378,7 @@ export class DurableCollaborateDatabase {
         if (parsed && parsed.members && Object.keys(parsed.members).length > 0) {
           if (!parsed.savedMembers) parsed.savedMembers = {};
           if (!parsed.webhookEvents) parsed.webhookEvents = {};
+          ensureSocialState(parsed);
           return parsed;
         }
       }
@@ -893,6 +954,61 @@ export class DurableCollaborateDatabase {
   public removeMapping(mappingId: string): void {
     delete this.state.identityMappings[mappingId];
     this.persistToDisk();
+  }
+
+  /**
+   * Erases a member and everything that identifies them: the profile, password credential, identity
+   * mappings, connections, conversations and messages, notifications, saved lists, blocks, profile
+   * views and social records they authored. Used when an AI Tathastu account that Collaborate created
+   * automatically is deleted. Durable before returning (Postgres mode writes tombstones that other
+   * instances observe). Idempotent: erasing an unknown id changes nothing. Returns what was removed.
+   */
+  public async eraseMemberAsync(memberId: string): Promise<{ removed: Record<string, number> }> {
+    const s = this.state;
+    const removed: Record<string, number> = {};
+    const count = (k: string, n: number) => { if (n) removed[k] = (removed[k] ?? 0) + n; };
+    const dropWhere = <T>(rec: Record<string, T> | undefined, k: string, hit: (v: T) => boolean) => {
+      if (!rec) return;
+      for (const [id, v] of Object.entries(rec)) if (hit(v)) { delete rec[id]; count(k, 1); }
+    };
+    const involves = (v: any) =>
+      Boolean(v) && [v.authorId, v.userId, v.memberId, v.ownerId, v.actorId, v.viewerId, v.reporterId].includes(memberId);
+
+    if (s.members[memberId]) { delete s.members[memberId]; count('member', 1); }
+    if (s.credentials[memberId]) { delete s.credentials[memberId]; count('credential', 1); }
+    dropWhere(s.identityMappings, 'identity_mapping', (m) => m.memberId === memberId);
+    dropWhere(s.connections, 'connection', (c) => c.requesterId === memberId || c.recipientId === memberId);
+    const convIds = new Set<string>();
+    dropWhere(s.conversations, 'conversation', (c) => {
+      const hit = c.participantIds.includes(memberId);
+      if (hit) convIds.add(c.id);
+      return hit;
+    });
+    const msgBefore = s.messages.length;
+    s.messages = s.messages.filter((m) => !convIds.has(m.conversationId) && m.senderId !== memberId && m.recipientId !== memberId);
+    count('message', msgBefore - s.messages.length);
+    const notifBefore = s.notifications.length;
+    s.notifications = s.notifications.filter((n) => n.recipientId !== memberId && n.actorId !== memberId);
+    count('notification', notifBefore - s.notifications.length);
+    const viewBefore = s.profileViewLedger.length;
+    s.profileViewLedger = s.profileViewLedger.filter((v) => v.viewerId !== memberId && v.targetId !== memberId);
+    count('profile_view', viewBefore - s.profileViewLedger.length);
+    const blockBefore = s.blockedUsers.length;
+    s.blockedUsers = s.blockedUsers.filter((b) => !b.split(':').includes(memberId));
+    count('block', blockBefore - s.blockedUsers.length);
+    if (s.savedMembers) {
+      if (s.savedMembers[memberId]) { delete s.savedMembers[memberId]; count('saved_members', 1); }
+      for (const [owner, list] of Object.entries(s.savedMembers)) {
+        if (list.includes(memberId)) s.savedMembers[owner] = list.filter((id) => id !== memberId);
+      }
+    }
+    for (const k of ['posts', 'postComments', 'postLikes', 'postBookmarks', 'postShares', 'postVotes', 'postViews', 'mediaObjects'] as const) {
+      dropWhere(s[k], k, involves);
+    }
+    if (Object.keys(removed).length) this.markSocialChanged();
+    this.persistToDisk();
+    await this.flush();
+    return { removed };
   }
 
   // --- Webhook delivery ledger (shared by all instances in Postgres mode) ---
@@ -1641,6 +1757,70 @@ export class DurableCollaborateDatabase {
 
   public isMemberSaved(userId: string, targetMemberId: string): boolean {
     return Boolean(this.state.savedMembers?.[userId]?.includes(targetMemberId));
+  }
+
+  // --- Social feed storage (logic lives in src/modules/social) ---
+  /** Live social records. Callers that mutate them must call markSocialChanged(). */
+  public getSocialState(): Required<
+    Pick<DatabaseState, 'posts' | 'postComments' | 'postLikes' | 'postBookmarks' | 'postShares' | 'postVotes' | 'postViews' | 'moderationAudit' | 'mediaObjects'>
+  > {
+    ensureSocialState(this.state);
+    return this.state as any;
+  }
+
+  public markSocialChanged(): void {
+    this.socialVersion++;
+    this.persistToDisk();
+  }
+
+  /** Bumped on every social write; lets derived indexes know when to rebuild. */
+  public socialVersion = 0;
+
+  /** Post / comment reports go through the same moderation queue as member reports. */
+  public submitContentReport(
+    reporterId: string,
+    reportedMemberId: string,
+    targetType: 'post' | 'comment',
+    targetId: string,
+    reason: string,
+    details?: string
+  ): AbuseReport {
+    const report = this.submitAbuseReport(reporterId, reportedMemberId, reason, details);
+    report.targetType = targetType;
+    report.targetId = targetId;
+    this.persistToDisk();
+    return report;
+  }
+
+  /** Replaces a stored report (moderation review). */
+  public updateAbuseReport(report: AbuseReport): void {
+    if (!this.state.abuseReports[report.id]) throw new Error('Report not found');
+    this.state.abuseReports[report.id] = report;
+    this.socialVersion++;
+    this.persistToDisk();
+  }
+
+  public getAbuseReportById(id: string): AbuseReport | null {
+    return this.state.abuseReports?.[id] ?? null;
+  }
+
+  public getBlockedIdsFor(userId: string): Set<string> {
+    const out = new Set<string>();
+    for (const key of this.state.blockedUsers) {
+      const [a, b] = key.split(':');
+      if (a === userId) out.add(b);
+      else if (b === userId) out.add(a);
+    }
+    return out;
+  }
+
+  public addPostNotification(recipientId: string, actorId: string, postId: string, title: string, body: string): void {
+    if (recipientId === actorId) return;
+    const prefs = (this.getMemberById(recipientId) as any)?.notificationPreferences;
+    if (prefs && prefs.postActivity === false) return;
+    const n = this.addNotification(recipientId, 'post_activity', title, body, actorId);
+    n.postId = postId;
+    this.persistToDisk();
   }
 
   // --- Authentic Profile Stats ---

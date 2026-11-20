@@ -93,6 +93,8 @@ interface ProfileViewProps {
   onMessage?: () => void;
   onEditProfile?: () => void;
   onOpenFederationSync?: () => void;
+  /** Content of the additional Posts tab (the member's feed posts). Omitted = no Posts tab. */
+  postsSlot?: React.ReactNode;
 }
 
 export const ProfileView: React.FC<ProfileViewProps> = ({
@@ -103,8 +105,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   onMessage,
   onEditProfile,
   onOpenFederationSync,
+  postsSlot,
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'skills' | 'experience' | 'education' | 'achievements' | 'activity'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'skills' | 'experience' | 'education' | 'achievements' | 'activity' | 'posts'>('overview');
   const [isSaved, setIsSaved] = useState(false);
   const [syncStatusText, setSyncStatusText] = useState<string | null>(null);
 
@@ -462,6 +465,16 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         >
           <span>Activity</span>
         </button>
+
+        {postsSlot && (
+          <button
+            className={`tab-btn ${activeTab === 'posts' ? 'active' : ''}`}
+            onClick={() => setActiveTab('posts')}
+          >
+            <MessageSquare size={16} />
+            <span>Posts</span>
+          </button>
+        )}
       </div>
 
       {/* Tabs Content */}
@@ -989,6 +1002,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             )}
           </div>
         )}
+
+        {/* Posts Tab (additive: the member's feed posts) */}
+        {activeTab === 'posts' && postsSlot}
       </div>
     </div>
   );

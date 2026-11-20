@@ -14,6 +14,7 @@ import { QuotaPaywallModal } from '@/components/QuotaPaywallModal';
 import { ProfileEditModal } from '@/components/ProfileEditModal';
 import { SettingsView } from '@/components/SettingsView';
 import { AuthModal } from '@/components/AuthModal';
+import { HomeFeed, PostList, ProfilePosts, SinglePost, TrendingCard } from '@/components/feed/Feed';
 import { getSsoErrorMessage } from '@/lib/auth/sso-errors';
 import { MemberProfile, RecommendationMatch } from '@/lib/types';
 import {
@@ -76,6 +77,36 @@ export default function CollaborateApp() {
 
   // Active message recipient for direct link
   const [activeChatRecipientId, setActiveChatRecipientId] = useState<string | undefined>(undefined);
+
+  // Single post opened from a shared link (/?post=<id>) or a notification
+  const [openPostId, setOpenPostId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const postId = params.get('post');
+    if (postId && /^[A-Za-z0-9_-]{1,80}$/.test(postId)) {
+      setOpenPostId(postId);
+      setCurrentTab('post');
+    }
+  }, []);
+
+  const openPost = (postId: string) => {
+    setViewingTargetUser(null);
+    setOpenPostId(postId);
+    setCurrentTab('post');
+  };
+
+  const closePost = () => {
+    setOpenPostId(null);
+    setCurrentTab('home');
+    if (typeof window !== 'undefined' && window.location.search.includes('post=')) {
+      const params = new URLSearchParams(window.location.search);
+      params.delete('post');
+      const qs = params.toString();
+      window.history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`);
+    }
+  };
 
   const fetchSavedMembers = async () => {
     if (!currentUser) return;
@@ -1142,14 +1173,30 @@ export default function CollaborateApp() {
             </div>
           )}
 
-          {/* View Tab: Home or My Profile */}
-          {(currentTab === 'home' || currentTab === 'profile') && (
+          {/* View Tab: Home = professional social feed */}
+          {currentTab === 'home' && currentUser && (
+            <HomeFeed
+              currentUser={currentUser}
+              searchQuery={searchQuery}
+              onClearSearch={() => setSearchQuery('')}
+              onViewProfile={handleViewProfile}
+            />
+          )}
+
+          {/* View Tab: a single post (shared link / notification) */}
+          {currentTab === 'post' && currentUser && openPostId && (
+            <SinglePost postId={openPostId} currentUser={currentUser} onViewProfile={handleViewProfile} onBack={closePost} />
+          )}
+
+          {/* View Tab: My Profile = the complete profile dashboard (unchanged) + a Posts tab */}
+          {(currentTab === 'profile' || (currentTab === 'home' && !currentUser)) && (
             currentUser ? (
               <ProfileView
                 member={currentUser}
                 isSelf={true}
                 onEditProfile={() => setIsEditProfileOpen(true)}
                 onOpenFederationSync={() => setIsFederationOpen(true)}
+                postsSlot={<ProfilePosts currentUser={currentUser} authorId={currentUser.id} isSelf onViewProfile={handleViewProfile} />}
               />
             ) : (
               <div
@@ -1206,8 +1253,10 @@ export default function CollaborateApp() {
               </button>
 
               <ProfileView
+                key={viewingTargetUser.id}
                 member={viewingTargetUser}
                 isSelf={false}
+                postsSlot={<ProfilePosts currentUser={currentUser} authorId={viewingTargetUser.id} isSelf={false} onViewProfile={handleViewProfile} />}
                 connectionStatus={targetConnectionStatus}
                 onConnect={() => handleSendConnection(viewingTargetUser.id)}
                 onMessage={() => {
@@ -1293,6 +1342,26 @@ export default function CollaborateApp() {
                           {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </div>
+                      <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                      {n.type === 'post_activity' && n.postId && (
+                        <button
+                          className="btn-secondary"
+                          style={{ fontSize: '0.74rem', padding: '4px 10px' }}
+                          onClick={async () => {
+                            if (!n.isRead) {
+                              await fetch('/api/notifications', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ notifId: n.id }),
+                              });
+                              fetchNotifications();
+                            }
+                            openPost(n.postId);
+                          }}
+                        >
+                          View post
+                        </button>
+                      )}
                       {!n.isRead && (
                         <button
                           className="btn-secondary"
@@ -1309,6 +1378,7 @@ export default function CollaborateApp() {
                           <Check size={12} /> Mark Read
                         </button>
                       )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1454,7 +1524,7 @@ export default function CollaborateApp() {
                             await fetch('/api/saved', {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ action: 'remove', targetId: m.id }),
+                              body: JSON.stringify({ action: 'remove', targetMemberId: m.id }),
                             });
                             fetchSavedMembers();
                           }}
@@ -1467,6 +1537,44 @@ export default function CollaborateApp() {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* View Tab: Saved — bookmarked posts */}
+          {currentTab === 'saved' && (
+            <div className="info-card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    background: '#EEF2FF',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#4F46E5',
+                  }}
+                >
+                  <Bookmark size={20} />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Saved Posts</h2>
+                  <p style={{ color: '#64748B', fontSize: '0.82rem', margin: '3px 0 0' }}>
+                    Posts you saved from the feed. Only you can see what you have saved.
+                  </p>
+                </div>
+              </div>
+              <PostList
+                currentUser={currentUser}
+                filter="saved"
+                onViewProfile={handleViewProfile}
+                emptyState={
+                  <div className="feed-empty feed-empty-inline">
+                    No saved posts yet. Use <strong>Save</strong> on any post in your feed to keep it here.
+                  </div>
+                }
+              />
             </div>
           )}
 
@@ -1493,6 +1601,11 @@ export default function CollaborateApp() {
             setViewingTargetUser(null);
             setCurrentTab('discover');
           }}
+          extra={
+            currentTab === 'home' ? (
+              <TrendingCard onTopic={(t) => setSearchQuery(`#${t}`)} />
+            ) : undefined
+          }
         />
           </div>
         </div>

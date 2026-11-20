@@ -128,7 +128,9 @@ await test('Never merges with an existing account that uses the same email', asy
   const shared = `shared_${run}@synthetic.invalid`;
   const { member: existing } = await IdentityService.registerStandalone(shared, 'password-1234', 'Existing');
   const r = await deliver(event(`urn:ait:shared_${run}`, shared, fullArgs('Imposter')));
-  assert.strictEqual(r.json.result.action, 'IGNORED_EMAIL_BELONGS_TO_EXISTING_ACCOUNT');
+  // Reported as an explicit conflict (the owner links it with their password), never silently ignored.
+  assert.strictEqual(r.json.result.action, 'CONFLICT_EXISTING_ACCOUNT');
+  assert.strictEqual(r.json.result.outcome, 'conflict');
   assert.strictEqual(durableDb.getMemberById(existing.id).tathastu_user_id, undefined);
 });
 
