@@ -106,7 +106,9 @@ await test('Recommendations: only real, eligible people with an evidenced reason
   const mlDev = member('ml', { skills: ['Python', 'PyTorch', 'Machine Learning'] });
   const mlDup = member('ml_dup', { email: 'ml@gmail.com', skills: ['Python'] }); // second record of mlDev
   const unrelated = member('chef', { skills: ['Cooking'] });
-  const hidden = member('hidden', { skills: ['Python'], discoverable: false });
+  // Open profiles: an old "discoverable: false" no longer hides anyone (only blocks, moderation, deletion,
+  // test accounts and the member's own recommendation opt-out do).
+  const hidden = member('hidden', { skills: ['Python'], discoverable: false, profileVisibility: 'private' });
   const optedOut = member('opt', { skills: ['Python'], recommendationPreferences: { hideFromRecommendations: true } });
   const blocked = member('blk', { skills: ['Python'] });
   const suspended = member('sus', { skills: ['Python'], isRestricted: true });
@@ -114,7 +116,8 @@ await test('Recommendations: only real, eligible people with an evidenced reason
   const tester = member('tst', { skills: ['Python'], email: 'bob_1@test.collaborate.internal' });
   const all = [viewer, mlDev, mlDup, unrelated, hidden, optedOut, blocked, suspended, deleted, tester];
   const ids = recommend('viewer', ctxOf(all, { blocked: [['viewer', 'blk']] }), { limit: 20 }).map((r) => r.member.id);
-  assert.deepStrictEqual(ids, ['ml']);
+  assert.strictEqual(ids[0], 'ml');
+  assert.deepStrictEqual([...ids].sort(), ['hidden', 'ml']);
 });
 
 await test('No relevant matches gives an empty list, not filler', () => {

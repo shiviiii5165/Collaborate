@@ -59,13 +59,14 @@ const sub = `urn:ait:auto_${run}`;
 const email = `auto_${run}@synthetic.invalid`;
 let memberId;
 
-await test('auto_provision creates a PRIVATE, non-discoverable profile with the imported data', async () => {
+await test('auto_provision creates a PUBLIC, discoverable profile with the imported data (open profiles)', async () => {
   const r = await deliver(event(sub, email, fullArgs('Auto Person')));
-  assert.strictEqual(r.json.result.action, 'AUTO_PROVISIONED_PRIVATE', JSON.stringify(r.json));
+  assert.strictEqual(r.json.result.action, 'AUTO_PROVISIONED', JSON.stringify(r.json));
   memberId = r.json.result.memberId;
   const m = durableDb.getMemberById(memberId);
-  assert.strictEqual(m.discoverable, false);
-  assert.strictEqual(m.profileVisibility, 'private');
+  assert.strictEqual(m.discoverable, true);
+  assert.strictEqual(m.profileVisibility, 'public');
+  assert.strictEqual(m.contactVisibility, 'connections_only', 'contact details stay hidden');
   assert.strictEqual(m.autoProvisioned, true);
   assert.strictEqual(m.isVerified, false);
   assert.ok(m.skills.includes('TypeScript') && m.projects.some((p) => p.title === 'Realtime Vision'));
@@ -92,15 +93,13 @@ await test('Activity is used as intelligence evidence (not a verified fact)', as
   assert.ok(ts.evidence.some((e) => e.includes('Recent GitHub work') && e.includes('web-dash')));
 });
 
-await test('A private auto profile is invisible in discovery, search, recommendations and by id', async () => {
+await test('An auto profile appears in discovery and is viewable by id', async () => {
   const { token } = await IdentityService.registerStandalone(`viewer_${run}@x.test`, 'password-1234', 'Viewer');
   const h = { authorization: `Bearer ${token}` };
   const d = await app.inject({ method: 'GET', url: `/api/discover?q=Auto`, headers: h });
-  assert.ok(!d.body.includes(memberId));
-  const rec = await app.inject({ method: 'GET', url: '/api/recommendations?limit=20', headers: h });
-  assert.ok(!rec.body.includes(memberId));
+  assert.ok(d.body.includes(memberId));
   const byId = await app.inject({ method: 'GET', url: `/api/profiles?id=${memberId}`, headers: h });
-  assert.strictEqual(byId.statusCode, 403);
+  assert.strictEqual(byId.statusCode, 200);
 });
 
 await test('Signing in with AI Tathastu lands on the same profile (no duplicate)', async () => {
@@ -108,7 +107,7 @@ await test('Signing in with AI Tathastu lands on the same profile (no duplicate)
   assert.strictEqual(member.id, memberId);
 });
 
-await test('Turning discovery on publishes the profile (opt-in)', async () => {
+await test('The profile stays public after the member edits it', async () => {
   const s = await TathastuSsoService.processCallback({ code: `c2_${run}`, codeVerifier: 'v', state: 's', claimsOverride: { sub, email, fullName: 'Auto Person' } });
   const r = await app.inject({ method: 'PUT', url: '/api/profiles', headers: { authorization: `Bearer ${s.token}` }, payload: { discoverable: true } });
   assert.strictEqual(r.statusCode, 200);

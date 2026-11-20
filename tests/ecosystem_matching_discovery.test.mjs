@@ -189,11 +189,11 @@ const D = await linked('StudentD', {}); // linked, shares nothing (limited conse
 const E = await linked('StudentE', { skills: [{ name: 'Go' }] }, { discoverable: false, profileVisibility: 'public' });
 const auto = await linked('AutoPrivate', { skills: [{ name: 'Go' }] }, { autoProvisioned: true, discoverable: false, profileVisibility: 'private' });
 
-await test('Discovery: B (linked), C (independent) and D (limited consent) appear; E (discovery off) and private auto profiles do not; A (no Collaborate account) cannot', async () => {
+await test('Discovery: B, C, D, E (old discovery-off flag) and auto profiles all appear (open profiles); A (no Collaborate account) cannot', async () => {
   const d = await call('GET', `/api/discover?q=${run}`, viewer.token);
   const ids = new Set(d.json.members.map((m) => m.id));
   assert.ok(ids.has(B.member.id) && ids.has(C.member.id) && ids.has(D.member.id));
-  assert.ok(!ids.has(E.member.id) && !ids.has(auto.member.id));
+  assert.ok(ids.has(E.member.id) && ids.has(auto.member.id));
 });
 
 await test('Discovery: pagination covers every eligible member exactly once, in a stable order, recommended first', async () => {

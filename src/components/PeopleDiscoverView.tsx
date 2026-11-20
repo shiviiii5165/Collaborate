@@ -239,7 +239,7 @@ export const PeopleDiscoverView: React.FC<PeopleDiscoverViewProps> = ({
         <div className="discover-head dv-head">
           <div>
             <h2 className="dv-title">Discover people</h2>
-            <p className="dv-intro">People are ordered by how well their skills, projects and goals fit yours. Only members who chose to be discoverable are shown.</p>
+            <p className="dv-intro">People are ordered by how well their skills, projects and goals fit yours.</p>
           </div>
           {userPlan === 'free' ? (
             <div className="dv-quota">
@@ -291,7 +291,7 @@ export const PeopleDiscoverView: React.FC<PeopleDiscoverViewProps> = ({
         {visibleRecs.length === 0 ? (
           <p className="empty-note dv-empty-recs">
             {recommendations.length === 0
-              ? 'No strong matches yet. Recommendations use your skills, projects and career goals, so adding them (or syncing from AI Tathastu) gives the matcher real evidence. Everyone who is discoverable is still listed below.'
+              ? 'No strong matches yet. Recommendations use your skills, projects and career goals, so adding them (or syncing from AI Tathastu) gives the matcher real evidence. Everyone else on Collaborate is still listed below.'
               : 'No recommended people match this filter.'}
           </p>
         ) : (
@@ -369,8 +369,8 @@ export const PeopleDiscoverView: React.FC<PeopleDiscoverViewProps> = ({
         </div>
         {rest.length === 0 ? (
           <div className="dv-empty">
-            <div className="dv-empty-title">{searchQuery || selectedSkill !== 'all' ? 'No one matches this search' : 'No other discoverable members yet'}</div>
-            <div>{searchQuery || selectedSkill !== 'all' ? 'Try a different name or skill, or clear the filter.' : 'Members appear here once they turn on discoverability.'}</div>
+            <div className="dv-empty-title">{searchQuery || selectedSkill !== 'all' ? 'No one matches this search' : 'No other members yet'}</div>
+            <div>{searchQuery || selectedSkill !== 'all' ? 'Try a different name or skill, or clear the filter.' : 'Members appear here as they join.'}</div>
           </div>
         ) : (
           <ul className="dv-list">{rest.map(renderRow)}</ul>

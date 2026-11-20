@@ -381,7 +381,7 @@ async function runSuite() {
   // --------------------------------------------------------------------------
   console.log('\n--- Section 4: Identity Resolution, Anti-Takeover & Projection ---');
 
-  await test('New AI Tathastu member: imports consented data, NOT auto-verified, NOT auto-discoverable', async () => {
+  await test('New AI Tathastu member: imports consented data, NOT auto-verified, public and discoverable (open profiles)', async () => {
     const newStudentSub = `urn:tathastu:person:student_new_${testRunId}`;
     const newStudentEmail = `student_${testRunId}@aitathastu.test`;
 
@@ -412,8 +412,8 @@ async function runSuite() {
     assert.strictEqual(member.fullName, 'Karan Malhotra');
     assert.strictEqual(member.isVerified, false, 'SSO sign-in must not grant verification');
     assert.ok(!member.statusBadges.includes('Verified Student'), 'no fabricated verification badge');
-    assert.strictEqual(member.discoverable, false, 'not discoverable until the member chooses');
-    assert.strictEqual(member.discoveryChoiceMade, false);
+    assert.strictEqual(member.discoverable, true, 'open profiles: discoverable from the start');
+    assert.strictEqual(member.profileVisibility, 'public');
     assert.ok(!(member.contextTags || []).includes(newStudentEmail), 'email never stored as a public tag');
     assert.strictEqual(member.isLinkedWithTathastu, true);
     assert.strictEqual(member.headline, 'Systems & ML Infrastructure Engineer');

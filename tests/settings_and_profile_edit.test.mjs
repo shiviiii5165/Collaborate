@@ -38,20 +38,19 @@ const memberId = JSON.parse(reg.body).member.id;
 const put = (url, payload) => app.inject({ method: 'PUT', url, headers: { 'content-type': 'application/json', cookie }, payload: JSON.stringify(payload) });
 const member = () => durableDb.getMemberById(memberId);
 
-await test('settings: update_privacy saves visibility and the discovery choice', async () => {
-  const r = await put('/api/settings', { action: 'update_privacy', privacy: { discoverable: true, profileVisibility: 'connections_only', contactVisibility: 'hidden' } });
+await test('settings: update_privacy saves the contact setting; the profile stays public (open profiles)', async () => {
+  const r = await put('/api/settings', { action: 'update_privacy', privacy: { discoverable: false, profileVisibility: 'connections_only', contactVisibility: 'hidden' } });
   assert.strictEqual(r.statusCode, 200, r.body);
   assert.strictEqual(JSON.parse(r.body).success, true);
-  assert.strictEqual(member().profileVisibility, 'connections_only');
   assert.strictEqual(member().contactVisibility, 'hidden');
+  assert.strictEqual(member().profileVisibility, 'public');
   assert.strictEqual(member().discoverable, true);
-  assert.strictEqual(member().discoveryChoiceMade, true);
 });
 
 await test('settings: invalid privacy values are refused and nothing changes', async () => {
-  const r = await put('/api/settings', { action: 'update_privacy', privacy: { profileVisibility: 'everyone' } });
+  const r = await put('/api/settings', { action: 'update_privacy', privacy: { contactVisibility: 'everyone' } });
   assert.strictEqual(r.statusCode, 400);
-  assert.strictEqual(member().profileVisibility, 'connections_only');
+  assert.strictEqual(member().contactVisibility, 'hidden');
 });
 
 await test('settings: notifications and auto-sync accept booleans only, unknown keys ignored', async () => {

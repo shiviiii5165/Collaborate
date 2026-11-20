@@ -251,14 +251,22 @@ export function isSyntheticAccount(m: Pick<MemberProfile, 'email' | 'isDemo'>): 
   return Boolean(m.isDemo) || SYNTHETIC_EMAIL_DOMAIN.test((m.email || '').trim());
 }
 
+/** Created automatically from AI Tathastu and no longer linked to an AI Tathastu account. */
+export function isOrphanedAutomaticProfile(m: Pick<MemberProfile, 'autoProvisioned' | 'tathastu_user_id'>): boolean {
+  return m.autoProvisioned === true && !m.tathastu_user_id;
+}
+
 /** Member-to-member visibility gate shared by discovery, recommendations and saved lists. */
 export function isVisibleInDiscovery(candidate: MemberProfile, viewer: MemberProfile | null, isConnected: boolean): boolean {
   if (candidate.deactivated || candidate.isRestricted || candidate.role === 'admin') return false;
   // A synthetic account is hidden from everyone except other synthetic accounts (test runs).
   if (isSyntheticAccount(candidate) && !(viewer && isSyntheticAccount(viewer))) return false;
-  if (!candidate.discoverable) return false;
-  if (candidate.profileVisibility === 'private') return false;
-  if (candidate.profileVisibility === 'connections_only' && !isConnected) return false;
+  // Open profiles: every member is discoverable (src/lib/db applyOpenProfilePolicy). Stored discoverable/visibility
+  // values from before that policy are ignored; only deactivated, restricted, admin, synthetic and under-18 rules hide.
+  void isConnected;
+  // A profile Collaborate created for an AI Tathastu account that no longer links here (deleted or disconnected
+  // there) is not someone's live profile: never shown, even though profiles are open.
+  if (isOrphanedAutomaticProfile(candidate)) return false;
   // Safeguarding: under-18 accounts are only shown to other under-18 or safeguarding-approved viewers.
   if (candidate.isUnder18 && !(viewer && (viewer.isUnder18 || viewer.safeguardingApproved))) return false;
   return true;

@@ -43,7 +43,8 @@ export type SyncOutcome =
   | 'conflict' | 'invalid_identity' | 'rejected' | 'retryable';
 
 const OUTCOME_BY_ACTION: Record<string, SyncOutcome> = {
-  AUTO_PROVISIONED_PRIVATE: 'created',
+  AUTO_PROVISIONED: 'created',
+  AUTO_PROVISIONED_PRIVATE: 'created', // older name, kept for compatibility
   PROFILE_UPDATED: 'updated',
   IGNORED_STALE: 'up_to_date',
   IGNORED_ALREADY_LINKED: 'up_to_date',
@@ -344,7 +345,7 @@ export class TathastuSsoService {
           recentActivity: [],
           aiSpecializations: [],
           collaborationInterests: [],
-          discoverable: false,
+          discoverable: true,
           discoveryChoiceMade: false,
           profileVisibility: 'public',
           contactVisibility: 'connections_only',
@@ -499,8 +500,8 @@ export class TathastuSsoService {
   }
 
   /**
-   * Creates a PRIVATE Collaborate profile for an AI Tathastu user (owner decision 2026-11-05):
-   * not discoverable, profile page private, until the member turns visibility on. Never merges with
+   * Creates a Collaborate profile for an AI Tathastu user: public and discoverable (open profiles, owner decision
+   * 2026-11-21; applyOpenProfilePolicy). Contact details stay connections-only. Never merges with
    * an existing account by email, and never recreates a profile for a subject that disconnected here.
    */
   private static async autoProvisionMember(externalSub: string, rawProfile: unknown): Promise<WebhookOutcome> {
@@ -565,9 +566,9 @@ export class TathastuSsoService {
       recentActivity: [],
       aiSpecializations: [],
       collaborationInterests: [],
-      discoverable: false,
+      discoverable: true,
       discoveryChoiceMade: false,
-      profileVisibility: 'private',
+      profileVisibility: 'public',
       contactVisibility: 'connections_only',
       isLinkedWithTathastu: true,
       tathastuSyncStatus: 'synced',
@@ -588,7 +589,7 @@ export class TathastuSsoService {
       createdAt: now,
     });
     await durableDb.saveMemberAsync(member);
-    return { status: 200, handled: true, action: 'AUTO_PROVISIONED_PRIVATE', memberId: member.id };
+    return { status: 200, handled: true, action: 'AUTO_PROVISIONED', memberId: member.id };
   }
 
   private static async handleWebhookEvent(eventType: string, event: any): Promise<WebhookOutcome> {
