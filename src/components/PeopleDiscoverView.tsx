@@ -9,7 +9,7 @@
  * Connection actions are applied optimistically and then reconciled with the server
  * (onRefresh re-reads /api/discover). The server rejects duplicates and self-connections.
  */
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, Sparkles, MapPin, CheckCircle2, UserPlus, Check, Eye, X, Clock, Users } from 'lucide-react';
 import { RecommendationMatch } from '@/lib/types';
 
@@ -33,6 +33,13 @@ interface PeopleDiscoverViewProps {
   /** Kept for callers that still pass it; connection actions are handled here. */
   onConnect?: (memberId: string) => void;
   onRefresh?: () => void;
+  /** Infinite scroll: the server sends 20 people per request; more load as the member scrolls. */
+  hasMore?: boolean;
+  loadingMore?: boolean;
+  onLoadMore?: () => void;
+  /** Skill filter runs on the server (so it covers people not loaded yet). */
+  selectedSkill?: string;
+  onSkillChange?: (skill: string) => void;
   quotaRemaining: number;
   userPlan: string;
   onOpenUpgradeModal: () => void;
@@ -76,25 +83,46 @@ export const PeopleDiscoverView: React.FC<PeopleDiscoverViewProps> = ({
   onSearchChange,
   onViewProfile,
   onRefresh,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore,
+  selectedSkill: selectedSkillProp,
+  onSkillChange,
   quotaRemaining,
   userPlan,
   onOpenUpgradeModal,
 }) => {
-  const [selectedSkill, setSelectedSkill] = useState<string>('all');
+  const [localSkill, setLocalSkill] = useState<string>('all');
+  const selectedSkill = selectedSkillProp ?? localSkill;
+  const setSelectedSkill = (s: string) => (onSkillChange ? onSkillChange(s) : setLocalSkill(s));
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const chipsRef = useRef<string[]>([]);
+
+  // Load the next page when the bottom of the list scrolls into view.
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasMore || !onLoadMore || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) onLoadMore();
+    }, { rootMargin: '1500px 0px' }); // fetch well before the end, so the next people are ready on arrival
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasMore, onLoadMore, searchResults.length]);
   const [overrides, setOverrides] = useState<Record<string, ConnState>>({});
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [notice, setNotice] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
 
   const recIds = useMemo(() => new Set(recommendations.map((r) => r.member.id)), [recommendations]);
 
-  // Server state wins once it arrives: optimistic overrides only bridge the round trip.
+  // Server state wins once a fresh first page arrives (new search, filter or reload). Appending
+  // later pages keeps the overrides, so a Connect click is not undone by scrolling.
   useEffect(() => {
     setOverrides((o) => {
       const pending = Object.keys(o).filter((id) => busy[id]);
       return pending.length ? Object.fromEntries(pending.map((id) => [id, o[id]!])) : {};
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recommendations, searchResults]);
+  }, [recommendations]);
 
   const stateOf = (id: string, fallback: { connectionStatus?: ConnStatus; connectionId?: string | null; pendingDirection?: Direction }): ConnState =>
     overrides[id] ?? { status: fallback.connectionStatus || 'not_connected', connectionId: fallback.connectionId ?? null, direction: fallback.pendingDirection ?? null };
@@ -144,7 +172,9 @@ export const PeopleDiscoverView: React.FC<PeopleDiscoverViewProps> = ({
       setNotice({ kind: 'error', text: err instanceof Error ? err.message : 'Something went wrong.' });
     } finally {
       setBusy((b) => ({ ...b, [memberId]: false }));
-      onRefresh?.();
+      // With infinite scroll, reloading would jump back to the first 20 people. The confirmed
+      // server result is already applied above; callers without paging still refresh.
+      if (!onLoadMore) onRefresh?.();
     }
   }
 
@@ -194,7 +224,10 @@ export const PeopleDiscoverView: React.FC<PeopleDiscoverViewProps> = ({
   const others = searchResults.filter((m) => !recIds.has(m.id));
   const skillCounts = new Map<string, number>();
   for (const m of [...recommendations.map((r) => r.member), ...others]) for (const s of m.skills || []) skillCounts.set(s, (skillCounts.get(s) ?? 0) + 1);
-  const topSkills = [...skillCounts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 8).map(([s]) => s);
+  const computedSkills = [...skillCounts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 8).map(([s]) => s);
+  // Keep the chip row steady while a skill filter is active (the filtered page would shrink it).
+  if (selectedSkill === 'all' || chipsRef.current.length === 0) chipsRef.current = computedSkills;
+  const topSkills = chipsRef.current.includes(selectedSkill) || selectedSkill === 'all' ? chipsRef.current : [...chipsRef.current, selectedSkill];
   const skillMatch = (m: any) => selectedSkill === 'all' || (m.skills || []).some((s: string) => s.toLowerCase() === selectedSkill.toLowerCase());
 
   const visibleRecs = recommendations.filter((r) => skillMatch(r.member));
@@ -365,9 +398,9 @@ export const PeopleDiscoverView: React.FC<PeopleDiscoverViewProps> = ({
       <section aria-labelledby="dv-more-title">
         <div className="dv-section-head">
           <h3 id="dv-more-title">More people on Collaborate</h3>
-          <span className="ps-count">{rest.length}</span>
+          <span className="ps-count">{rest.length}{hasMore ? '+' : ''}</span>
         </div>
-        {rest.length === 0 ? (
+        {rest.length === 0 && !hasMore ? (
           <div className="dv-empty">
             <div className="dv-empty-title">{searchQuery || selectedSkill !== 'all' ? 'No one matches this search' : 'No other members yet'}</div>
             <div>{searchQuery || selectedSkill !== 'all' ? 'Try a different name or skill, or clear the filter.' : 'Members appear here as they join.'}</div>
@@ -385,6 +418,14 @@ export const PeopleDiscoverView: React.FC<PeopleDiscoverViewProps> = ({
           </div>
           <ul className="dv-list">{connected.map(renderRow)}</ul>
         </section>
+      )}
+
+      {hasMore && onLoadMore && (
+        <div ref={sentinelRef} className="dv-load-more" style={{ display: 'flex', justifyContent: 'center', padding: '16px 0' }}>
+          <button type="button" className="btn-secondary dv-btn" onClick={onLoadMore} disabled={loadingMore}>
+            {loadingMore ? 'Loading more people…' : 'Show more people'}
+          </button>
+        </div>
       )}
     </div>
   );

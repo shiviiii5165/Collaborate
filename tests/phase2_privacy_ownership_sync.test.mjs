@@ -66,6 +66,24 @@ async function get(url, token) {
   const res = await app.inject({ method: 'GET', url, headers: token ? auth(token) : {} });
   return { status: res.statusCode, body: res.body, json: res.body ? JSON.parse(res.body) : null };
 }
+/** Discover is paginated (max 50 per page): walk every page so assertions cover the whole directory. */
+async function discoverAll(token) {
+  const members = [];
+  let body = '';
+  let recommendations = [];
+  let status = 0;
+  for (let page = 1; page <= 200; page++) {
+    const r = await get(`/api/discover?page=${page}&pageSize=50`, token);
+    status = r.status;
+    if (r.status !== 200) break;
+    assert.ok(r.json.members.length <= 50, 'a page never exceeds 50 people');
+    body += r.body;
+    members.push(...r.json.members);
+    if (page === 1) recommendations = r.json.recommendations;
+    if (!r.json.hasMore) break;
+  }
+  return { status, body, json: { members, recommendations } };
+}
 async function put(url, token, payload) {
   const res = await app.inject({ method: 'PUT', url, headers: auth(token), payload });
   return { status: res.statusCode, json: JSON.parse(res.body) };
@@ -124,7 +142,7 @@ await durableDb.saveMemberAsync(alice.member);
 const bob = await independent('bob', { socialLinks: { linkedin: 'https://linkedin.com/in/bob-private' } });
 
 await test('Discovery never exposes email, raw projection, identity mapping or contact links', async () => {
-  const r = await get('/api/discover', viewer.token);
+  const r = await discoverAll(viewer.token);
   assert.strictEqual(r.status, 200);
   assert.ok(!r.body.includes(alice.email) && !r.body.includes(bob.email), 'no member emails in discovery');
   assert.ok(!r.body.includes(alice.sub), 'no external subject ids');
@@ -175,7 +193,7 @@ await test('Directory list and saved list are sanitized', async () => {
 await test('Open profiles: another member\'s profile is viewable; email lookup stays owner/admin only', async () => {
   const other = await independent('private', { profileVisibility: 'private' });
   assert.strictEqual((await get(`/api/profiles?id=${other.member.id}`, viewer.token)).status, 200);
-  assert.strictEqual((await get(`/api/profiles?id=${other.member.id}`)).status, 200, 'guest');
+  assert.strictEqual((await get(`/api/profiles?id=${other.member.id}`)).status, 401, 'guest: profiles are members-only');
   assert.strictEqual((await get(`/api/profiles?email=${encodeURIComponent(other.email)}`, viewer.token)).status, 404);
 });
 
@@ -186,7 +204,7 @@ await test('Visibility gate: old private/connections-only/non-discoverable flags
   const minor = await independent('minor', { isUnder18: true, discoverable: true, profileVisibility: 'public' });
   durableDb.blockMember(blocker.member.id, viewer.member.id); // blocker blocks the viewer
 
-  const ids = (await get('/api/discover', viewer.token)).json.members.map((m) => m.id);
+  const ids = (await discoverAll(viewer.token)).json.members.map((m) => m.id);
   assert.ok(ids.includes(hidden.member.id), 'open profiles: an old discoverable=false is ignored');
   assert.ok(ids.includes(connOnly.member.id), 'open profiles: connections-only is ignored');
   assert.ok(!ids.includes(blocker.member.id), 'blocked (reverse direction)');
@@ -197,18 +215,18 @@ await test('Visibility gate: old private/connections-only/non-discoverable flags
 await test('New SSO member is discoverable from the start (no opt-in)', async () => {
   const fresh = await linked('fresh', { skills: [{ name: 'Elixir' }] });
   assert.strictEqual(fresh.member.discoverable, true);
-  const ids = (await get('/api/discover', viewer.token)).json.members.map((m) => m.id);
+  const ids = (await discoverAll(viewer.token)).json.members.map((m) => m.id);
   assert.ok(ids.includes(fresh.member.id));
   // Trying to hide through the API has no effect.
   await put('/api/profiles', fresh.token, { discoverable: false, profileVisibility: 'private' });
-  const again = (await get('/api/discover', viewer.token)).json.members.map((m) => m.id);
+  const again = (await discoverAll(viewer.token)).json.members.map((m) => m.id);
   assert.ok(again.includes(fresh.member.id));
 });
 
 await test('Independent members appear in discovery and recommendations', async () => {
   const peer = await independent('peer', { skills: ['Kubernetes'], collaborationInterests: ['open source'] });
   const me = await independent('me', { skills: ['Kubernetes'], collaborationInterests: ['open source'] });
-  const r = await get('/api/discover', me.token);
+  const r = await discoverAll(me.token);
   assert.ok(r.json.members.some((m) => m.id === peer.member.id));
   // Matching v2 ranks complementary help above plain similarity, so a same-skill peer may sit
   // below the discover shortlist; what matters here is that an independent profile is eligible

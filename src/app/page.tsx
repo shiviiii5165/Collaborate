@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
 import { RightRail } from '@/components/RightRail';
@@ -48,6 +48,9 @@ export default function CollaborateApp() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [recommendations, setRecommendations] = useState<RecommendationMatch[]>([]);
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [discoverHasMore, setDiscoverHasMore] = useState(false);
+  const [discoverLoadingMore, setDiscoverLoadingMore] = useState(false);
+  const [discoverSkill, setDiscoverSkill] = useState<string>('all');
   const [savedMembersList, setSavedMembersList] = useState<MemberProfile[]>([]);
 
   // Authentication State Machine
@@ -111,7 +114,7 @@ export default function CollaborateApp() {
   const fetchSavedMembers = async () => {
     if (!currentUser) return;
     try {
-      const res = await fetch(`/api/saved?userId=${currentUser.id}`);
+      const res = await fetch('/api/saved');
       const data = await res.json();
       if (data.savedMembers) {
         setSavedMembersList(data.savedMembers);
@@ -243,24 +246,75 @@ export default function CollaborateApp() {
     setPortalError('');
   };
 
-  const fetchDiscoverData = async () => {
+  // Discover is paged by the server (20 people per request). Page 1 replaces the list (first load,
+  // search or skill change); later pages are appended as the member scrolls.
+  const DISCOVER_PAGE_SIZE = 20;
+  const discoverReq = useRef(0); // ignores responses from an older search that arrive late
+  const discoverPageRef = useRef(1);
+  const discoverLoadingRef = useRef(false);
+
+  const discoverUrl = (page: number, skill: string) => {
+    const p = new URLSearchParams({ q: searchQuery, page: String(page), pageSize: String(DISCOVER_PAGE_SIZE) });
+    if (skill && skill !== 'all') p.set('skill', skill);
+    return `/api/discover?${p.toString()}`;
+  };
+
+  const fetchDiscoverData = async (skill: string = discoverSkill) => {
     if (!currentUser) return;
+    const reqId = ++discoverReq.current;
+    discoverLoadingRef.current = true;
     try {
-      const res = await fetch(
-        `/api/discover?viewerId=${currentUser.id}&q=${encodeURIComponent(searchQuery)}`
-      );
+      const res = await fetch(discoverUrl(1, skill));
       const data = await res.json();
-      if (data.recommendations) setRecommendations(data.recommendations);
-      if (data.results) setSearchResults(data.results);
+      if (reqId !== discoverReq.current || !res.ok) return;
+      setRecommendations(data.recommendations || []);
+      setSearchResults(data.results || []);
+      setDiscoverHasMore(Boolean(data.hasMore));
+      discoverPageRef.current = 1;
     } catch (err) {
       console.error('Failed to load discover data', err);
+    } finally {
+      if (reqId === discoverReq.current) discoverLoadingRef.current = false;
     }
+  };
+
+  const loadMoreDiscover = async () => {
+    if (!currentUser || !discoverHasMore || discoverLoadingRef.current) return;
+    const reqId = discoverReq.current;
+    const next = discoverPageRef.current + 1;
+    discoverLoadingRef.current = true;
+    setDiscoverLoadingMore(true);
+    try {
+      const res = await fetch(discoverUrl(next, discoverSkill));
+      const data = await res.json();
+      if (reqId !== discoverReq.current) return; // the search changed meanwhile
+      if (!res.ok) {
+        if (res.status !== 429) setDiscoverHasMore(false); // 429: keep the button so they can retry shortly
+        return;
+      }
+      setSearchResults((prev) => {
+        const seen = new Set(prev.map((m: any) => m.id));
+        return [...prev, ...(data.results || []).filter((m: any) => !seen.has(m.id))];
+      });
+      setDiscoverHasMore(Boolean(data.hasMore));
+      discoverPageRef.current = next;
+    } catch (err) {
+      console.error('Failed to load more people', err);
+    } finally {
+      if (reqId === discoverReq.current) discoverLoadingRef.current = false;
+      setDiscoverLoadingMore(false);
+    }
+  };
+
+  const handleDiscoverSkillChange = (skill: string) => {
+    setDiscoverSkill(skill);
+    fetchDiscoverData(skill);
   };
 
   const fetchUnreadCount = async () => {
     if (!currentUser) return;
     try {
-      const res = await fetch(`/api/messages?userId=${currentUser.id}`);
+      const res = await fetch('/api/messages');
       const data = await res.json();
       if (data.conversations) {
         const totalUnread = data.conversations.reduce(
@@ -277,7 +331,7 @@ export default function CollaborateApp() {
   const fetchNotifications = async () => {
     if (!currentUser) return;
     try {
-      const res = await fetch(`/api/notifications?userId=${currentUser.id}`);
+      const res = await fetch('/api/notifications');
       const data = await res.json();
       if (data.notifications) {
         setNotificationsList(data.notifications);
@@ -382,10 +436,11 @@ export default function CollaborateApp() {
     }
   }, [currentTab, currentUser]);
 
+  // Wait until typing pauses: one request per search, not one per keystroke.
   useEffect(() => {
-    if (currentUser) {
-      fetchDiscoverData();
-    }
+    if (!currentUser) return;
+    const t = setTimeout(() => fetchDiscoverData(), 300);
+    return () => clearTimeout(t);
   }, [searchQuery]);
 
   // Handle viewing another member's full profile (enforcing daily 3-view quota)
@@ -398,7 +453,7 @@ export default function CollaborateApp() {
     }
 
     try {
-      const res = await fetch(`/api/profiles?id=${targetId}&viewerId=${currentUser.id}`);
+      const res = await fetch(`/api/profiles?id=${encodeURIComponent(targetId)}`);
       const data = await res.json();
 
       if (res.status === 402 || data.error === 'QUOTA_EXCEEDED') {
@@ -1279,7 +1334,12 @@ export default function CollaborateApp() {
               onSearchChange={setSearchQuery}
               onViewProfile={handleViewProfile}
               onConnect={handleSendConnection}
-              onRefresh={fetchDiscoverData}
+              onRefresh={() => fetchDiscoverData()}
+              hasMore={discoverHasMore}
+              loadingMore={discoverLoadingMore}
+              onLoadMore={loadMoreDiscover}
+              selectedSkill={discoverSkill}
+              onSkillChange={handleDiscoverSkillChange}
               quotaRemaining={quotaRemaining}
               userPlan={currentUser.plan}
               onOpenUpgradeModal={() => setIsUpgradeOpen(true)}

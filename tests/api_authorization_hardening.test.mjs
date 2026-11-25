@@ -139,9 +139,11 @@ await test('Forged body.userId on EORA answers for the session user only', async
   assert.ok(!body(res).reply.includes('bob'));
 });
 
-await test('Open profiles: anyone can view; a forged ?viewerId= cannot unlock a restricted profile', async () => {
-  // Every profile is public now (applyOpenProfilePolicy), including ones stored as private or connections-only.
-  assert.strictEqual((await inject({ method: 'GET', url: `/api/profiles?id=${carol.member.id}` })).statusCode, 200);
+await test('Open profiles: members-only; a forged ?viewerId= cannot unlock a restricted profile', async () => {
+  // Every profile is open to signed-in members (applyOpenProfilePolicy); guests get nothing, even with a forged ?viewerId=.
+  assert.strictEqual((await inject({ method: 'GET', url: `/api/profiles?id=${carol.member.id}` })).statusCode, 401);
+  assert.strictEqual((await inject({ method: 'GET', url: `/api/profiles?id=${carol.member.id}&viewerId=${bob.member.id}` })).statusCode, 401);
+  assert.strictEqual((await inject({ method: 'GET', url: `/api/discover?viewerId=${bob.member.id}` })).statusCode, 401);
   assert.strictEqual((await inject({ method: 'GET', url: `/api/profiles?id=${bob.member.id}`, headers: alice.auth })).statusCode, 200);
   // Moderation still hides: a restricted profile, even when the caller claims to be its owner via ?viewerId=.
   const m = durableDb.getMemberById(carol.member.id);
@@ -155,12 +157,20 @@ await test('Open profiles: anyone can view; a forged ?viewerId= cannot unlock a 
 
 await test('Directory lists every open profile (never restricted ones); email lookup is owner/admin only', async () => {
   // These fixtures use test-domain emails, which are shown only to other test accounts: list as alice (also one).
-  const list = body(await inject({ method: 'GET', url: '/api/profiles', headers: alice.auth }));
+  // Paginated (max 50 per page): walk the pages.
+  const list = [];
+  for (let page = 1; page <= 200; page++) {
+    const chunk = body(await inject({ method: 'GET', url: `/api/profiles?page=${page}&pageSize=50`, headers: alice.auth }));
+    assert.ok(chunk.length <= 50, 'a page never exceeds 50 people');
+    list.push(...chunk);
+    if (chunk.length < 50) break;
+  }
   assert.ok(list.some((m) => m.id === bob.member.id) && list.some((m) => m.id === carol.member.id));
+  // Asking for more than 50 still returns at most 50.
+  assert.ok(body(await inject({ method: 'GET', url: '/api/profiles?pageSize=100000', headers: alice.auth })).length <= 50);
   assert.ok(!list.some((m) => m.id === alice.member.id), 'never yourself');
-  // A guest (not a test account) never sees test accounts.
-  const guestList = body(await inject({ method: 'GET', url: '/api/profiles' }));
-  assert.ok(!guestList.some((m) => m.id === bob.member.id));
+  // A guest cannot list the directory at all.
+  assert.strictEqual((await inject({ method: 'GET', url: '/api/profiles' })).statusCode, 401);
   assert.strictEqual((await inject({ method: 'GET', url: `/api/profiles?email=${encodeURIComponent(bob.member.email)}` })).statusCode, 401);
   assert.strictEqual((await inject({ method: 'GET', url: `/api/profiles?email=${encodeURIComponent(bob.member.email)}`, headers: alice.auth })).statusCode, 404);
   assert.strictEqual((await inject({ method: 'GET', url: `/api/profiles?email=${encodeURIComponent(bob.member.email)}`, headers: bob.auth })).statusCode, 200);
