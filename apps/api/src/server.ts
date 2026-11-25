@@ -36,7 +36,27 @@ import {
   PAYMENT_WEBHOOK_PROVIDER,
 } from '@/modules/billing/payment-webhook';
 import { isOriginAllowed } from '@/lib/http/cors-policy';
-import { AttemptLimiter, checkPasswordAttempt } from '@/lib/http/rate-limit';
+import { AttemptLimiter, checkPasswordAttempt, discoverReadsPerMember, profileReadsPerMember } from '@/lib/http/rate-limit';
+
+/** A member's Discover order, computed on page 1 and reused by pages 2+ (ids only; cards are built live). */
+interface DiscoverSnapshot {
+  at: number;
+  recommendations: any[];
+  order: { id: string; section: string }[];
+  sections: Record<string, number>;
+}
+const DISCOVER_SNAPSHOT_TTL_MS = 5 * 60_000;
+const DISCOVER_SNAPSHOT_MAX = 5_000; // bounded memory: oldest evicted first
+const discoverSnapshots = new Map<string, DiscoverSnapshot>();
+
+/** Per-member read throttle: true when allowed, otherwise sends 429 and returns false. */
+function limitMemberRead(limiter: AttemptLimiter, memberId: string, reply: FastifyReply): boolean {
+  const r = limiter.hit(memberId);
+  if (r.allowed) return true;
+  reply.header('Retry-After', String(r.retryAfter));
+  reply.status(429).send({ error: 'TOO_MANY_REQUESTS', message: 'Too many requests. Please slow down.' });
+  return false;
+}
 import * as Social from '@/modules/social/service';
 import { SocialError } from '@/modules/social/service';
 import * as Media from '@/modules/media/service';
@@ -335,6 +355,9 @@ export function buildServer(): FastifyInstance {
     const viewerId = req.user?.userId || '';
 
     if (id) {
+      // Profiles are visible to signed-in members only (skills, LeetCode, GitHub live behind login).
+      if (!req.user) return reply.status(401).send({ error: 'UNAUTHORIZED', message: 'Sign in to view this profile' });
+      if (viewerId !== id && !limitMemberRead(profileReadsPerMember, viewerId, reply)) return reply;
       const member = durableDb.getMemberById(id);
       if (!member || (member.deactivated && viewerId !== id && req.user?.role !== 'admin')) {
         return reply.status(404).send({ error: 'Profile not found' });
@@ -409,12 +432,19 @@ export function buildServer(): FastifyInstance {
     }
 
     // Directory listing: every visible member (open profiles), never the viewer or anyone blocked either way.
+    // Signed-in members only: an anonymous caller must not be able to download the whole directory.
+    if (!req.user) return reply.status(401).send({ error: 'UNAUTHORIZED', message: 'Authentication required' });
+    if (!limitMemberRead(discoverReadsPerMember, req.user.userId, reply)) return reply;
     const viewer = viewerId ? durableDb.getMemberById(viewerId) : null;
     const members = durableDb
       .getAllMembers()
       .filter((m) => m.id !== viewerId && !(viewerId && durableDb.isBlocked(viewerId, m.id)) && isVisibleInDiscovery(m, viewer, false))
       .map((m) => toPublicMember(m, { viewerId }));
-    return reply.send(members);
+    // Paginated like /api/discover: never the whole directory in one response.
+    const q = req.query as Record<string, string | undefined>;
+    const pageSize = Math.max(1, Math.min(Math.floor(Number(q.pageSize)) || 20, 50));
+    const page = Math.max(1, Math.min(Math.floor(Number(q.page)) || 1, 10_000));
+    return reply.send(members.slice((page - 1) * pageSize, page * pageSize));
   });
 
   /** Fields a member can never set through profile edits (identity, role, billing, trust). */
@@ -473,13 +503,66 @@ export function buildServer(): FastifyInstance {
 
   fastify.get('/api/discover', async (req: FastifyRequest<{ Querystring: { q?: string; tag?: string; skill?: string; viewerId?: string; page?: string; pageSize?: string } }>, reply) => {
     await optionalAuth(req);
+    // Discovery is for signed-in members only. Without this, anyone (logged out, a script) could page
+    // through every member's profile. Identity comes only from the session; ?viewerId= is ignored.
+    if (!req.user) return reply.status(401).send({ error: 'UNAUTHORIZED', message: 'Authentication required' });
+    if (!limitMemberRead(discoverReadsPerMember, req.user.userId, reply)) return reply;
     const { q, tag, skill } = req.query;
-    const currentUserId = req.user?.userId || ''; // never from ?viewerId=
+    const currentUserId = req.user.userId;
 
     const viewer = currentUserId ? durableDb.getMemberById(currentUserId) : null;
     const isConnected = (otherId: string) =>
       Boolean(currentUserId) && durableDb.getConnectionState(currentUserId, otherId)?.status === 'accepted';
 
+    const pageSize = Math.max(1, Math.min(Math.floor(Number(req.query.pageSize)) || 20, 50));
+    const page = Math.max(1, Math.min(Math.floor(Number(req.query.page)) || 1, 10_000));
+    const snapKey = `${currentUserId}|${q || ''}|${tag || ''}|${(skill || '').toLowerCase()}`;
+
+    // Page 1 always computes a fresh order (recommendation engine + sort over every member). Pages 2+
+    // reuse that order for a few minutes instead of redoing the whole computation to return 20 people,
+    // which also keeps scrolling consistent (nobody skipped or shown twice if the order shifts).
+    let snap = page > 1 ? discoverSnapshots.get(snapKey) : undefined;
+    if (snap && Date.now() - snap.at > DISCOVER_SNAPSHOT_TTL_MS) snap = undefined;
+    if (!snap) {
+      snap = buildDiscoverSnapshot();
+      if (discoverSnapshots.size >= DISCOVER_SNAPSHOT_MAX) discoverSnapshots.delete(discoverSnapshots.keys().next().value as string);
+      discoverSnapshots.delete(snapKey);
+      discoverSnapshots.set(snapKey, snap);
+    }
+
+    // Each page's people are re-read live: current profile, connection state, and still visible/unblocked.
+    const results = snap.order
+      .slice((page - 1) * pageSize, page * pageSize)
+      .flatMap(({ id, section }) => {
+        const m = durableDb.getMemberById(id);
+        if (!m || durableDb.isBlocked(currentUserId, id) || !isVisibleInDiscovery(m, viewer, isConnected(id))) return [];
+        const conn = durableDb.getConnectionState(currentUserId, id);
+        const liveSection = conn?.status === 'accepted' ? 'connected' : section === 'connected' ? 'other' : section;
+        return [{
+          ...toPublicMember(m, { viewerId: currentUserId, isConnected: conn?.status === 'accepted' }),
+          connectionStatus: conn ? conn.status : 'not_connected',
+          connectionId: conn ? conn.id : null,
+          // Pending is split by direction so the UI can show "respond" vs "sent".
+          pendingDirection: conn?.status === 'request_sent' ? (conn.requesterId === currentUserId ? 'outgoing' : 'incoming') : null,
+          section: liveSection,
+        }];
+      });
+
+    const total = snap.order.length;
+    return reply.send({
+      count: total,
+      total,
+      page,
+      pageSize,
+      hasMore: page * pageSize < total,
+      sections: snap.sections,
+      members: results,
+      results,
+      recommendations: page === 1 ? snap.recommendations : [],
+      viewerPlan: viewer?.plan || 'free',
+    });
+
+    function buildDiscoverSnapshot(): DiscoverSnapshot {
     // Recommendations carry the same connection fields as directory rows, so a recommended card can
     // show Pending / Respond instead of offering a second request (the store rejects duplicates too).
     const recommendations = currentUserId
@@ -517,7 +600,8 @@ export function buildServer(): FastifyInstance {
     }
 
     if (skill) {
-      members = members.filter((m) => m.skills?.includes(skill));
+      const s = skill.toLowerCase();
+      members = members.filter((m) => (m.skills || []).some((x) => x.toLowerCase() === s));
     }
 
     // One directory, one stable order, no duplicates:
@@ -533,49 +617,27 @@ export function buildServer(): FastifyInstance {
     const ordered = members
       .map((m) => {
         const conn = currentUserId ? durableDb.getConnectionState(currentUserId, m.id) : null;
-        return { m, conn, section: sectionOf(conn?.status, m.id) };
+        // Requests waiting for the viewer come right after recommendations, so they are on page 1.
+        const incoming = conn?.status === 'request_sent' && conn.requesterId !== currentUserId ? 0 : 1;
+        return { m, conn, incoming, section: sectionOf(conn?.status, m.id) };
       })
       .sort(
         (a, b) =>
           SECTION_ORDER[a.section] - SECTION_ORDER[b.section] ||
+          a.incoming - b.incoming ||
           (recommendedRank.get(a.m.id) ?? 0) - (recommendedRank.get(b.m.id) ?? 0) ||
           a.m.fullName.localeCompare(b.m.fullName) ||
           a.m.id.localeCompare(b.m.id)
       );
 
-    // Pagination is opt-in (?page / ?pageSize); without them the full ordered list is returned,
-    // which is what the current UI expects.
-    const paged = req.query.page !== undefined || req.query.pageSize !== undefined;
-    const pageSize = paged ? Math.max(1, Math.min(Number(req.query.pageSize) || 20, 50)) : Math.max(1, ordered.length);
-    const page = paged ? Math.max(1, Math.floor(Number(req.query.page) || 1)) : 1;
-    const slice = ordered.slice((page - 1) * pageSize, page * pageSize);
-
-    const results = slice.map(({ m, conn, section }) => ({
-      ...toPublicMember(m, { viewerId: currentUserId, isConnected: conn?.status === 'accepted' }),
-      connectionStatus: conn ? conn.status : 'not_connected',
-      connectionId: conn ? conn.id : null,
-      // Pending is split by direction so the UI can show "respond" vs "sent".
-      pendingDirection: conn?.status === 'request_sent' ? (conn.requesterId === currentUserId ? 'outgoing' : 'incoming') : null,
-      section,
-    }));
-
-    return reply.send({
-      count: ordered.length,
-      total: ordered.length,
-      page,
-      pageSize,
-      hasMore: page * pageSize < ordered.length,
-      sections: {
-        recommended: ordered.filter((o) => o.section === 'recommended').length,
-        pending: ordered.filter((o) => o.section === 'pending').length,
-        other: ordered.filter((o) => o.section === 'other').length,
-        connected: ordered.filter((o) => o.section === 'connected').length,
-      },
-      members: results,
-      results,
-      recommendations: page === 1 ? recommendations : [],
-      viewerPlan: currentUserId ? durableDb.getMemberById(currentUserId)?.plan || 'free' : 'free',
-    });
+    const count = (s: string) => ordered.filter((o) => o.section === s).length;
+    return {
+      at: Date.now(),
+      recommendations,
+      order: ordered.map((o) => ({ id: o.m.id, section: o.section })),
+      sections: { recommended: count('recommended'), pending: count('pending'), other: count('other'), connected: count('connected') },
+    };
+    }
   });
 
   // ============================================================================

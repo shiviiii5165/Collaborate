@@ -43,6 +43,14 @@ export const passwordAttemptsPerAccount = new AttemptLimiter(10, 15 * 60_000);
 export const passwordAttemptsPerIp = new AttemptLimiter(50, 15 * 60_000);
 export const passwordAttemptsPerAccountAnyIp = new AttemptLimiter(30, 15 * 60_000);
 
+/**
+ * Anti-scraping limits for reads of OTHER members' profiles, keyed on the signed-in member id (not the IP,
+ * which a direct caller can spoof). Generous for a person browsing; far too low to copy the directory.
+ */
+// Discover is paged (20 per request), so 120 requests = up to 2,400 profiles per 10 minutes for scrolling and searching.
+export const discoverReadsPerMember = new AttemptLimiter(120, 10 * 60_000);
+export const profileReadsPerMember = new AttemptLimiter(150, 10 * 60_000);
+
 export function checkPasswordAttempt(ip: string, account: string): { allowed: boolean; retryAfter: number } {
   const acct = account.toLowerCase().trim();
   const perIp = passwordAttemptsPerIp.hit(`ip:${ip}`);

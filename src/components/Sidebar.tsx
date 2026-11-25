@@ -134,7 +134,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         return;
       }
       try {
-        const res = await fetch(`/api/stats?userId=${currentUser.id}`);
+        const res = await fetch('/api/stats');
         const data = await res.json();
         if (data.stats) {
           const s = data.stats;

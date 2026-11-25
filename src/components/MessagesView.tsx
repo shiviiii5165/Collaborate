@@ -37,7 +37,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
 
   const fetchConversations = async () => {
     try {
-      const res = await fetch(`/api/messages?userId=${currentUser.id}`);
+      const res = await fetch('/api/messages');
       const data = await res.json();
       if (data.conversations) {
         setConversations(data.conversations);
@@ -63,7 +63,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
   const fetchMessages = async (convId: string) => {
     try {
       const res = await fetch(
-        `/api/messages?conversationId=${convId}&userId=${currentUser.id}`
+        `/api/messages?conversationId=${encodeURIComponent(convId)}`
       );
       const data = await res.json();
       if (data.messages) {
@@ -80,7 +80,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
     let eventSource: EventSource | null = null;
     if (typeof window !== 'undefined') {
       try {
-        eventSource = new EventSource(`/api/messages/stream?userId=${currentUser.id}`);
+        eventSource = new EventSource('/api/messages/stream');
         eventSource.addEventListener('message', (e) => {
           try {
             const msg = JSON.parse(e.data);
