@@ -51,6 +51,10 @@ export const passwordAttemptsPerAccountAnyIp = new AttemptLimiter(30, 15 * 60_00
 export const discoverReadsPerMember = new AttemptLimiter(120, 10 * 60_000);
 export const profileReadsPerMember = new AttemptLimiter(150, 10 * 60_000);
 
+/** Anti-spam limits for writes that reach another member, keyed on the signed-in member id. */
+export const messagesSentPerMember = new AttemptLimiter(60, 60_000); // a fast conversation, not a flood
+export const connectionRequestsPerMember = new AttemptLimiter(40, 60 * 60_000);
+
 export function checkPasswordAttempt(ip: string, account: string): { allowed: boolean; retryAfter: number } {
   const acct = account.toLowerCase().trim();
   const perIp = passwordAttemptsPerIp.hit(`ip:${ip}`);

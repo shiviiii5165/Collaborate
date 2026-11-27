@@ -1513,11 +1513,8 @@ export class DurableCollaborateDatabase {
 
     this.state.messages.push(msg);
     this.persistToDisk();
-    if (isNeonConfigured()) {
-      MessagesRepository.sendMessage(senderId, recipientId, content).catch((err) => {
-        console.error('Failed to sync message to PostgreSQL:', err);
-      });
-    }
+    // The relational mirror is written once, by sendMessageAsync (it was also fired here, so every message
+    // was inserted into direct_messages twice).
     return msg;
   }
 
@@ -1531,7 +1528,14 @@ export class DurableCollaborateDatabase {
   public async sendMessageAsync(senderId: string, recipientId: string, content: string): Promise<DirectMessage> {
     const msg = this.sendMessage(senderId, recipientId, content);
     if (isNeonConfigured()) {
-      await MessagesRepository.sendMessage(senderId, recipientId, content);
+      // The document store above is authoritative (it is what every read uses, and the request's flush makes it
+      // durable). The relational mirror re-checks the connection against its own tables; when those lag, it must
+      // not turn an already-saved message into an error for the sender.
+      try {
+        await MessagesRepository.sendMessage(senderId, recipientId, content);
+      } catch (err: any) {
+        console.error('[messages] relational mirror write failed:', err?.message || err);
+      }
     }
     return msg;
   }

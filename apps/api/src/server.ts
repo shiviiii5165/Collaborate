@@ -36,7 +36,7 @@ import {
   PAYMENT_WEBHOOK_PROVIDER,
 } from '@/modules/billing/payment-webhook';
 import { isOriginAllowed } from '@/lib/http/cors-policy';
-import { AttemptLimiter, checkPasswordAttempt, discoverReadsPerMember, profileReadsPerMember } from '@/lib/http/rate-limit';
+import { AttemptLimiter, checkPasswordAttempt, connectionRequestsPerMember, discoverReadsPerMember, messagesSentPerMember, profileReadsPerMember } from '@/lib/http/rate-limit';
 
 /** A member's Discover order, computed on page 1 and reused by pages 2+ (ids only; cards are built live). */
 interface DiscoverSnapshot {
@@ -194,6 +194,8 @@ export function buildServer(): FastifyInstance {
   // 2a. Size limits for user-written text that is stored and held in memory by every instance.
   const MAX_MESSAGE_CHARS = 4000;
   const MAX_INTRO_CHARS = 500;
+  const MAX_STREAMS_PER_MEMBER = 3;
+  const openStreamsPerMember = new Map<string, number>();
 
   // 2b. Brute-force protection for password-bearing endpoints.
   const limitPasswordAttempt = (req: FastifyRequest, reply: FastifyReply, account: string): boolean => {
@@ -746,6 +748,7 @@ export function buildServer(): FastifyInstance {
 
     if (action === 'send' || action === 'request' || action === 'send_request') {
       if (!targetId) return reply.status(400).send({ error: 'targetUserId or toId required' });
+      if (!limitMemberRead(connectionRequestsPerMember, userId, reply)) return;
 
       const target = durableDb.getMemberById(targetId);
       if (!target || target.deactivated) return reply.status(404).send({ error: 'Target member not found' });
@@ -831,6 +834,10 @@ export function buildServer(): FastifyInstance {
       if (!conv || !conv.participantIds.includes(userId)) {
         return reply.status(404).send({ error: 'Conversation not found' });
       }
+      const peerId = conv.participantIds.find((id) => id !== userId) ?? '';
+      if (durableDb.isBlocked(userId, peerId)) {
+        return reply.status(403).send({ error: 'MESSAGING_FORBIDDEN_BLOCKED', message: 'User is blocked' });
+      }
       const messages = durableDb.getMessagesForConversation(conversationId);
       return reply.send({ messages });
     }
@@ -838,20 +845,42 @@ export function buildServer(): FastifyInstance {
     // The chat list needs the other participant, the last message and the unread count. Without them
     // the Messages view crashed for anyone with a conversation. The other member goes out through
     // the same public allow-list as everywhere else (no email or internal fields).
-    const conversations = durableDb
+    const withConversation = new Set<string>();
+    const conversations: any[] = durableDb
       .getAllConversations()
       .filter((c) => c.participantIds.includes(userId))
       .flatMap((c) => {
         const otherId = c.participantIds.find((id) => id !== userId) ?? '';
         const other = durableDb.getMemberById(otherId);
-        if (!other || durableDb.isBlocked(userId, otherId)) return [];
+        if (!other || other.deactivated || durableDb.isBlocked(userId, otherId)) return [];
+        withConversation.add(otherId);
         const messages = durableDb.getMessagesForConversation(c.id);
         const lastMessage = messages[messages.length - 1] ?? null;
         const unreadCount = messages.filter((m) => m.recipientId === userId && m.status !== 'read').length;
         const isConnected = durableDb.getConnectionState(userId, otherId)?.status === 'accepted';
-        return [{ ...c, otherMember: toPublicMember(other, { viewerId: userId, isConnected }), lastMessage, unreadCount }];
+        return [{ ...c, isNew: false, canMessage: isConnected, otherMember: toPublicMember(other, { viewerId: userId, isConnected }), lastMessage, unreadCount }];
       })
       .sort((a, b) => (b.lastMessage?.timestamp ?? '').localeCompare(a.lastMessage?.timestamp ?? ''));
+
+    // A conversation only exists after its first message, so without these a new connection never appeared in
+    // Messages and nobody could send the first message. Every accepted connection is listed as a chat that can start.
+    for (const conn of durableDb.getAllConnections()) {
+      if (conn.status !== 'accepted' || (conn.requesterId !== userId && conn.recipientId !== userId)) continue;
+      const otherId = conn.requesterId === userId ? conn.recipientId : conn.requesterId;
+      if (withConversation.has(otherId) || durableDb.isBlocked(userId, otherId)) continue;
+      const other = durableDb.getMemberById(otherId);
+      if (!other || other.deactivated) continue;
+      withConversation.add(otherId);
+      conversations.push({
+        id: `new:${otherId}`,
+        isNew: true,
+        canMessage: true,
+        participantIds: [userId, otherId],
+        otherMember: toPublicMember(other, { viewerId: userId, isConnected: true }),
+        lastMessage: null,
+        unreadCount: 0,
+      });
+    }
     return reply.send({ conversations });
   });
 
@@ -863,6 +892,10 @@ export function buildServer(): FastifyInstance {
     if (typeof recipientId !== 'string' || !recipientId || !content) {
       return reply.status(400).send({ error: 'recipientId and content required' });
     }
+    if (recipientId === userId) return reply.status(400).send({ error: 'You cannot message yourself' });
+    if (!limitMemberRead(messagesSentPerMember, userId, reply)) return;
+    const recipient = durableDb.getMemberById(recipientId);
+    if (!recipient || recipient.deactivated) return reply.status(404).send({ error: 'NOT_FOUND', message: 'Member not found' });
     if (content.length > MAX_MESSAGE_CHARS) {
       return reply.status(400).send({ error: `Messages can be at most ${MAX_MESSAGE_CHARS} characters` });
     }
@@ -880,10 +913,36 @@ export function buildServer(): FastifyInstance {
     return reply.status(201).send({ success: true, message: msg });
   });
 
+  // Read receipts: the reader marks a conversation read (unread counts and the sidebar badge clear).
+  fastify.post('/api/messages/read', { preHandler: authenticate }, async (req: FastifyRequest<{ Body: Record<string, any> }>, reply) => {
+    const userId = req.user!.userId;
+    const conversationId = req.body?.conversationId;
+    if (typeof conversationId !== 'string' || !conversationId) return reply.status(400).send({ error: 'conversationId required' });
+    const conv = durableDb.getConversationById(conversationId);
+    if (!conv || !conv.participantIds.includes(userId)) return reply.status(404).send({ error: 'Conversation not found' });
+    durableDb.markMessagesRead(conversationId, userId);
+    return reply.send({ success: true });
+  });
+
   // Persistent Server-Sent Events (SSE) stream on Render
   fastify.get('/api/messages/stream', { preHandler: authenticate }, async (req: FastifyRequest, reply) => {
     const userId = req.user!.userId;
     const lastEventId = (req.headers['last-event-id'] as string) || (req.query as any)?.sinceId;
+
+    // Bounded: each stream is a held socket and a timer, so one account may not open unlimited streams.
+    const open = openStreamsPerMember.get(userId) ?? 0;
+    if (open >= MAX_STREAMS_PER_MEMBER) {
+      return reply.status(429).send({ error: 'TOO_MANY_STREAMS', message: 'Too many open message streams for this account.' });
+    }
+    openStreamsPerMember.set(userId, open + 1);
+    let released = false;
+    const release = () => {
+      if (released) return;
+      released = true;
+      const n = (openStreamsPerMember.get(userId) ?? 1) - 1;
+      if (n <= 0) openStreamsPerMember.delete(userId);
+      else openStreamsPerMember.set(userId, n);
+    };
 
     reply.raw.setHeader('Content-Type', 'text/event-stream');
     reply.raw.setHeader('Cache-Control', 'no-cache, no-transform');
@@ -912,6 +971,7 @@ export function buildServer(): FastifyInstance {
 
     req.raw.on('close', () => {
       clearInterval(heartbeat);
+      release();
     });
   });
 
