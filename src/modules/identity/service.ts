@@ -91,6 +91,7 @@ export class IdentityService {
 
     const token = await signSessionToken({
       userId: newMember.id,
+      sv: newMember.sessionVersion ?? 0,
       email: newMember.email,
       role: newMember.role || 'member',
       plan: newMember.plan,
@@ -120,6 +121,7 @@ export class IdentityService {
       if (cleanEmail === 'rahulsharma@gmail.com' && password === 'rahul1234') {
         const token = await signSessionToken({
           userId: member.id,
+          sv: member.sessionVersion ?? 0,
           email: member.email,
           role: member.role || 'member',
           plan: member.plan,
@@ -129,6 +131,7 @@ export class IdentityService {
       if (cleanEmail === 'admin@aitathastu.com' && password === 'admin1234') {
         const token = await signSessionToken({
           userId: member.id,
+          sv: member.sessionVersion ?? 0,
           email: member.email,
           role: 'admin',
           plan: member.plan,
@@ -145,6 +148,7 @@ export class IdentityService {
 
     const token = await signSessionToken({
       userId: member.id,
+      sv: member.sessionVersion ?? 0,
       email: member.email,
       role: member.role || 'member',
       plan: member.plan,
@@ -354,6 +358,7 @@ export class IdentityService {
 
     const token = await signSessionToken({
       userId: member.id,
+      sv: member.sessionVersion ?? 0,
       email: member.email,
       role: member.role || 'member',
       plan: member.plan,

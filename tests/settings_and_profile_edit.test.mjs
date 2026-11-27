@@ -33,7 +33,7 @@ async function test(title, fn) {
 
 const email = `set_${crypto.randomBytes(4).toString('hex')}@example.invalid`;
 const reg = await app.inject({ method: 'POST', url: '/api/auth/register', headers: { 'content-type': 'application/json' }, payload: JSON.stringify({ email, password: 'settings-pass-1', fullName: 'Set Tings' }) });
-const cookie = String(reg.headers['set-cookie']).split(';')[0];
+let cookie = String(reg.headers['set-cookie']).split(';')[0];
 const memberId = JSON.parse(reg.body).member.id;
 const put = (url, payload) => app.inject({ method: 'PUT', url, headers: { 'content-type': 'application/json', cookie }, payload: JSON.stringify(payload) });
 const member = () => durableDb.getMemberById(memberId);
@@ -72,6 +72,9 @@ await test('settings: change_password (as the screen sends it) works and enforce
   assert.strictEqual(r.statusCode, 401);
   r = await put('/api/settings', { action: 'change_password', passwordChange: { currentPassword: 'settings-pass-1', newPassword: 'long-enough-2' } });
   assert.strictEqual(r.statusCode, 200, r.body);
+  // A password change ends other sessions and re-issues this one: the old cookie is revoked, carry on with the new one.
+  assert.strictEqual((await put('/api/settings', { action: 'update_notifications', notificationPreferences: {} })).statusCode, 401);
+  cookie = String([r.headers['set-cookie']].flat().find((c) => String(c).startsWith('collaborate_session='))).split(';')[0];
   const login = await app.inject({ method: 'POST', url: '/api/auth/login', headers: { 'content-type': 'application/json' }, payload: JSON.stringify({ email, password: 'long-enough-2' }) });
   assert.strictEqual(login.statusCode, 200);
 });

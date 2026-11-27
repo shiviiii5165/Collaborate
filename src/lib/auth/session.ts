@@ -16,10 +16,12 @@ export interface SessionPayload {
   email: string;
   role: 'member' | 'admin';
   plan: 'free' | 'premium';
+  /** The member's sessionVersion when the token was issued; a token from an older version is rejected. */
+  sv?: number;
 }
 
 export async function signSessionToken(payload: SessionPayload): Promise<string> {
-  return await new SignJWT({ ...payload })
+  return await new SignJWT({ ...payload, sv: payload.sv ?? 0 })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
@@ -39,6 +41,7 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
       email: payload.email as string,
       role: (payload.role as 'member' | 'admin') || 'member',
       plan: (payload.plan as 'free' | 'premium') || 'free',
+      sv: typeof payload.sv === 'number' ? payload.sv : 0,
     };
   } catch {
     return null;

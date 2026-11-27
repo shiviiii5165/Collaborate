@@ -231,7 +231,7 @@ export function toPublicMember(raw: MemberProfile, ctx: ViewerContext = {}) {
 /** The member's own record. Strips raw/internal bookkeeping only; the member may see their own data. */
 export function toSelfMember(raw: MemberProfile) {
   const m = withOwnership(raw);
-  const { tathastuProfile: _legacy, localProfile: _local, importedIdentity: _fills, unlinkedTathastuSubjects: _gone, ...rest } = m;
+  const { tathastuProfile: _legacy, localProfile: _local, importedIdentity: _fills, unlinkedTathastuSubjects: _gone, sessionVersion: _sv, ...rest } = m;
   return {
     ...rest,
     recentActivity: freshActivity(m.recentActivity),

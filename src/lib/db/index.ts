@@ -20,6 +20,14 @@ import { QuotaRepository } from './repositories/quota';
 import { VerificationRepository } from './repositories/verification';
 import { NotificationsRepository } from './repositories/notifications';
 
+/** Premium counts only until planExpiresAt (a paid month ends; it is never premium forever). */
+export function isPremiumActive(m: Pick<MemberProfile, 'plan' | 'planExpiresAt'> | null | undefined, now = Date.now()): boolean {
+  if (!m || m.plan !== 'premium') return false;
+  if (!m.planExpiresAt) return true; // legacy/admin-granted premium without an end date
+  const end = Date.parse(m.planExpiresAt);
+  return Number.isFinite(end) && end > now;
+}
+
 export function getKolkataDateKey(): string {
   const now = new Date();
   const formatter = new Intl.DateTimeFormat('en-CA', {
@@ -937,6 +945,13 @@ export class DurableCollaborateDatabase {
     this.persistToDisk();
   }
 
+  /** Removes a password (account deletion). In Postgres mode the next flush writes the tombstone, as eraseMemberAsync does. */
+  public deleteCredential(userId: string): void {
+    if (!this.state.credentials[userId]) return;
+    delete this.state.credentials[userId];
+    this.persistToDisk();
+  }
+
   public getCredential(userId: string): { passwordHash: string; salt: string } | null {
     return this.state.credentials[userId] || null;
   }
@@ -1250,7 +1265,7 @@ export class DurableCollaborateDatabase {
     const viewer = this.getMemberById(viewerId);
     if (!viewer) return { allowed: false, remaining: 0, alreadyViewedToday: false };
 
-    if (viewer.plan === 'premium') {
+    if (isPremiumActive(viewer)) {
       return { allowed: true, remaining: 9999, alreadyViewedToday: false };
     }
 

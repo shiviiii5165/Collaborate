@@ -256,6 +256,8 @@ export interface MemberProfile {
   notificationPreferences?: NotificationPreferences;
   isUnder18?: boolean;
   safeguardingApproved?: boolean;
+  /** Server-only. Bumped to revoke every session issued before (password change, deactivation, deletion). */
+  sessionVersion?: number;
   institutionDomain?: string;
   isDemo?: boolean;
   role?: 'member' | 'admin';

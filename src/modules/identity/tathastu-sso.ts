@@ -391,6 +391,7 @@ export class TathastuSsoService {
     // F. Issue Collaborate Session Token
     const token = await signSessionToken({
       userId: member.id,
+      sv: member.sessionVersion ?? 0,
       email: member.email,
       role: member.role || 'member',
       plan: member.plan,

@@ -17,7 +17,7 @@
     "test:phase4": "tsx --import ./tests/setup-isolated-db.mjs tests/phase4_autoprovision_activity.test.mjs && tsx --import ./tests/setup-isolated-db.mjs tests/phase5_sync_lifecycle.test.mjs",
     "test:ecosystem": "tsx --import ./tests/setup-isolated-db.mjs tests/ecosystem_matching_discovery.test.mjs",
     "test:integrity": "tsx tests/profile_discovery_integrity.test.mjs",
-    "test:messaging": "tsx --import ./tests/setup-isolated-db.mjs tests/messaging_flow.test.mjs",
+    "test:messaging": "tsx --import ./tests/setup-isolated-db.mjs tests/messaging_flow.test.mjs && tsx --import ./tests/setup-isolated-db.mjs tests/session_security.test.mjs",
     "test:social": "tsx --import ./tests/setup-isolated-db.mjs tests/social_feed.test.mjs && tsx --import ./tests/setup-isolated-db.mjs tests/social_moderation.test.mjs && tsx --import ./tests/setup-isolated-db.mjs tests/social_media_r2.test.mjs && tsx tests/social_storage_failure_pg.test.mjs",
     "test:live-pg": "tsx tests/social_multi_instance_live.test.mjs",
     "test": "npm run test:integrity && npm run test:authz && npm run test:sso && npm run test:phase2 && npm run test:phase3 && npm run test:migration && npm run test:staging && npm run test:phase4 && npm run test:ecosystem && npm run test:messaging && npm run test:social",

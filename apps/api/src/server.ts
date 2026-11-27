@@ -10,7 +10,7 @@ import crypto from 'crypto';
 import Fastify, { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
-import { durableDb, getKolkataDateKey, ConcurrentModificationError, StorageWriteDiscardedError } from '@/lib/db/index';
+import { durableDb, getKolkataDateKey, isPremiumActive, ConcurrentModificationError, StorageWriteDiscardedError } from '@/lib/db/index';
 import { toPublicMember, toSelfMember, isVisibleInDiscovery, isOrphanedAutomaticProfile } from '@/modules/profile/public-member';
 import { applyLocalProfileEdit, releaseIdentityFills } from '@/modules/profile/ownership';
 import { ProfileEditError, sanitizeProfileUpdates } from '@/modules/profile/profile-edit';
@@ -20,6 +20,7 @@ import { TathastuSsoService } from '@/modules/identity/tathastu-sso';
 import { TathastuClient } from '@/integrations/tathastu/client';
 import {
   verifySessionToken,
+  signSessionToken,
   COOKIE_NAME,
   SessionPayload,
   buildSessionCookie,
@@ -207,6 +208,18 @@ export function buildServer(): FastifyInstance {
   };
 
   // 3. Auth Helpers
+  /**
+   * A verified token is honoured only while its account exists, is active, and has not revoked older sessions
+   * (sessionVersion: bumped on password change, deactivation and deletion). Role and plan come from the stored
+   * account, never the token, so a demoted admin or an expired plan takes effect on the next request.
+   */
+  const currentSession = (payload: SessionPayload): SessionPayload | null => {
+    const member = durableDb.getMemberById(payload.userId);
+    if (!member || member.deactivated) return null;
+    if ((payload.sv ?? 0) !== (member.sessionVersion ?? 0)) return null;
+    return { ...payload, email: member.email, role: member.role === 'admin' ? 'admin' : 'member', plan: isPremiumActive(member) ? 'premium' : 'free' };
+  };
+
   const authenticate = async (req: FastifyRequest, reply: FastifyReply) => {
     let token = req.cookies[COOKIE_NAME];
     if (!token && req.headers.authorization) {
@@ -225,13 +238,11 @@ export function buildServer(): FastifyInstance {
       return reply.status(401).send({ error: 'INVALID_SESSION', message: 'Session expired or invalid' });
     }
 
-    // The account behind a still-valid token must exist and be active.
-    const member = durableDb.getMemberById(payload.userId);
-    if (!member || member.deactivated) {
+    const user = currentSession(payload);
+    if (!user) {
       return reply.status(401).send({ error: 'INVALID_SESSION', message: 'Session expired or invalid' });
     }
-
-    req.user = payload;
+    req.user = user;
   };
 
   /**
@@ -257,7 +268,8 @@ export function buildServer(): FastifyInstance {
     }
     if (token) {
       const payload = await verifySessionToken(token);
-      if (payload) req.user = payload;
+      const user = payload ? currentSession(payload) : null;
+      if (user) req.user = user;
     }
   };
 
@@ -1043,7 +1055,12 @@ export function buildServer(): FastifyInstance {
 
     const { hash: newHash, salt: newSalt } = await hashPassword(newPassword);
     durableDb.setCredential(userId, newHash, newSalt);
-    return reply.send({ success: true, message: 'Password updated' });
+    // Every other session (including a stolen token) ends; this device gets a fresh one.
+    const nextVersion = (member.sessionVersion ?? 0) + 1;
+    await durableDb.saveMemberAsync({ ...member, sessionVersion: nextVersion });
+    const fresh = await signSessionToken({ userId, email: member.email, role: member.role === 'admin' ? 'admin' : 'member', plan: member.plan, sv: nextVersion });
+    reply.header('Set-Cookie', buildSessionCookie(fresh));
+    return reply.send({ success: true, message: 'Password updated. You were signed out on other devices.' });
   };
 
   const buildExport = (userId: string, member: MemberProfile) => ({
@@ -1149,7 +1166,7 @@ export function buildServer(): FastifyInstance {
     if (action === 'deactivate') {
       const member = durableDb.getMemberById(userId);
       if (member) {
-        durableDb.saveMember({ ...member, deactivated: true });
+        await durableDb.saveMemberAsync({ ...member, deactivated: true, sessionVersion: (member.sessionVersion ?? 0) + 1 });
       }
       reply.clearCookie(COOKIE_NAME, { path: '/' });
       return reply.send({ success: true, deactivated: true });
@@ -1171,21 +1188,44 @@ export function buildServer(): FastifyInstance {
     if (!member) return reply.status(404).send({ error: 'Member not found' });
 
     const cred = durableDb.getCredential(userId);
-    if (!cred) return reply.status(401).send({ error: 'Credentials not found' });
+    // Password accounts re-enter their password. AI Tathastu sign-in accounts have none (they could never delete
+    // before); for them the signed-in session plus the typed confirmation phrase is the check.
+    if (cred) {
+      // A missing or non-string password is simply wrong (401), never a 500.
+      const valid = typeof password === 'string' && (await verifyPassword(password, cred.passwordHash, cred.salt));
+      if (!valid) return reply.status(401).send({ error: 'Invalid password for account deletion' });
+    } else if (!member.isLinkedWithTathastu) {
+      return reply.status(401).send({ error: 'Credentials not found' });
+    }
 
-    // A missing or non-string password is simply wrong (401), never a 500.
-    const valid = typeof password === 'string' && (await verifyPassword(password, cred.passwordHash, cred.salt));
-    if (!valid) return reply.status(401).send({ error: 'Invalid password for account deletion' });
-
-    // Anonymize and deactivate
-    durableDb.saveMember({
+    // Tombstone: the record stays (deactivated, so AI Tathastu sync cannot silently re-create the account), but
+    // everything that identifies the person is removed, the password is deleted and every session ends.
+    await durableDb.saveMemberAsync({
       ...member,
+      email: `deleted+${member.id}@deleted.invalid`,
       fullName: 'Former Member',
       headline: 'Account Deleted',
+      about: '',
+      location: '',
+      avatarUrl: '/images/default_avatar.svg',
+      bannerUrl: '',
+      socialLinks: {},
+      skills: [],
+      projects: [],
+      experience: [],
+      education: [],
+      recentActivity: [],
+      aiSpecializations: [],
+      collaborationInterests: [],
+      contextTags: [],
+      importedProfile: null,
+      tathastuProfile: undefined,
       deactivated: true,
       profileVisibility: 'private',
       discoverable: false,
-    });
+      sessionVersion: (member.sessionVersion ?? 0) + 1,
+    } as MemberProfile);
+    durableDb.deleteCredential(userId);
     reply.clearCookie(COOKIE_NAME, { path: '/' });
     return reply.send({ success: true, deleted: true });
   });
